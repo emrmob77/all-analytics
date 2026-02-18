@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import SearchBar from "@/components/ui/SearchBar";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -67,28 +68,7 @@ function Header({ onMenuClick }: HeaderProps) {
         </h1>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <label className="relative hidden md:block">
-            <span className="material-icons-round pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-text-muted-light dark:text-text-muted-dark">
-              search
-            </span>
-            <input
-              aria-label="Search"
-              className="w-64 rounded-lg border border-border-light bg-background-light py-2 pl-10 pr-14 text-sm text-text-main-light outline-none transition-colors placeholder:text-text-muted-light focus:border-primary focus:ring-2 focus:ring-primary dark:border-border-dark dark:bg-background-dark dark:text-text-main-dark dark:placeholder:text-text-muted-dark"
-              placeholder="Search..."
-              type="search"
-            />
-            <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-mono text-gray-500 dark:border-gray-600 dark:text-gray-400">
-              ⌘K
-            </kbd>
-          </label>
-
-          <button
-            aria-label="Open search"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border-light bg-surface-light text-text-muted-light transition-colors hover:bg-gray-50 dark:border-border-dark dark:bg-surface-dark dark:text-text-muted-dark dark:hover:bg-gray-800 md:hidden"
-            type="button"
-          >
-            <span className="material-icons-round text-lg">search</span>
-          </button>
+          <SearchBar />
 
           <div className="relative" ref={quickActionsRef}>
             <button

@@ -102,7 +102,7 @@ src/
 - Border-bottom ile ayırıcı
 - Mobile'da hamburger menü butonu göster
 
-### 2.6 SearchBar Component Oluşturma
+### [x] 2.6 SearchBar Component Oluşturma
 **Gereksinimler:** 3.2, 3.3, 3.4, 11.6
 **Detaylar:**
 - src/components/ui/SearchBar.tsx dosyası oluştur
