@@ -161,7 +161,7 @@ src/
 - Mevcut layout bileşenini App Router sayfalarında kullan
 - 404 Not Found sayfası ekle
 
-### 4.2 Route Tanımları ve Modül Placeholder'ları
+### [x] 4.2 Route Tanımları ve Modül Placeholder'ları
 **Gereksinimler:** 5.1, 5.2, 5.3, 5.4, 5.5
 **Detaylar:**
 - `src/app/<route>/page.tsx` yapısında modül route'larını oluştur

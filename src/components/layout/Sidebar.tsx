@@ -5,38 +5,12 @@ import { usePathname } from "next/navigation";
 import { useBrand } from "@/contexts/BrandContext";
 import BrandSelector from "@/components/navigation/BrandSelector";
 import NavigationMenu from "@/components/navigation/NavigationMenu";
-import type { NavigationSection } from "@/types/navigation";
+import { navigationSections } from "@/modules/moduleRegistry";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const sections: NavigationSection[] = [
-  {
-    title: "Analytics",
-    items: [
-      { label: "Dashboard", icon: "dashboard", path: "/" },
-      { label: "Performance", icon: "insights", path: "/performance" },
-      { label: "Campaigns", icon: "campaign", path: "/campaigns" },
-      { label: "Channels", icon: "hub", path: "/channels" }
-    ]
-  },
-  {
-    title: "Configuration",
-    items: [
-      { label: "Integrations", icon: "extension", path: "/integrations" },
-      { label: "Attribution", icon: "settings_suggest", path: "/attribution" }
-    ]
-  },
-  {
-    title: "System",
-    items: [
-      { label: "Team", icon: "manage_accounts", path: "/team" },
-      { label: "Settings", icon: "settings", path: "/settings" }
-    ]
-  }
-];
 
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { brands, activeBrand, isLoading, selectBrand } = useBrand();
@@ -76,7 +50,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         )}
 
-        <NavigationMenu activePath={pathname} onItemClick={onClose} sections={sections} />
+        <NavigationMenu activePath={pathname} onItemClick={onClose} sections={navigationSections} />
 
         <div className="mt-auto p-4">
           <div className="mb-4 space-y-1">

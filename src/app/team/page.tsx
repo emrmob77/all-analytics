@@ -1,10 +1,10 @@
 import App from "@/App";
 import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
 
-export default function HomePage() {
+export default function TeamPage() {
   return (
     <App>
-      <ModulePlaceholderRenderer moduleKey="overview" />
+      <ModulePlaceholderRenderer moduleKey="team" />
     </App>
   );
 }

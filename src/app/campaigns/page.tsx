@@ -1,10 +1,10 @@
 import App from "@/App";
 import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
 
-export default function HomePage() {
+export default function CampaignsPage() {
   return (
     <App>
-      <ModulePlaceholderRenderer moduleKey="overview" />
+      <ModulePlaceholderRenderer moduleKey="campaigns" />
     </App>
   );
 }

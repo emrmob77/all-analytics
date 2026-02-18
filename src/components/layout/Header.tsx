@@ -5,33 +5,10 @@ import { usePathname } from "next/navigation";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import SearchBar from "@/components/ui/SearchBar";
+import { getPageTitleByPath } from "@/modules/moduleRegistry";
 
 interface HeaderProps {
   onMenuClick: () => void;
-}
-
-const routeTitles: Record<string, string> = {
-  "/": "Overview Dashboard",
-  "/performance": "Performance",
-  "/campaigns": "Campaigns",
-  "/channels": "Channels",
-  "/integrations": "Integrations",
-  "/attribution": "Attribution",
-  "/team": "Team",
-  "/settings": "Settings"
-};
-
-function getPageTitle(pathname: string) {
-  if (routeTitles[pathname]) {
-    return routeTitles[pathname];
-  }
-
-  const lastSegment = pathname.split("/").filter(Boolean).at(-1);
-  if (!lastSegment) return "Overview Dashboard";
-  return lastSegment
-    .split("-")
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
 }
 
 function Header({ onMenuClick }: HeaderProps) {
@@ -67,7 +44,7 @@ function Header({ onMenuClick }: HeaderProps) {
     <header className="h-20 border-b border-border-light bg-surface-light px-4 dark:border-border-dark dark:bg-surface-dark md:px-8">
       <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-4">
         <h1 className="truncate text-lg font-bold tracking-tight text-text-main-light dark:text-text-main-dark md:text-2xl">
-          {getPageTitle(pathname)}
+          {getPageTitleByPath(pathname)}
         </h1>
 
         <div className="flex items-center gap-2 md:gap-4">
