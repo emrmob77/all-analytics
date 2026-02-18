@@ -1,22 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 
+import { useBrand } from "@/contexts/BrandContext";
 import BrandSelector from "@/components/navigation/BrandSelector";
 import NavigationMenu from "@/components/navigation/NavigationMenu";
-import type { Brand, NavigationSection } from "@/types/navigation";
+import type { NavigationSection } from "@/types/navigation";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const brands: Brand[] = [
-  { id: "brand-1", name: "Growth Hacking Inc.", avatar: "GH", activeAdmins: 3 },
-  { id: "brand-2", name: "Allanalytics Labs", avatar: "AL", activeAdmins: 2 },
-  { id: "brand-3", name: "Digital Nova", avatar: "DN", activeAdmins: 4 }
-];
 
 const sections: NavigationSection[] = [
   {
@@ -45,7 +39,7 @@ const sections: NavigationSection[] = [
 ];
 
 function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const [activeBrand, setActiveBrand] = useState<Brand>(brands[0]);
+  const { brands, activeBrand, isLoading, selectBrand } = useBrand();
   const pathname = usePathname();
 
   return (
@@ -71,7 +65,16 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <BrandSelector brand={activeBrand} brands={brands} onSelectBrand={setActiveBrand} />
+        {activeBrand ? (
+          <BrandSelector brand={activeBrand} brands={brands} onSelectBrand={selectBrand} />
+        ) : (
+          <div className="mb-6 px-4">
+            <div className="h-[62px] animate-pulse rounded-lg border border-border-light bg-background-light dark:border-border-dark dark:bg-background-dark" />
+            {isLoading ? (
+              <p className="mt-2 text-xs text-text-muted-light dark:text-text-muted-dark">Loading brands...</p>
+            ) : null}
+          </div>
+        )}
 
         <NavigationMenu activePath={pathname} onItemClick={onClose} sections={sections} />
 

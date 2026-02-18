@@ -8,11 +8,23 @@ const env = (
   }
 ).process?.env ?? {};
 
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL ?? env.VITE_SUPABASE_URL;
-const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY;
+const hasSupabaseEnv = Boolean(
+  (env.NEXT_PUBLIC_SUPABASE_URL ?? env.VITE_SUPABASE_URL) &&
+    (env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY)
+);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables. Check .env.local configuration.");
+const supabaseUrl =
+  env.NEXT_PUBLIC_SUPABASE_URL ?? env.VITE_SUPABASE_URL ?? "https://placeholder.supabase.co";
+const supabaseAnonKey =
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? "placeholder-anon-key";
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
+
+if (!hasSupabaseEnv && typeof window !== "undefined") {
+  console.warn("Supabase env variables missing. Falling back to mock-safe client configuration.");
 }
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

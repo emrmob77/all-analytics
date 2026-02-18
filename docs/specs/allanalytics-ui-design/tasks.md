@@ -126,7 +126,7 @@ src/
 - document.documentElement'e 'dark' class ekle/çıkar
 - 200ms transition için CSS ekle
 
-### 3.2 BrandProvider Oluşturma
+### [x] 3.2 BrandProvider Oluşturma
 **Gereksinimler:** 6.1, 6.2, 6.3
 **Detaylar:**
 - src/contexts/BrandContext.tsx dosyası oluştur
