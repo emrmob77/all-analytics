@@ -1,34 +1,52 @@
+"use client";
+
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+
+import BrandSelector from "@/components/navigation/BrandSelector";
+import NavigationMenu from "@/components/navigation/NavigationMenu";
+import type { Brand, NavigationSection } from "@/types/navigation";
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const brands: Brand[] = [
+  { id: "brand-1", name: "Growth Hacking Inc.", avatar: "GH", activeAdmins: 3 },
+  { id: "brand-2", name: "Allanalytics Labs", avatar: "AL", activeAdmins: 2 },
+  { id: "brand-3", name: "Digital Nova", avatar: "DN", activeAdmins: 4 }
+];
+
+const sections: NavigationSection[] = [
+  {
+    title: "Analytics",
+    items: [
+      { label: "Dashboard", icon: "dashboard", path: "/" },
+      { label: "Performance", icon: "insights", path: "/performance" },
+      { label: "Campaigns", icon: "campaign", path: "/campaigns" },
+      { label: "Channels", icon: "hub", path: "/channels" }
+    ]
+  },
+  {
+    title: "Configuration",
+    items: [
+      { label: "Integrations", icon: "extension", path: "/integrations" },
+      { label: "Attribution", icon: "settings_suggest", path: "/attribution" }
+    ]
+  },
+  {
+    title: "System",
+    items: [
+      { label: "Team", icon: "manage_accounts", path: "/team" },
+      { label: "Settings", icon: "settings", path: "/settings" }
+    ]
+  }
+];
+
 function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const sections = [
-    {
-      title: "Analytics",
-      items: [
-        { label: "Dashboard", icon: "dashboard", active: true },
-        { label: "Performance", icon: "insights" },
-        { label: "Campaigns", icon: "campaign" },
-        { label: "Channels", icon: "hub" }
-      ]
-    },
-    {
-      title: "Configuration",
-      items: [
-        { label: "Integrations", icon: "extension" },
-        { label: "Attribution", icon: "settings_suggest" }
-      ]
-    },
-    {
-      title: "System",
-      items: [
-        { label: "Team", icon: "manage_accounts" },
-        { label: "Settings", icon: "settings" }
-      ]
-    }
-  ];
+  const [activeBrand, setActiveBrand] = useState<Brand>(brands[0]);
+  const pathname = usePathname();
 
   return (
     <>
@@ -53,55 +71,9 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <div className="mb-6 px-4">
-          <button
-            className="flex w-full items-center gap-3 rounded-lg border border-border-light bg-background-light p-3 text-left transition-colors hover:border-primary dark:border-border-dark dark:bg-background-dark"
-            type="button"
-          >
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold text-primary">
-              GH
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                Growth Hacking Inc.
-              </div>
-              <div className="text-xs text-text-muted-light dark:text-text-muted-dark">3 admins active</div>
-            </div>
-            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark">
-              expand_more
-            </span>
-          </button>
-        </div>
+        <BrandSelector brand={activeBrand} brands={brands} onSelectBrand={setActiveBrand} />
 
-        <nav className="flex-1 space-y-6 px-4" aria-label="Sidebar navigation">
-          {sections.map((section) => (
-            <section key={section.title}>
-              <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-text-muted-light dark:text-text-muted-dark">
-                {section.title}
-              </h2>
-              <ul className="space-y-1">
-                {section.items.map((item) => (
-                  <li key={item.label}>
-                    <a
-                      className={[
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                        item.active
-                          ? "sidebar-item-active"
-                          : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-                      ].join(" ")}
-                      href="#"
-                    >
-                      <span className={["material-icons-round text-[20px]", item.active ? "text-primary" : ""].join(" ")}>
-                        {item.icon}
-                      </span>
-                      {item.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </nav>
+        <NavigationMenu activePath={pathname} onItemClick={onClose} sections={sections} />
 
         <div className="mt-auto p-4">
           <div className="mb-4 space-y-1">

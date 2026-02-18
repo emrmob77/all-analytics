@@ -72,7 +72,7 @@ src/
 - Mobile'da gizlenme/gösterilme animasyonu ekle
 - Dark mode desteği ekle
 
-### 2.3 BrandSelector Component Oluşturma
+### [x] 2.3 BrandSelector Component Oluşturma
 **Gereksinimler:** 6.1, 6.2, 6.3
 **Detaylar:**
 - src/components/navigation/BrandSelector.tsx dosyası oluştur
@@ -81,7 +81,7 @@ src/
 - Dropdown açık/kapalı state yönetimi
 - Brand seçimi için callback prop ekle
 
-### 2.4 NavigationMenu Component Oluşturma
+### [x] 2.4 NavigationMenu Component Oluşturma
 **Gereksinimler:** 2.1, 2.2, 2.3, 5.1, 5.2, 5.4
 **Detaylar:**
 - src/components/navigation/NavigationMenu.tsx dosyası oluştur
@@ -91,7 +91,7 @@ src/
 - Aktif route için özel stil (sidebar-item-active class)
 - Next.js `Link` component kullan
 
-### 2.5 Header Component Oluşturma
+### [x] 2.5 Header Component Oluşturma
 **Gereksinimler:** 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
 **Detaylar:**
 - src/components/layout/Header.tsx dosyası oluştur

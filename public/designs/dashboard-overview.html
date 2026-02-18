@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Allanalytics - Overview Dashboard</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#5A8A5E",
+            secondary: "#D4E5D6",
+            "background-light": "#F3F4F6",
+            "background-dark": "#111827",
+            "surface-light": "#FFFFFF",
+            "surface-dark": "#1F2937",
+            "text-main-light": "#111827",
+            "text-main-dark": "#F9FAFB",
+            "text-muted-light": "#6B7280",
+            "text-muted-dark": "#9CA3AF",
+            "border-light": "#E5E7EB",
+            "border-dark": "#374151"
+          },
+          borderRadius: {
+            DEFAULT: "0.75rem",
+            xl: "1rem",
+            "2xl": "1.5rem"
+          },
+          keyframes: {
+            "fade-in": {
+              "0%": { opacity: "0" },
+              "100%": { opacity: "1" }
+            },
+            "scale-in": {
+              "0%": { opacity: "0", transform: "scale(0.96)" },
+              "100%": { opacity: "1", transform: "scale(1)" }
+            }
+          },
+          animation: {
+            "fade-in": "fade-in 160ms ease-out",
+            "scale-in": "scale-in 180ms ease-out"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #4b5563;
+    }
+    .sidebar-item-active {
+      background-color: #f3f4f6;
+      color: #111827;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+    }
+    .dark .sidebar-item-active {
+      background-color: #374151;
+      color: #f9fafb;
+      border-color: #374151;
+    }
+    .motion-reduce *,
+    .motion-reduce *::before,
+    .motion-reduce *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  </style>
+</head>
+<body class="bg-background-light text-text-main-light antialiased transition-colors duration-200 dark:bg-background-dark dark:text-text-main-dark">
+  <div class="flex h-screen overflow-hidden">
+    <aside
+      id="sidebar"
+      class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col overflow-y-auto border-r border-border-light bg-surface-light transition-transform duration-200 dark:border-border-dark dark:bg-surface-dark md:static md:translate-x-0"
+      aria-label="Sidebar navigation"
+    >
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-lg">G</div>
+        <span class="font-bold text-xl tracking-tight">
+          Glowytics
+          <span class="text-xs align-top text-text-muted-light dark:text-text-muted-dark">™</span>
+        </span>
+        <button
+          class="ml-auto text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg"
+          aria-label="Open company website"
+          type="button"
+        >
+          <span class="material-icons-round text-sm">open_in_new</span>
+        </button>
+      </div>
+
+      <div class="px-4 mb-6 relative">
+        <button
+          id="brandSelectorButton"
+          class="w-full bg-background-light dark:bg-background-dark p-3 rounded-lg flex items-center gap-3 border border-border-light dark:border-border-dark cursor-pointer hover:border-primary transition-colors text-left"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+          type="button"
+        >
+          <div id="activeBrandAvatar" class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-primary font-semibold text-xs">GH</div>
+          <div class="flex-1 overflow-hidden">
+            <div id="activeBrandName" class="text-sm font-semibold truncate">Growth Hacking Inc.</div>
+            <div id="activeBrandAdmins" class="text-xs text-text-muted-light dark:text-text-muted-dark">3 admins active</div>
+          </div>
+          <span class="material-icons-round text-text-muted-light dark:text-text-muted-dark">expand_more</span>
+        </button>
+
+        <div
+          id="brandDropdown"
+          class="hidden absolute left-4 right-4 top-[calc(100%+0.5rem)] z-50 rounded-xl border border-border-light bg-surface-light p-2 shadow-lg animate-scale-in dark:border-border-dark dark:bg-surface-dark"
+          role="listbox"
+          aria-label="Brand selector"
+        >
+          <button data-brand-id="brand_1" data-brand-name="Growth Hacking Inc." data-brand-admins="3" data-brand-avatar="GH" class="brand-option w-full text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3" type="button">
+            <span class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-primary text-xs font-semibold">GH</span>
+            <span class="flex-1">
+              <span class="block text-sm font-medium">Growth Hacking Inc.</span>
+              <span class="block text-xs text-text-muted-light dark:text-text-muted-dark">3 admins active</span>
+            </span>
+          </button>
+          <button data-brand-id="brand_2" data-brand-name="Nova Retail Group" data-brand-admins="2" data-brand-avatar="NR" class="brand-option w-full text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3" type="button">
+            <span class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-semibold">NR</span>
+            <span class="flex-1">
+              <span class="block text-sm font-medium">Nova Retail Group</span>
+              <span class="block text-xs text-text-muted-light dark:text-text-muted-dark">2 admins active</span>
+            </span>
+          </button>
+          <button data-brand-id="brand_3" data-brand-name="Momentum Labs" data-brand-admins="5" data-brand-avatar="ML" class="brand-option w-full text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3" type="button">
+            <span class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-xs font-semibold">ML</span>
+            <span class="flex-1">
+              <span class="block text-sm font-medium">Momentum Labs</span>
+              <span class="block text-xs text-text-muted-light dark:text-text-muted-dark">5 admins active</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-4 space-y-6" aria-label="Main modules">
+        <div>
+          <div class="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase tracking-wider mb-2 px-2">Analytics</div>
+          <ul class="space-y-1">
+            <li>
+              <a data-route="/overview" href="#/overview" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">dashboard</span>
+                Overview Dashboard
+              </a>
+            </li>
+            <li>
+              <a data-route="/google-ads" href="#/google-ads" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">ads_click</span>
+                Google Ads
+              </a>
+            </li>
+            <li>
+              <a data-route="/meta-ads" href="#/meta-ads" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm sidebar-item-active">
+                <span class="material-icons-round text-[20px] text-primary">campaign</span>
+                Meta Ads
+              </a>
+            </li>
+            <li>
+              <a data-route="/ga4" href="#/ga4" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">analytics</span>
+                GA4
+              </a>
+            </li>
+            <li>
+              <a data-route="/growth-intelligence" href="#/growth-intelligence" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">insights</span>
+                Growth Intelligence
+              </a>
+            </li>
+            <li>
+              <a data-route="/market-insights" href="#/market-insights" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">show_chart</span>
+                Market Insights
+              </a>
+            </li>
+            <li>
+              <a data-route="/commerce-center" href="#/commerce-center" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">shopping_bag</span>
+                Commerce Center
+              </a>
+            </li>
+            <li>
+              <a data-route="/search-console" href="#/search-console" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">manage_search</span>
+                Search Console
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase tracking-wider mb-2 px-2">Configuration</div>
+          <ul class="space-y-1">
+            <li>
+              <a data-route="/integrations" href="#/integrations" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">extension</span>
+                Integrations
+              </a>
+            </li>
+            <li>
+              <a data-route="/task-board" href="#/task-board" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">task_alt</span>
+                Task Board
+              </a>
+            </li>
+            <li>
+              <a data-route="/custom-report" href="#/custom-report" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">description</span>
+                Custom Report
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark uppercase tracking-wider mb-2 px-2">System</div>
+          <ul class="space-y-1">
+            <li>
+              <a data-route="/glowy-ai" href="#/glowy-ai" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">auto_awesome</span>
+                GlowyAI
+              </a>
+            </li>
+            <li>
+              <a data-route="/settings" href="#/settings" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <span class="material-icons-round text-[20px]">settings</span>
+                Settings
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="p-4 mt-auto">
+        <div class="mb-4 space-y-1">
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" href="#">
+            <span class="material-icons-round text-[20px]">notifications</span>
+            Notifications
+            <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-auto">5</span>
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-text-muted-light dark:text-text-muted-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" href="#">
+            <span class="material-icons-round text-[20px]">help_outline</span>
+            Support
+          </a>
+        </div>
+        <div class="flex items-center gap-3 pt-4 border-t border-border-light dark:border-border-dark">
+          <img alt="Profile" class="w-10 h-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&amp;fit=crop&amp;w=200&amp;q=60" />
+          <div>
+            <div class="text-sm font-semibold">Rahat Ali</div>
+            <div class="text-xs text-text-muted-light dark:text-text-muted-dark">Super Admin</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="sidebarBackdrop" class="fixed inset-0 z-30 hidden bg-black/40 animate-fade-in md:hidden" aria-hidden="true"></div>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark relative">
+      <header class="sticky top-0 z-20 flex-shrink-0 bg-surface-light dark:bg-surface-dark h-20 px-4 md:px-8 flex items-center justify-between border-b border-border-light dark:border-border-dark">
+        <h1 id="pageTitle" class="text-lg md:text-2xl font-bold tracking-tight">Overview Dashboard</h1>
+
+        <div class="flex items-center gap-2 md:gap-4">
+          <div class="relative hidden md:block">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 material-icons-round text-text-muted-light dark:text-text-muted-dark text-lg">search</span>
+            <input
+              id="desktopSearch"
+              aria-label="Search"
+              class="pl-10 pr-16 py-2 rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none w-64 dark:text-white placeholder-text-muted-light dark:placeholder-text-muted-dark"
+              placeholder="Search..."
+              type="search"
+            />
+            <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <kbd class="inline-block border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 text-[10px] font-mono text-gray-500 dark:text-gray-400">⌘K</kbd>
+            </div>
+          </div>
+
+          <button
+            id="openSearchModal"
+            class="md:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-muted-light dark:text-text-muted-dark"
+            aria-label="Open search"
+            type="button"
+          >
+            <span class="material-icons-round text-lg">search</span>
+          </button>
+
+          <button
+            id="themeToggle"
+            class="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-text-muted-light dark:text-text-muted-dark transition-colors"
+            aria-label="Toggle theme"
+            type="button"
+          >
+            <span id="themeToggleIcon" class="material-icons-round text-lg">dark_mode</span>
+          </button>
+
+          <button
+            class="inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-text-muted-light dark:text-text-muted-dark transition-colors"
+            aria-label="Open quick actions"
+            type="button"
+          >
+            <span class="material-icons-round text-lg">more_horiz</span>
+          </button>
+
+          <button
+            id="openSidebar"
+            class="md:hidden inline-flex items-center justify-center min-h-11 min-w-11 rounded-lg border border-border-light dark:border-border-dark text-text-muted-light dark:text-text-muted-dark"
+            aria-label="Open menu"
+            type="button"
+          >
+            <span class="material-icons-round">menu</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+        <section>
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+            <h2 class="text-lg font-semibold">Active Campaigns</h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <label for="statusFilter" class="text-sm text-text-muted-light dark:text-text-muted-dark">Filter by:</label>
+              <div class="relative">
+                <select
+                  id="statusFilter"
+                  aria-label="Filter campaigns by status"
+                  class="appearance-none bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary cursor-pointer text-text-main-light dark:text-text-main-dark"
+                >
+                  <option>Status: All</option>
+                  <option>Status: Active</option>
+                  <option>Status: Paused</option>
+                  <option>Status: Stopped</option>
+                </select>
+                <span class="material-icons-round absolute right-2 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-text-muted-light">expand_more</span>
+              </div>
+              <button class="bg-primary hover:bg-opacity-90 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 transition-colors min-h-11" type="button">
+                <span class="material-icons-round text-sm">add</span>
+                New Campaign
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left min-w-[820px]">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-text-muted-light dark:text-text-muted-dark border-b border-border-light dark:border-border-dark">
+                  <tr>
+                    <th class="px-6 py-4 font-medium">Campaign Name</th>
+                    <th class="px-6 py-4 font-medium">Platform</th>
+                    <th class="px-6 py-4 font-medium">Status</th>
+                    <th class="px-6 py-4 font-medium">Budget Used</th>
+                    <th class="px-6 py-4 font-medium">ROAS</th>
+                    <th class="px-6 py-4 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border-light dark:divide-border-dark">
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-medium text-text-main-light dark:text-text-main-dark">Summer Sale 2026</div>
+                      <div class="text-xs text-text-muted-light dark:text-text-muted-dark">ID: #CMP-9201</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-blue-700 font-bold">G</div>
+                        <span>Google Ads</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
+                        Active
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 w-48">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium">$4,200</span>
+                        <span class="text-xs text-text-muted-light dark:text-text-muted-dark">70%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-primary h-1.5 rounded-full" style="width: 70%"></div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                        4.2x
+                        <span class="material-icons-round text-sm">trending_up</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button aria-label="Campaign actions" class="text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg" type="button">
+                        <span class="material-icons-round">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-medium text-text-main-light dark:text-text-main-dark">Brand Awareness Q1</div>
+                      <div class="text-xs text-text-muted-light dark:text-text-muted-dark">ID: #CMP-8832</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">f</div>
+                        <span>Meta Ads</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        <span class="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1.5"></span>
+                        Paused
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 w-48">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium">$1,100</span>
+                        <span class="text-xs text-text-muted-light dark:text-text-muted-dark">22%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 22%"></div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-1 text-text-muted-light dark:text-text-muted-dark font-medium">
+                        1.8x
+                        <span class="material-icons-round text-sm">trending_flat</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button aria-label="Campaign actions" class="text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg" type="button">
+                        <span class="material-icons-round">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-medium text-text-main-light dark:text-text-main-dark">Retargeting Visitors</div>
+                      <div class="text-xs text-text-muted-light dark:text-text-muted-dark">ID: #CMP-7741</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-black flex items-center justify-center text-[10px] text-white font-bold">t</div>
+                        <span>TikTok Ads</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
+                        Active
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 w-48">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium">$8,540</span>
+                        <span class="text-xs text-text-muted-light dark:text-text-muted-dark">92%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-red-500 h-1.5 rounded-full" style="width: 92%"></div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                        5.1x
+                        <span class="material-icons-round text-sm">trending_up</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button aria-label="Campaign actions" class="text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg" type="button">
+                        <span class="material-icons-round">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4">
+                      <div class="font-medium text-text-main-light dark:text-text-main-dark">Seasonal Prospecting</div>
+                      <div class="text-xs text-text-muted-light dark:text-text-muted-dark">ID: #CMP-6418</div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] text-indigo-700 font-bold">in</div>
+                        <span>LinkedIn Ads</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5"></span>
+                        Stopped
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 w-48">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium">$7,430</span>
+                        <span class="text-xs text-text-muted-light dark:text-text-muted-dark">96%</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-red-500 h-1.5 rounded-full" style="width: 96%"></div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
+                        0.9x
+                        <span class="material-icons-round text-sm">trending_down</span>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                      <button aria-label="Campaign actions" class="text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg" type="button">
+                        <span class="material-icons-round">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="px-6 py-4 border-t border-border-light dark:border-border-dark flex items-center justify-center">
+              <button class="text-sm text-primary font-medium hover:underline flex items-center gap-1" type="button">
+                View All Campaigns
+                <span class="material-icons-round text-sm">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <section class="flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">Connected Channels</h2>
+              <button class="text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors min-h-11 min-w-11 rounded-lg" aria-label="Channel settings" type="button">
+                <span class="material-icons-round">settings</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <article data-platform-card class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-blue-700">G</div>
+                    <div>
+                      <h3 class="font-semibold text-sm">Google Ads</h3>
+                      <p data-status-label class="text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Connected</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer" aria-label="Toggle Google Ads connection">
+                    <input checked data-platform-toggle class="sr-only peer" type="checkbox" />
+                    <span class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></span>
+                  </label>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Spend</span><span class="font-semibold">$12,450</span></div>
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Limit</span><span class="font-semibold">$15,000</span></div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-yellow-500 h-1.5 rounded-full" style="width: 83%"></div></div>
+                </div>
+              </article>
+
+              <article data-platform-card class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow opacity-60">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-indigo-700">in</div>
+                    <div>
+                      <h3 class="font-semibold text-sm">LinkedIn Ads</h3>
+                      <p data-status-label class="text-xs text-text-muted-light dark:text-text-muted-dark">Inactive</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer" aria-label="Toggle LinkedIn Ads connection">
+                    <input data-platform-toggle class="sr-only peer" type="checkbox" />
+                    <span class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></span>
+                  </label>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Spend</span><span class="font-semibold">$0</span></div>
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Limit</span><span class="font-semibold">$5,000</span></div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-gray-400 h-1.5 rounded-full" style="width: 0%"></div></div>
+                </div>
+              </article>
+
+              <article data-platform-card class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-blue-600">f</div>
+                    <div>
+                      <h3 class="font-semibold text-sm">Meta Ads</h3>
+                      <p data-status-label class="text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Connected</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer" aria-label="Toggle Meta Ads connection">
+                    <input checked data-platform-toggle class="sr-only peer" type="checkbox" />
+                    <span class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></span>
+                  </label>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Spend</span><span class="font-semibold">$6,200</span></div>
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Limit</span><span class="font-semibold">$10,000</span></div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-primary h-1.5 rounded-full" style="width: 62%"></div></div>
+                </div>
+              </article>
+
+              <article data-platform-card class="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-black dark:text-white">t</div>
+                    <div>
+                      <h3 class="font-semibold text-sm">TikTok Ads</h3>
+                      <p data-status-label class="text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Connected</p>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer" aria-label="Toggle TikTok Ads connection">
+                    <input checked data-platform-toggle class="sr-only peer" type="checkbox" />
+                    <span class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></span>
+                  </label>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Spend</span><span class="font-semibold">$4,700</span></div>
+                  <div class="flex justify-between text-sm"><span class="text-text-muted-light dark:text-text-muted-dark">Limit</span><span class="font-semibold">$5,000</span></div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div class="bg-red-500 h-1.5 rounded-full" style="width: 94%"></div></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">Available Integrations</h2>
+              <button class="text-sm text-primary hover:underline min-h-11" type="button">Browse Directory</button>
+            </div>
+
+            <div class="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm h-full p-2">
+              <ul class="divide-y divide-border-light dark:divide-border-dark">
+                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#4A154B] text-white flex items-center justify-center text-xs font-bold">S</div>
+                    <div>
+                      <h3 class="text-sm font-semibold group-hover:text-primary transition-colors">Slack</h3>
+                      <p class="text-xs text-text-muted-light dark:text-text-muted-dark">Messaging &amp; Alerts</p>
+                    </div>
+                  </div>
+                  <button class="text-xs border border-border-light dark:border-border-dark hover:border-primary hover:text-primary px-3 py-1.5 rounded-md transition-all font-medium" type="button">Connect</button>
+                </li>
+
+                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#00A1E0] text-white flex items-center justify-center text-xs font-bold">SF</div>
+                    <div>
+                      <h3 class="text-sm font-semibold group-hover:text-primary transition-colors">Salesforce</h3>
+                      <p class="text-xs text-text-muted-light dark:text-text-muted-dark">CRM Sync</p>
+                    </div>
+                  </div>
+                  <span class="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 px-3 py-1.5 rounded-md font-medium">Beta</span>
+                </li>
+
+                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#FF7A59] text-white flex items-center justify-center text-xs font-bold">HS</div>
+                    <div>
+                      <h3 class="text-sm font-semibold group-hover:text-primary transition-colors">HubSpot</h3>
+                      <p class="text-xs text-text-muted-light dark:text-text-muted-dark">CRM Automation</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">Connected</span>
+                    <button class="text-xs text-text-muted-light dark:text-text-muted-dark hover:text-primary px-3 py-1.5 rounded-md transition-all font-medium" type="button">Configure</button>
+                  </div>
+                </li>
+
+                <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#95BF47] text-white flex items-center justify-center text-xs font-bold">SH</div>
+                    <div>
+                      <h3 class="text-sm font-semibold group-hover:text-primary transition-colors">Shopify</h3>
+                      <p class="text-xs text-text-muted-light dark:text-text-muted-dark">E-commerce Data</p>
+                    </div>
+                  </div>
+                  <button class="text-xs border border-border-light dark:border-border-dark hover:border-primary hover:text-primary px-3 py-1.5 rounded-md transition-all font-medium" type="button">Connect</button>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="h-8"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="searchModal" class="hidden fixed inset-0 z-50 bg-black/40 p-4 md:hidden animate-fade-in" role="dialog" aria-modal="true" aria-label="Search dialog">
+    <div class="mt-16 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 animate-scale-in">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-icons-round text-text-muted-light dark:text-text-muted-dark">search</span>
+        <input id="mobileSearchInput" aria-label="Mobile search" class="w-full bg-transparent border-0 focus:ring-0 text-sm" type="search" placeholder="Search..." />
+        <button id="closeSearchModal" type="button" class="min-h-11 min-w-11 rounded-lg text-text-muted-light dark:text-text-muted-dark" aria-label="Close search">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-text-muted-light dark:text-text-muted-dark">Shortcut: ⌘K</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const body = document.body;
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeToggleIcon");
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReducedMotion) {
+        body.classList.add("motion-reduce");
+      }
+
+      function applyTheme(theme) {
+        root.classList.toggle("dark", theme === "dark");
+        if (themeIcon) {
+          themeIcon.textContent = theme === "dark" ? "light_mode" : "dark_mode";
+        }
+      }
+
+      const savedTheme = localStorage.getItem("allanalytics-theme");
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      applyTheme(savedTheme || systemTheme);
+
+      if (themeToggle) {
+        themeToggle.addEventListener("click", function () {
+          const nextTheme = root.classList.contains("dark") ? "light" : "dark";
+          localStorage.setItem("allanalytics-theme", nextTheme);
+          applyTheme(nextTheme);
+        });
+      }
+
+      const routeTitles = {
+        "/overview": "Overview Dashboard",
+        "/google-ads": "Google Ads",
+        "/meta-ads": "Meta Ads",
+        "/ga4": "GA4",
+        "/growth-intelligence": "Growth Intelligence",
+        "/market-insights": "Market Insights",
+        "/commerce-center": "Commerce Center",
+        "/search-console": "Search Console",
+        "/integrations": "Integrations",
+        "/task-board": "Task Board",
+        "/custom-report": "Custom Report",
+        "/glowy-ai": "GlowyAI",
+        "/settings": "Settings"
+      };
+
+      const pageTitle = document.getElementById("pageTitle");
+      const sidebarLinks = Array.from(document.querySelectorAll(".sidebar-link"));
+
+      function getRouteFromHash() {
+        const hash = window.location.hash || "#/overview";
+        return hash.startsWith("#") ? hash.replace(/^#/, "") : "/overview";
+      }
+
+      function syncRoute() {
+        const currentRoute = getRouteFromHash();
+        sidebarLinks.forEach(function (link) {
+          const route = link.getAttribute("data-route");
+          const icon = link.querySelector(".material-icons-round");
+          if (route === currentRoute) {
+            link.classList.add("sidebar-item-active");
+            if (icon) icon.classList.add("text-primary");
+          } else {
+            link.classList.remove("sidebar-item-active");
+            if (icon) icon.classList.remove("text-primary");
+          }
+        });
+
+        const nextTitle = routeTitles[currentRoute] || "Overview Dashboard";
+        if (pageTitle) pageTitle.textContent = nextTitle;
+        document.title = "Allanalytics - " + nextTitle;
+      }
+
+      if (!window.location.hash) {
+        window.location.hash = "#/overview";
+      }
+      syncRoute();
+      window.addEventListener("hashchange", syncRoute);
+
+      const sidebar = document.getElementById("sidebar");
+      const openSidebar = document.getElementById("openSidebar");
+      const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+
+      function closeSidebarPanel() {
+        if (window.innerWidth >= 768) return;
+        sidebar.classList.add("-translate-x-full");
+        sidebarBackdrop.classList.add("hidden");
+      }
+
+      function openSidebarPanel() {
+        sidebar.classList.remove("-translate-x-full");
+        sidebarBackdrop.classList.remove("hidden");
+      }
+
+      if (openSidebar) {
+        openSidebar.addEventListener("click", openSidebarPanel);
+      }
+      if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener("click", closeSidebarPanel);
+      }
+      sidebarLinks.forEach(function (link) {
+        link.addEventListener("click", closeSidebarPanel);
+      });
+
+      const searchModal = document.getElementById("searchModal");
+      const openSearchModal = document.getElementById("openSearchModal");
+      const closeSearchModal = document.getElementById("closeSearchModal");
+      const mobileSearchInput = document.getElementById("mobileSearchInput");
+      const desktopSearch = document.getElementById("desktopSearch");
+
+      function closeSearchDialog() {
+        searchModal.classList.add("hidden");
+      }
+
+      if (openSearchModal) {
+        openSearchModal.addEventListener("click", function () {
+          searchModal.classList.remove("hidden");
+          setTimeout(function () {
+            mobileSearchInput.focus();
+          }, 30);
+        });
+      }
+
+      if (closeSearchModal) {
+        closeSearchModal.addEventListener("click", closeSearchDialog);
+      }
+
+      if (searchModal) {
+        searchModal.addEventListener("click", function (event) {
+          if (event.target === searchModal) {
+            closeSearchDialog();
+          }
+        });
+      }
+
+      function syncSearchValue(value) {
+        if (desktopSearch) desktopSearch.value = value;
+        if (mobileSearchInput) mobileSearchInput.value = value;
+      }
+
+      if (desktopSearch) {
+        desktopSearch.addEventListener("input", function (event) {
+          syncSearchValue(event.target.value);
+        });
+      }
+      if (mobileSearchInput) {
+        mobileSearchInput.addEventListener("input", function (event) {
+          syncSearchValue(event.target.value);
+        });
+      }
+
+      document.addEventListener("keydown", function (event) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          if (window.innerWidth < 768) {
+            searchModal.classList.remove("hidden");
+            setTimeout(function () {
+              mobileSearchInput.focus();
+            }, 30);
+          } else if (desktopSearch) {
+            desktopSearch.focus();
+          }
+        }
+
+        if (event.key === "Escape") {
+          closeSearchDialog();
+          closeSidebarPanel();
+          brandDropdown.classList.add("hidden");
+          brandSelectorButton.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      const brandSelectorButton = document.getElementById("brandSelectorButton");
+      const brandDropdown = document.getElementById("brandDropdown");
+      const brandOptions = Array.from(document.querySelectorAll(".brand-option"));
+      const activeBrandName = document.getElementById("activeBrandName");
+      const activeBrandAdmins = document.getElementById("activeBrandAdmins");
+      const activeBrandAvatar = document.getElementById("activeBrandAvatar");
+
+      function setActiveBrand(optionEl) {
+        const brandId = optionEl.getAttribute("data-brand-id");
+        const name = optionEl.getAttribute("data-brand-name");
+        const admins = optionEl.getAttribute("data-brand-admins");
+        const avatar = optionEl.getAttribute("data-brand-avatar");
+
+        sessionStorage.setItem("activeBrandId", brandId);
+        activeBrandName.textContent = name;
+        activeBrandAdmins.textContent = admins + " admins active";
+        activeBrandAvatar.textContent = avatar;
+      }
+
+      brandSelectorButton.addEventListener("click", function () {
+        const isHidden = brandDropdown.classList.contains("hidden");
+        brandDropdown.classList.toggle("hidden");
+        brandSelectorButton.setAttribute("aria-expanded", String(isHidden));
+      });
+
+      brandOptions.forEach(function (option) {
+        option.addEventListener("click", function () {
+          setActiveBrand(option);
+          brandDropdown.classList.add("hidden");
+          brandSelectorButton.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      const savedBrandId = sessionStorage.getItem("activeBrandId");
+      if (savedBrandId) {
+        const matched = brandOptions.find(function (option) {
+          return option.getAttribute("data-brand-id") === savedBrandId;
+        });
+        if (matched) setActiveBrand(matched);
+      }
+
+      document.addEventListener("click", function (event) {
+        if (!brandSelectorButton.contains(event.target) && !brandDropdown.contains(event.target)) {
+          brandDropdown.classList.add("hidden");
+          brandSelectorButton.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      const platformCards = Array.from(document.querySelectorAll("[data-platform-card]"));
+      platformCards.forEach(function (card) {
+        const toggle = card.querySelector("[data-platform-toggle]");
+        const statusLabel = card.querySelector("[data-status-label]");
+
+        function applyConnectionState() {
+          const connected = !!toggle.checked;
+          card.classList.toggle("opacity-60", !connected);
+          if (connected) {
+            statusLabel.textContent = "Connected";
+            statusLabel.className = "text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
+          } else {
+            statusLabel.textContent = "Inactive";
+            statusLabel.className = "text-xs text-text-muted-light dark:text-text-muted-dark";
+          }
+        }
+
+        toggle.addEventListener("change", applyConnectionState);
+        applyConnectionState();
+      });
+    })();
+  </script>
+</body>
+</html>
