@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import "./globals.css";
 
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head>
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

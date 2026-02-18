@@ -116,7 +116,7 @@ src/
 
 ## 3. Context Providers ve State Management
 
-### 3.1 ThemeProvider Oluşturma
+### [x] 3.1 ThemeProvider Oluşturma
 **Gereksinimler:** 4.1, 4.2, 4.6
 **Detaylar:**
 - src/contexts/ThemeContext.tsx dosyası oluştur

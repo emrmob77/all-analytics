@@ -18,6 +18,15 @@ body {
   color: #111827;
 }
 
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
 .sidebar-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
