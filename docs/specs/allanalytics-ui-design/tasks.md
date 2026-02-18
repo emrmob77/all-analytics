@@ -143,7 +143,7 @@ src/
 - selectedMetrics array ve addMetric, removeMetric, reorderMetrics actions
 - campaignFilter state ve setCampaignFilter action
 
-### 3.4 React Query Setup
+### [x] 3.4 React Query Setup
 **Gereksinimler:** 6.3, 7.1, 8.1, 10.2
 **Detaylar:**
 - src/lib/queryClient.ts dosyası oluştur
