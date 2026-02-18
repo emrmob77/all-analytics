@@ -153,7 +153,7 @@ src/
 
 ## 4. Routing ve Sayfa Yapısı
 
-### 4.1 Next.js App Router Kurulumu
+### [x] 4.1 Next.js App Router Kurulumu
 **Gereksinimler:** 5.1, 5.2, 5.3
 **Detaylar:**
 - `src/app/layout.tsx` ile global layout yapısını kur
