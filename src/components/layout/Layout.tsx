@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import { useAppStore } from "@/store/appStore";
+import type { ReactNode } from "react";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarOpen = useAppStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background-light text-text-main-light transition-colors duration-200 dark:bg-background-dark dark:text-text-main-dark">

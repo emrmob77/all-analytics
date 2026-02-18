@@ -135,7 +135,7 @@ src/
 - sessionStorage'da activeBrandId sakla
 - Custom hook: useBrand()
 
-### 3.3 Zustand Store Oluşturma
+### [x] 3.3 Zustand Store Oluşturma
 **Gereksinimler:** 10.1, 10.2, 10.3
 **Detaylar:**
 - src/store/appStore.ts dosyası oluştur
