@@ -227,7 +227,7 @@ src/
 - formatValue utility fonksiyonu kullan
 - Trend ikonu ve renk (up: yeşil, down: kırmızı)
 
-### 5.5 MetricSelector Component Oluşturma
+### [x] 5.5 MetricSelector Component Oluşturma
 **Gereksinimler:** 10.1, 10.5, 10.6
 **Detaylar:**
 - src/components/data-display/MetricSelector.tsx dosyası oluştur

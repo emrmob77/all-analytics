@@ -1,6 +1,7 @@
 import CampaignTable from "@/components/data-display/CampaignTable";
 import IntegrationList from "@/components/data-display/IntegrationList";
 import MetricCard from "@/components/data-display/MetricCard";
+import MetricSelector from "@/components/data-display/MetricSelector";
 import PlatformCard from "@/components/data-display/PlatformCard";
 
 import ModulePlaceholderCard from "./ModulePlaceholderCard";
@@ -20,6 +21,10 @@ function OverviewDashboard() {
         icon="dashboard"
         title="Overview Dashboard"
       />
+
+      <div className="flex justify-end">
+        <MetricSelector />
+      </div>
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {metricCards.map((metric) => (
