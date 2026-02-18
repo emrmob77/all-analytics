@@ -1,4 +1,5 @@
 import CampaignTable from "@/components/data-display/CampaignTable";
+import IntegrationList from "@/components/data-display/IntegrationList";
 import PlatformCard from "@/components/data-display/PlatformCard";
 
 import ModulePlaceholderCard from "./ModulePlaceholderCard";
@@ -13,6 +14,7 @@ function OverviewDashboard() {
       />
       <CampaignTable />
       <PlatformCard />
+      <IntegrationList />
     </div>
   );
 }
