@@ -218,7 +218,7 @@ src/
 - Hover efekti
 - "Browse Directory" link
 
-### 5.4 MetricCard Component Oluşturma
+### [x] 5.4 MetricCard Component Oluşturma
 **Gereksinimler:** 10.4, 10.7
 **Detaylar:**
 - src/components/data-display/MetricCard.tsx dosyası oluştur
