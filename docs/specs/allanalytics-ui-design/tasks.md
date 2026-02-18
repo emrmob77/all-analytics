@@ -178,7 +178,7 @@ src/
 
 ## 5. Veri Görselleştirme Bileşenleri
 
-### 5.1 CampaignTable Component Oluşturma
+### [x] 5.1 CampaignTable Component Oluşturma
 **Gereksinimler:** 7.1, 7.2, 7.3, 7.4, 7.5, 7.6
 **Detaylar:**
 - src/components/data-display/CampaignTable.tsx dosyası oluştur
