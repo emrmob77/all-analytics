@@ -9,14 +9,17 @@ allanalytics/
 ├── README.md
 ├── .gitignore
 ├── package.json
+├── next.config.ts
+├── next-env.d.ts
 ├── tsconfig.json
 ├── src/
-│   ├── main.tsx
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
 │   ├── App.tsx
-│   └── ...
+│   └── components/
 └── docs/
-    ├── prototype/
-    │   └── static-ui.html
     └── specs/
         └── allanalytics-ui-design/
             ├── requirements.md
@@ -43,9 +46,12 @@ allanalytics/
    ```bash
    npm run build
    ```
+5. Production sunucusunu çalıştırın:
+   ```bash
+   npm run start
+   ```
 
 ## Notlar
 
-- Geliştirme akışında doğrudan build tool komutu yerine `npm run` scriptleri kullanılır.
-- Eski statik prototip dosyası: `docs/prototype/static-ui.html`
+- Proje Next.js tabanlıdır ve `brand radar` klasöründeki akışla aynı şekilde çalışır (`next dev/build/start`).
 - Dokümantasyon dosyaları `docs/specs/allanalytics-ui-design/` altında tutulur.

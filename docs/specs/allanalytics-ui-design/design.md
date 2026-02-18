@@ -2,7 +2,7 @@
 
 ## Genel Bakış
 
-Allanalytics UI tasarımı, modern web teknolojileri kullanarak çoklu reklam platformlarının metriklerini tek bir arayüzde toplayan bir marketing intelligence platformunun kullanıcı arayüzünü oluşturur. Bu tasarım, React tabanlı bir single-page application (SPA) olarak geliştirilecek ve Tailwind CSS, shadcn/ui ve Framer Motion kullanarak modern, responsive ve erişilebilir bir kullanıcı deneyimi sunacaktır.
+Allanalytics UI tasarımı, modern web teknolojileri kullanarak çoklu reklam platformlarının metriklerini tek bir arayüzde toplayan bir marketing intelligence platformunun kullanıcı arayüzünü oluşturur. Bu tasarım, Next.js (App Router) tabanlı bir web uygulaması olarak geliştirilecek ve Tailwind CSS, shadcn/ui ve Framer Motion kullanarak modern, responsive ve erişilebilir bir kullanıcı deneyimi sunacaktır.
 
 ### Temel Prensipler
 
@@ -15,12 +15,12 @@ Allanalytics UI tasarımı, modern web teknolojileri kullanarak çoklu reklam pl
 
 ### Teknoloji Stack
 
-- **Frontend Framework**: React 18+ (TypeScript)
+- **Frontend Framework**: Next.js 15+ (React 19, TypeScript)
 - **Styling**: Tailwind CSS 3+
 - **Component Library**: shadcn/ui
 - **Animation**: Framer Motion
 - **State Management**: React Context API + Zustand
-- **Routing**: React Router v6
+- **Routing**: Next.js App Router (file-based routing)
 - **Form Management**: React Hook Form + Zod
 - **Data Fetching**: TanStack Query (React Query)
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
@@ -696,21 +696,19 @@ interface ThemeState {
 
 ### Route Tanımları
 
-```typescript
-const routes = [
-  { path: '/', component: OverviewDashboard, title: 'Overview Dashboard' },
-  { path: '/google-ads', component: GoogleAdsModule, title: 'Google Ads' },
-  { path: '/meta-ads', component: MetaAdsModule, title: 'Meta Ads' },
-  { path: '/ga4', component: GA4Module, title: 'Google Analytics 4' },
-  { path: '/growth-intelligence', component: GrowthIntelligence, title: 'Growth Intelligence' },
-  { path: '/market-insights', component: MarketInsights, title: 'Market Insights' },
-  { path: '/commerce-center', component: CommerceCenter, title: 'Commerce Center' },
-  { path: '/search-console', component: SearchConsole, title: 'Search Console' },
-  { path: '/glowy-ai', component: GlowyAI, title: 'GlowyAI' },
-  { path: '/task-board', component: TaskBoard, title: 'Task Board' },
-  { path: '/custom-report', component: CustomReport, title: 'Custom Report' },
-  { path: '/settings', component: Settings, title: 'Settings' },
-];
+```text
+src/app/page.tsx                        -> /
+src/app/google-ads/page.tsx             -> /google-ads
+src/app/meta-ads/page.tsx               -> /meta-ads
+src/app/ga4/page.tsx                    -> /ga4
+src/app/growth-intelligence/page.tsx    -> /growth-intelligence
+src/app/market-insights/page.tsx        -> /market-insights
+src/app/commerce-center/page.tsx        -> /commerce-center
+src/app/search-console/page.tsx         -> /search-console
+src/app/glowy-ai/page.tsx               -> /glowy-ai
+src/app/task-board/page.tsx             -> /task-board
+src/app/custom-report/page.tsx          -> /custom-report
+src/app/settings/page.tsx               -> /settings
 ```
 
 ## State Management
@@ -1297,7 +1295,7 @@ export const buildConfig = {
   },
   optimization: {
     manualChunks: {
-      "react-vendor": ["react", "react-dom", "react-router-dom"],
+      "react-vendor": ["react", "react-dom", "next"],
       "ui-vendor": ["framer-motion", "@radix-ui/react-dropdown-menu"],
       "data-vendor": ["@tanstack/react-query", "@supabase/supabase-js"],
     },

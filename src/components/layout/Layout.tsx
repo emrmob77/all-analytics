@@ -1,0 +1,30 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+
+interface LayoutProps {
+  children: ReactNode;
+}
+
+function Layout({ children }: LayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background-light text-text-main-light transition-colors duration-200 dark:bg-background-dark dark:text-text-main-dark">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="mx-auto max-w-[1600px]">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default Layout;

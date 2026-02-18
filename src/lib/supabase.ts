@@ -1,9 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
-import type { Database } from "@/types/supabase";
+import type { Database } from "../types/supabase";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const env = (
+  globalThis as {
+    process?: { env?: Record<string, string | undefined> };
+  }
+).process?.env ?? {};
+
+const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL ?? env.VITE_SUPABASE_URL;
+const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables. Check .env.local configuration.");

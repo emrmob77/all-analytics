@@ -2,17 +2,17 @@
 
 ## 1. Proje Kurulumu ve Temel Yapılandırma
 
-### 1.1 React + TypeScript Projesi Oluşturma (npm run odaklı)
+### [x] 1.1 Next.js + TypeScript Projesi Oluşturma (npm run odaklı)
 **Gereksinimler:** Tüm gereksinimler için temel
 **Detaylar:**
-- React + TypeScript projesini manuel kur (npm init + bağımlılık kurulumu)
-- Tüm geliştirme komutlarını `npm run` scriptleri üzerinden çalıştır (`dev`, `build`, `preview`, `type-check`, `lint`)
-- Package.json'a gerekli bağımlılıkları ekle: react-router-dom, @tanstack/react-query, zustand, framer-motion, tailwindcss, @supabase/supabase-js
+- Next.js (App Router) + TypeScript projesini kur
+- Tüm geliştirme komutlarını `npm run` scriptleri üzerinden çalıştır (`dev`, `build`, `start`, `type-check`, `lint`)
+- Package.json'a gerekli bağımlılıkları ekle: next, @tanstack/react-query, zustand, framer-motion, tailwindcss, @supabase/supabase-js
 - shadcn/ui kurulumunu yap
 - TypeScript konfigürasyonunu ayarla (strict mode)
 - ESLint ve Prettier konfigürasyonlarını ekle
 
-### 1.2 Tailwind CSS ve Tema Konfigürasyonu
+### [x] 1.2 Tailwind CSS ve Tema Konfigürasyonu
 **Gereksinimler:** 4.1, 4.2, 4.3, 4.4, 4.5
 **Detaylar:**
 - tailwind.config.js dosyasını oluştur
@@ -22,7 +22,7 @@
 - Font family olarak Inter'i ekle
 - Responsive breakpoint'leri doğrula
 
-### 1.3 Supabase Client Kurulumu
+### [x] 1.3 Supabase Client Kurulumu
 **Gereksinimler:** 6.3, 10.2
 **Detaylar:**
 - src/lib/supabase.ts dosyası oluştur
@@ -30,7 +30,7 @@
 - .env.example dosyası oluştur
 - TypeScript type definitions ekle
 
-### 1.4 Proje Klasör Yapısını Oluşturma
+### [x] 1.4 Proje Klasör Yapısını Oluşturma
 **Gereksinimler:** Tüm gereksinimler için temel
 **Detaylar:**
 ```
@@ -51,7 +51,7 @@ src/
 
 ## 2. Layout ve Navigasyon Bileşenleri
 
-### 2.1 Layout Component Oluşturma
+### [x] 2.1 Layout Component Oluşturma
 **Gereksinimler:** 1.1, 1.2, 1.3
 **Detaylar:**
 - src/components/layout/Layout.tsx dosyası oluştur
@@ -60,7 +60,7 @@ src/
 - Mobile state yönetimi için useState kullan
 - Responsive davranış ekle (md breakpoint)
 
-### 2.2 Sidebar Component Oluşturma
+### [x] 2.2 Sidebar Component Oluşturma
 **Gereksinimler:** 1.4, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 11.2
 **Detaylar:**
 - src/components/layout/Sidebar.tsx dosyası oluştur
@@ -89,7 +89,7 @@ src/
 - Her kategori için başlık ve menü öğeleri listesi
 - Material Icons Round ikonlarını ekle
 - Aktif route için özel stil (sidebar-item-active class)
-- React Router Link component kullan
+- Next.js `Link` component kullan
 
 ### 2.5 Header Component Oluşturma
 **Gereksinimler:** 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
@@ -153,19 +153,19 @@ src/
 
 ## 4. Routing ve Sayfa Yapısı
 
-### 4.1 React Router Kurulumu
+### 4.1 Next.js App Router Kurulumu
 **Gereksinimler:** 5.1, 5.2, 5.3
 **Detaylar:**
-- src/App.tsx'te BrowserRouter ekle
-- Routes ve Route component'lerini yapılandır
-- Layout component'i ile sarmalama
+- `src/app/layout.tsx` ile global layout yapısını kur
+- `src/app/page.tsx` ve modül sayfaları ile route'ları dosya tabanlı tanımla
+- Mevcut layout bileşenini App Router sayfalarında kullan
 - 404 Not Found sayfası ekle
 
 ### 4.2 Route Tanımları ve Modül Placeholder'ları
 **Gereksinimler:** 5.1, 5.2, 5.3, 5.4, 5.5
 **Detaylar:**
-- src/routes.ts dosyası oluştur
-- Her modül için route tanımı: path, component, title, icon
+- `src/app/<route>/page.tsx` yapısında modül route'larını oluştur
+- Her modül için route dizini, sayfa başlığı ve ikon eşleşmesi tanımla
 - Placeholder component'ler oluştur (OverviewDashboard, GoogleAdsModule, vb.)
 - Lazy loading için React.lazy kullan
 

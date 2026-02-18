@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.sidebar-item-active {
+  border: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+}
+
+.dark .sidebar-item-active {
+  border-color: #374151;
+  background-color: #374151;
+  color: #f9fafb;
+}
