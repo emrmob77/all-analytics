@@ -1290,35 +1290,28 @@ CREATE POLICY "Users can view their brand connections"
 ### Build Configuration
 
 ```typescript
-// vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+// build.config.ts (örnek)
+export const buildConfig = {
+  alias: {
+    "@": "./src",
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['framer-motion', '@radix-ui/react-dropdown-menu'],
-          'data-vendor': ['@tanstack/react-query', '@supabase/supabase-js'],
-        },
-      },
+  optimization: {
+    manualChunks: {
+      "react-vendor": ["react", "react-dom", "react-router-dom"],
+      "ui-vendor": ["framer-motion", "@radix-ui/react-dropdown-menu"],
+      "data-vendor": ["@tanstack/react-query", "@supabase/supabase-js"],
     },
+    minifyCSS: true,
+    treeShaking: true,
   },
-});
+};
 ```
 
 ### Environment Setup
 
 ```bash
+# Not: build tool komutları doğrudan çalıştırılmaz, npm scripts kullanılır.
+
 # Development
 npm run dev
 

@@ -1,6 +1,6 @@
 # All Analytics
 
-Tek sayfalık bir analitik panel arayüz prototipi.
+Allanalytics için UI/UX odaklı frontend proje altyapısı ve tasarım dokümanları.
 
 ## Proje Yapısı
 
@@ -8,9 +8,15 @@ Tek sayfalık bir analitik panel arayüz prototipi.
 allanalytics/
 ├── README.md
 ├── .gitignore
+├── package.json
+├── tsconfig.json
 ├── src/
-│   └── index.html
+│   ├── main.tsx
+│   ├── App.tsx
+│   └── ...
 └── docs/
+    ├── prototype/
+    │   └── static-ui.html
     └── specs/
         └── allanalytics-ui-design/
             ├── requirements.md
@@ -25,10 +31,21 @@ allanalytics/
    git clone git@github.com:emrmob77/all-analytics.git
    cd all-analytics
    ```
-2. Arayüz dosyasını tarayıcıda açın:
-   - `src/index.html`
+2. Bağımlılıkları kurun:
+   ```bash
+   npm install
+   ```
+3. Geliştirme sunucusunu başlatın:
+   ```bash
+   npm run dev
+   ```
+4. Build alın:
+   ```bash
+   npm run build
+   ```
 
 ## Notlar
 
-- Arayüz şu anda statik HTML/Tailwind CDN ile çalışır.
+- Geliştirme akışında doğrudan build tool komutu yerine `npm run` scriptleri kullanılır.
+- Eski statik prototip dosyası: `docs/prototype/static-ui.html`
 - Dokümantasyon dosyaları `docs/specs/allanalytics-ui-design/` altında tutulur.

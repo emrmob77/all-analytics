@@ -2,10 +2,11 @@
 
 ## 1. Proje Kurulumu ve Temel Yapılandırma
 
-### 1.1 React + TypeScript + Vite Projesi Oluşturma
+### 1.1 React + TypeScript Projesi Oluşturma (npm run odaklı)
 **Gereksinimler:** Tüm gereksinimler için temel
 **Detaylar:**
-- Vite ile yeni React + TypeScript projesi oluştur
+- React + TypeScript projesini manuel kur (npm init + bağımlılık kurulumu)
+- Tüm geliştirme komutlarını `npm run` scriptleri üzerinden çalıştır (`dev`, `build`, `preview`, `type-check`, `lint`)
 - Package.json'a gerekli bağımlılıkları ekle: react-router-dom, @tanstack/react-query, zustand, framer-motion, tailwindcss, @supabase/supabase-js
 - shadcn/ui kurulumunu yap
 - TypeScript konfigürasyonunu ayarla (strict mode)
@@ -420,7 +421,7 @@ src/
 ### 11.4 Bundle Optimization
 **Gereksinimler:** 14.4, 14.5
 **Detaylar:**
-- Vite build config: manualChunks
+- Build config: manualChunks
 - Vendor chunk'ları: react-vendor, ui-vendor, data-vendor
 - CSS minification
 - Tree shaking
@@ -491,7 +492,7 @@ src/
 ### 14.2 Build Configuration
 **Gereksinimler:** 14.4, 14.5
 **Detaylar:**
-- vite.config.ts optimize et
+- Build config dosyasını optimize et
 - Path alias (@/) ekle
 - Build output optimize et
 - Source maps production'da devre dışı
