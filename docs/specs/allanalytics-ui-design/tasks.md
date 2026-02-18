@@ -169,7 +169,7 @@ src/
 - Placeholder component'ler oluştur (OverviewDashboard, GoogleAdsModule, vb.)
 - Lazy loading için React.lazy kullan
 
-### 4.3 Page Title Management
+### [x] 4.3 Page Title Management
 **Gereksinimler:** 3.1
 **Detaylar:**
 - src/hooks/usePageTitle.ts custom hook oluştur

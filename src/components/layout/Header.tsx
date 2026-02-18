@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import usePageTitle from "@/hooks/usePageTitle";
 import SearchBar from "@/components/ui/SearchBar";
-import { getPageTitleByPath } from "@/modules/moduleRegistry";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 function Header({ onMenuClick }: HeaderProps) {
-  const pathname = usePathname();
+  const pageTitle = usePageTitle();
   const { theme, toggleTheme } = useTheme();
   const [actionsOpen, setActionsOpen] = useState(false);
   const quickActionsRef = useRef<HTMLDivElement>(null);
@@ -44,7 +43,7 @@ function Header({ onMenuClick }: HeaderProps) {
     <header className="h-20 border-b border-border-light bg-surface-light px-4 dark:border-border-dark dark:bg-surface-dark md:px-8">
       <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-4">
         <h1 className="truncate text-lg font-bold tracking-tight text-text-main-light dark:text-text-main-dark md:text-2xl">
-          {getPageTitleByPath(pathname)}
+          {pageTitle}
         </h1>
 
         <div className="flex items-center gap-2 md:gap-4">
