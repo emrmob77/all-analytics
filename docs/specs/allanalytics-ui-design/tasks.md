@@ -194,7 +194,7 @@ src/
 - Filter dropdown ve New Campaign butonu (add ikonu ile)
 - Tablo altında "View All Campaigns" linki (arrow_forward ikonu ile)
 
-### 5.2 PlatformCard Component Oluşturma
+### [x] 5.2 PlatformCard Component Oluşturma
 **Gereksinimler:** 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7
 **Detaylar:**
 - src/components/data-display/PlatformCard.tsx dosyası oluştur
