@@ -134,7 +134,11 @@ export function CampaignTable({ activePlatform }: CampaignTableProps) {
 
                   {/* Impressions */}
                   <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
-                    {row.impressions > 0 ? `${(row.impressions / 1000).toFixed(0)}K` : '—'}
+                    {row.impressions > 0
+                      ? row.impressions >= 1_000_000
+                        ? `${(row.impressions / 1_000_000).toFixed(1)}M`
+                        : `${(row.impressions / 1000).toFixed(0)}K`
+                      : '—'}
                   </td>
 
                   {/* Clicks */}

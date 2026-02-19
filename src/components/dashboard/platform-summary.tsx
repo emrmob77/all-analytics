@@ -56,7 +56,7 @@ export function PlatformSummary() {
                   ['Spend', `$${p.spend.toLocaleString()}`],
                   ['Conv.', p.conversions],
                   ['Impr.', `${(p.impressions / 1000).toFixed(0)}K`],
-                  ['ROAS', `${p.roas}x`],
+                  ['ROAS', p.roas === '—' ? '—' : `${p.roas}x`],
                 ].map(([label, value]) => (
                   <div key={label as string}>
                     <div className="text-[9.5px] text-[#9AA0A6]">{label}</div>
