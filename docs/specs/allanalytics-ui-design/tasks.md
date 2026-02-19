@@ -428,7 +428,7 @@ src/
 
 ## 12. Testing
 
-### 12.1 Component Unit Tests
+### [x] 12.1 Component Unit Tests
 **Gereksinimler:** Tüm bileşenler
 **Detaylar:**
 - Vitest ve React Testing Library kurulumu
@@ -438,7 +438,7 @@ src/
 - PlatformCard.test.tsx
 - Her test: render, user interaction, assertion
 
-### 12.2 Custom Hook Tests
+### [x] 12.2 Custom Hook Tests
 **Gereksinimler:** 3.1, 3.2, 6.1, 6.2
 **Detaylar:**
 - @testing-library/react-hooks kullan
@@ -446,7 +446,7 @@ src/
 - usePageTitle.test.ts
 - Mock Supabase client
 
-### 12.3 Integration Tests
+### [x] 12.3 Integration Tests
 **Gereksinimler:** 4.1, 5.1, 6.1
 **Detaylar:**
 - Full page render tests
