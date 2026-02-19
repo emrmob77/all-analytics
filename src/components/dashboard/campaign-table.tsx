@@ -1,161 +1,198 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { PLATFORMS, type AdPlatform, type CampaignStatus, type PlatformConfig } from '@/types';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { PLATFORMS, DEMO_CAMPAIGNS, STATUS_STYLES } from '@/types';
+import { PlatformIcon } from '@/components/ui/platform-icons';
+import type { AdPlatform, Campaign } from '@/types';
 
-const DEFAULT_PLATFORM: PlatformConfig = {
-  id: 'google',
-  label: 'Unknown',
-  color: '#9CA3AF',
-  bgColor: '#F3F4F6',
-};
-
-interface Campaign {
-  id: string;
-  name: string;
-  platform: AdPlatform;
-  status: CampaignStatus;
-  budget: number;
-  spend: number;
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  conversions: number;
-  roas: number;
+interface CampaignTableProps {
+  activePlatform: AdPlatform | 'all';
 }
 
-// Demo data
-const DEMO_CAMPAIGNS: Campaign[] = [
-  { id: 'camp-001', name: 'Summer Sale 2025', platform: 'google', status: 'active', budget: 5000, spend: 3241, impressions: 842000, clicks: 14200, ctr: 1.69, conversions: 412, roas: 4.2 },
-  { id: 'camp-002', name: 'Brand Awareness Q3', platform: 'meta', status: 'active', budget: 3500, spend: 2890, impressions: 1240000, clicks: 18600, ctr: 1.50, conversions: 290, roas: 3.8 },
-  { id: 'camp-003', name: 'Product Launch Reel', platform: 'tiktok', status: 'active', budget: 2000, spend: 1750, impressions: 2100000, clicks: 42000, ctr: 2.00, conversions: 185, roas: 5.1 },
-  { id: 'camp-004', name: 'Holiday Pins', platform: 'pinterest', status: 'paused', budget: 1200, spend: 890, impressions: 320000, clicks: 5200, ctr: 1.63, conversions: 98, roas: 2.9 },
-  { id: 'camp-005', name: 'Retargeting — Cart', platform: 'google', status: 'active', budget: 2500, spend: 2100, impressions: 420000, clicks: 9800, ctr: 2.33, conversions: 320, roas: 6.8 },
+const COLUMNS = [
+  { key: 'name', label: 'Campaign' },
+  { key: 'platform', label: 'Platform' },
+  { key: 'status', label: 'Status' },
+  { key: 'impressions', label: 'Impressions' },
+  { key: 'clicks', label: 'Clicks' },
+  { key: 'ctr', label: 'CTR' },
+  { key: 'spend', label: 'Spend / Budget' },
+  { key: 'conversions', label: 'Conv.' },
+  { key: 'roas', label: 'ROAS' },
 ];
 
-const STATUS_STYLES: Record<CampaignStatus, { bg: string; text: string; dot: string }> = {
-  active: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
-  paused: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
-  archived: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' },
-  deleted: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
-};
+export function CampaignTable({ activePlatform }: CampaignTableProps) {
+  const [sortCol, setSortCol] = useState<keyof Campaign>('spend');
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
-  return num.toString();
-}
+  const filtered = activePlatform === 'all'
+    ? DEMO_CAMPAIGNS
+    : DEMO_CAMPAIGNS.filter(c => c.platform === activePlatform);
 
-export function CampaignTable() {
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = a[sortCol];
+    const bVal = b[sortCol];
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return bVal - aVal;
+    }
+    return String(bVal).localeCompare(String(aVal));
+  });
+
+  const activePlatformLabel = PLATFORMS.find(p => p.id === activePlatform)?.label || 'All Platforms';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">Campaigns</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {DEMO_CAMPAIGNS.length} campaigns · All Platforms
-        </p>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Campaign</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Impressions</TableHead>
-              <TableHead className="text-right">Clicks</TableHead>
-              <TableHead className="text-right">CTR</TableHead>
-              <TableHead className="text-right">Spend</TableHead>
-              <TableHead className="text-right">Conv.</TableHead>
-              <TableHead className="text-right">ROAS</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {DEMO_CAMPAIGNS.map((campaign) => {
-              const platform = PLATFORMS.find((p) => p.id === campaign.platform) ?? DEFAULT_PLATFORM;
-              const statusStyle = STATUS_STYLES[campaign.status];
-              const budgetRatio = campaign.budget > 0 ? campaign.spend / campaign.budget : 0;
+    <div className="overflow-hidden rounded-[10px] border border-[#E3E8EF] bg-white">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#F1F3F4] px-5 pb-3 pt-4">
+        <div>
+          <div className="text-sm font-semibold text-[#202124]">Campaigns</div>
+          <div className="mt-0.5 text-[11.5px] text-[#9AA0A6]">
+            {filtered.length} campaigns · {activePlatformLabel}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button className="flex items-center gap-[5px] rounded-[7px] border border-[#E3E8EF] bg-white px-3 py-1.5 text-xs text-[#5F6368] transition-colors hover:bg-gray-50">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M1 3h10M3 7h6M5 11h2"/>
+            </svg>
+            Filter
+          </button>
+          <button className="flex items-center gap-[5px] rounded-[7px] border border-[#E3E8EF] bg-white px-3 py-1.5 text-xs text-[#5F6368] transition-colors hover:bg-gray-50">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6 1v7M3 5l3 3 3-3M1 10h10"/>
+            </svg>
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[12.5px]">
+          <thead>
+            <tr className="bg-[#F8F9FA]">
+              {COLUMNS.map((col) => (
+                <th
+                  key={col.key}
+                  onClick={() => setSortCol(col.key as keyof Campaign)}
+                  className={`cursor-pointer select-none whitespace-nowrap border-b border-[#E3E8EF] px-3.5 py-[9px] text-left text-[11px] font-medium ${
+                    sortCol === col.key ? 'text-[#1A73E8]' : 'text-[#5F6368]'
+                  }`}
+                >
+                  {col.label} {sortCol === col.key && '↓'}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => {
+              const platform = PLATFORMS.find(p => p.id === row.platform);
+              const statusStyle = STATUS_STYLES[row.status];
+              const pct = row.budget > 0 ? Math.round(row.spend / row.budget * 100) : 0;
+              const barColor = pct > 90 ? '#C5221F' : pct > 70 ? '#B06000' : '#1A73E8';
 
               return (
-                <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-medium">{campaign.name}</TableCell>
-                  <TableCell>
+                <tr
+                  key={row.id}
+                  className="cursor-pointer bg-white transition-colors hover:bg-[#F8FBFF]"
+                >
+                  {/* Campaign Name */}
+                  <td className="min-w-[170px] border-b border-[#F1F3F4] px-3.5 py-[11px]">
+                    <div className="font-medium text-[#202124]">{row.name}</div>
+                  </td>
+
+                  {/* Platform */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px]">
                     <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium"
+                      className="inline-flex items-center gap-[5px] rounded-full border px-[9px] py-[3px] text-[11px] font-medium"
                       style={{
-                        backgroundColor: platform.bgColor,
-                        color: platform.color,
+                        backgroundColor: platform?.bgColor,
+                        color: platform?.color,
+                        borderColor: `${platform?.color}30`,
                       }}
                     >
-                      {platform.label}
+                      {platform && <PlatformIcon platform={row.platform} size={12} />}
+                      {platform?.label.split(' ')[0]}
                     </span>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+
+                  {/* Status */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px]">
                     <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium capitalize',
-                        statusStyle.bg,
-                        statusStyle.text
-                      )}
+                      className="inline-flex items-center gap-[5px] rounded-[5px] px-[9px] py-[3px] text-[11px] font-medium capitalize"
+                      style={{
+                        backgroundColor: statusStyle.bg,
+                        color: statusStyle.color,
+                      }}
                     >
-                      <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
-                      {campaign.status}
+                      <span
+                        className="inline-block h-[5px] w-[5px] rounded-full"
+                        style={{ backgroundColor: statusStyle.dot }}
+                      />
+                      {row.status}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right">{formatNumber(campaign.impressions)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(campaign.clicks)}</TableCell>
-                  <TableCell className="text-right">{campaign.ctr}%</TableCell>
-                  <TableCell className="text-right">
-                    <div className="space-y-1">
-                      <div className="flex justify-end gap-1 text-xs">
-                        <span className="font-medium">${campaign.spend.toLocaleString()}</span>
-                        <span className="text-muted-foreground">/ ${campaign.budget.toLocaleString()}</span>
-                      </div>
-                      <div className="h-1 w-full rounded-full bg-muted">
-                        <div
-                          className={cn(
-                            'h-full rounded-full',
-                            budgetRatio > 0.9
-                              ? 'bg-red-500'
-                              : budgetRatio > 0.7
-                              ? 'bg-yellow-500'
-                              : 'bg-blue-500'
-                          )}
-                          style={{ width: `${Math.min(budgetRatio * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{campaign.conversions}</TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={cn(
-                        'font-bold',
-                        campaign.roas >= 5
-                          ? 'text-green-600'
-                          : campaign.roas >= 3
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      )}
-                    >
-                      {campaign.roas}x
-                    </span>
-                  </TableCell>
-                </TableRow>
+                  </td>
+
+                  {/* Impressions */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
+                    {row.impressions > 0 ? `${(row.impressions / 1000).toFixed(0)}K` : '—'}
+                  </td>
+
+                  {/* Clicks */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
+                    {row.clicks > 0 ? row.clicks.toLocaleString() : '—'}
+                  </td>
+
+                  {/* CTR */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
+                    {row.ctr > 0 ? `${row.ctr}%` : '—'}
+                  </td>
+
+                  {/* Spend / Budget */}
+                  <td className="min-w-[140px] border-b border-[#F1F3F4] px-3.5 py-[11px]">
+                    {row.spend > 0 ? (
+                      <>
+                        <div className="mb-1 flex justify-between text-[11.5px]">
+                          <span className="font-medium text-[#202124]">${row.spend.toLocaleString()}</span>
+                          <span className="text-[#9AA0A6]">/ ${row.budget.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1 rounded-sm bg-[#F1F3F4]">
+                          <div
+                            className="h-full rounded-sm transition-all duration-500"
+                            style={{ width: `${pct}%`, backgroundColor: barColor }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[#E3E8EF]">Not started</span>
+                    )}
+                  </td>
+
+                  {/* Conversions */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] font-medium text-[#202124]">
+                    {row.conversions > 0 ? row.conversions : '—'}
+                  </td>
+
+                  {/* ROAS */}
+                  <td className="border-b border-[#F1F3F4] px-3.5 py-[11px]">
+                    {row.roas > 0 ? (
+                      <span
+                        className="font-bold"
+                        style={{
+                          color: row.roas >= 5 ? '#137333' : row.roas >= 3 ? '#B06000' : '#C5221F',
+                        }}
+                      >
+                        {row.roas}x
+                      </span>
+                    ) : (
+                      <span className="text-[#E3E8EF]">—</span>
+                    )}
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

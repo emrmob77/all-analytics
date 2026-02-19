@@ -1,91 +1,88 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PLATFORMS, type PlatformConfig } from '@/types';
-
-const DEFAULT_PLATFORM: PlatformConfig = {
-  id: 'google',
-  label: 'Unknown',
-  color: '#9CA3AF',
-  bgColor: '#F3F4F6',
-};
-
-interface PlatformMetric {
-  platform: string;
-  spend: number;
-  conversions: number;
-  roas: number;
-}
-
-// Demo data - will be replaced with real data
-const DEMO_DATA: PlatformMetric[] = [
-  { platform: 'google', spend: 5341, conversions: 732, roas: 4.5 },
-  { platform: 'meta', spend: 3340, conversions: 565, roas: 4.2 },
-  { platform: 'tiktok', spend: 1750, conversions: 185, roas: 5.1 },
-  { platform: 'pinterest', spend: 1990, conversions: 240, roas: 3.2 },
-];
+import { PLATFORMS, DEMO_CAMPAIGNS } from '@/types';
+import { PlatformIcon } from '@/components/ui/platform-icons';
+import type { AdPlatform } from '@/types';
 
 export function PlatformSummary() {
-  const totalSpend = DEMO_DATA.reduce((acc, d) => acc + d.spend, 0);
+  // Calculate totals per platform
+  const platformData = PLATFORMS.filter(p => p.id !== 'all').map(platform => {
+    const campaigns = DEMO_CAMPAIGNS.filter(c => c.platform === platform.id);
+    const totalSpend = campaigns.reduce((a, c) => a + c.spend, 0);
+    const totalConv = campaigns.reduce((a, c) => a + c.conversions, 0);
+    const totalImpr = campaigns.reduce((a, c) => a + c.impressions, 0);
+    const roasValues = campaigns.filter(c => c.roas > 0);
+    const avgRoas = roasValues.length > 0
+      ? (roasValues.reduce((a, c) => a + c.roas, 0) / roasValues.length).toFixed(1)
+      : '—';
+
+    return {
+      ...platform,
+      spend: totalSpend,
+      conversions: totalConv,
+      impressions: totalImpr,
+      roas: avgRoas,
+    };
+  });
+
+  const grandTotalSpend = platformData.reduce((a, p) => a + p.spend, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">Platform Summary</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {DEMO_DATA.map((data) => {
-          const platform = PLATFORMS.find((p) => p.id === data.platform) ?? DEFAULT_PLATFORM;
-          const percentage = totalSpend > 0 ? Math.round((data.spend / totalSpend) * 100) : 0;
+    <div className="rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px]">
+      <div className="mb-4 text-sm font-semibold text-[#202124]">Platform Summary</div>
+
+      <div className="flex flex-wrap gap-3">
+        {platformData.map((p) => {
+          const pct = grandTotalSpend > 0 ? Math.round(p.spend / grandTotalSpend * 100) : 0;
 
           return (
             <div
-              key={data.platform}
-              className="rounded-lg p-3"
-              style={{ backgroundColor: platform.bgColor }}
+              key={p.id}
+              className="flex-[1_1_190px] min-w-0 rounded-[9px] border px-4 py-3.5"
+              style={{
+                borderColor: `${p.color}30`,
+                backgroundColor: p.bgColor,
+              }}
             >
-              <div className="flex items-center gap-2">
+              {/* Header */}
+              <div className="mb-3 flex items-center gap-[7px]">
+                <PlatformIcon platform={p.id as AdPlatform} size={14} />
+                <span className="text-[13px] font-semibold text-[#202124]">{p.label}</span>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                {[
+                  ['Spend', `$${p.spend.toLocaleString()}`],
+                  ['Conv.', p.conversions],
+                  ['Impr.', `${(p.impressions / 1000).toFixed(0)}K`],
+                  ['ROAS', `${p.roas}x`],
+                ].map(([label, value]) => (
+                  <div key={label as string}>
+                    <div className="text-[9.5px] text-[#9AA0A6]">{label}</div>
+                    <div className="mt-0.5 text-sm font-bold text-[#202124]">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Budget Share */}
+              <div className="mb-[5px] flex justify-between text-[10.5px] text-[#9AA0A6]">
+                <span>Budget share</span>
+                <span className="font-semibold" style={{ color: p.color }}>{pct}%</span>
+              </div>
+              <div className="h-[5px] overflow-hidden rounded-[3px] bg-white">
                 <div
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: platform.color }}
+                  className="h-full rounded-[3px] transition-all duration-1000"
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: p.color,
+                  }}
                 />
-                <span className="text-sm font-medium">{platform.label}</span>
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                <div>
-                  <p className="text-muted-foreground">Spend</p>
-                  <p className="font-semibold">${data.spend.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Conv.</p>
-                  <p className="font-semibold">{data.conversions}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">ROAS</p>
-                  <p className="font-semibold">{data.roas}x</p>
-                </div>
-              </div>
-              <div className="mt-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Budget share</span>
-                  <span style={{ color: platform.color }} className="font-semibold">
-                    {percentage}%
-                  </span>
-                </div>
-                <div className="mt-1 h-1.5 rounded-full bg-white">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${percentage}%`,
-                      backgroundColor: platform.color,
-                    }}
-                  />
-                </div>
               </div>
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
