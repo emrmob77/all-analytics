@@ -10,6 +10,9 @@ interface SearchBarProps {
   debounceMs?: number;
 }
 
+/**
+ * Desktop and mobile search input with debounced callback and shortcut support.
+ */
 function SearchBar({ onSearch, debounceMs = 300 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);

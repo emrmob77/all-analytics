@@ -8,6 +8,9 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
+/**
+ * Sticky top bar with page title, search, theme toggle and mobile menu button.
+ */
 function Header({ onMenuClick }: HeaderProps) {
   const pageTitle = usePageTitle();
   const { theme, toggleTheme } = useTheme();

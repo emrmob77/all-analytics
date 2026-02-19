@@ -20,6 +20,9 @@ function getToastClasses(type: ToastPayload["type"]) {
   return "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200";
 }
 
+/**
+ * Global toast container listening to custom toast events.
+ */
 function ToastViewport() {
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
 

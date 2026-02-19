@@ -38,6 +38,9 @@ function getMaterialIconColorClass(icon: string) {
   return "text-text-muted-light dark:text-text-muted-dark";
 }
 
+/**
+ * Sidebar navigation with collapsible section headers and active route highlighting.
+ */
 function NavigationMenu({ sections, activePath, onItemClick, collapsed = false }: NavigationMenuProps) {
   const sectionTitles = useMemo(() => sections.map((section) => section.title), [sections]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>

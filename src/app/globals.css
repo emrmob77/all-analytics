@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
+@import "../styles/scrollbar.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -42,24 +43,6 @@ body {
     color 200ms ease,
     border-color 200ms ease,
     box-shadow 200ms ease;
-}
-
-.sidebar-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.dark .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #4b5563;
 }
 
 .sidebar-item-active {

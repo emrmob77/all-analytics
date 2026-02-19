@@ -9,6 +9,9 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Core shell that renders sidebar, header and page content area.
+ */
 function Layout({ children }: LayoutProps) {
   const sidebarOpen = useAppStore((state) => state.sidebarOpen);
   const setSidebarOpen = useAppStore((state) => state.setSidebarOpen);

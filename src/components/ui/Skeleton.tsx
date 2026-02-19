@@ -2,6 +2,9 @@ interface SkeletonProps {
   className?: string;
 }
 
+/**
+ * Generic animated placeholder block for loading states.
+ */
 function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div

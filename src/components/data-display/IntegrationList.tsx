@@ -1,3 +1,5 @@
+import Badge from "@/components/ui/Badge";
+
 interface Integration {
   id: string;
   name: string;
@@ -42,6 +44,9 @@ const integrations: Integration[] = [
   }
 ];
 
+/**
+ * Integration directory list with connect and state badges.
+ */
 function IntegrationList() {
   return (
     <section className="flex flex-col">
@@ -86,16 +91,12 @@ function IntegrationList() {
               ) : null}
 
               {integration.state === "beta" ? (
-                <span className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                  Beta
-                </span>
+                <Badge size="md" variant="beta" />
               ) : null}
 
               {integration.state === "connected" ? (
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                    Connected
-                  </span>
+                  <Badge connectionState="connected" size="sm" variant="connection" />
                   <button
                     className="min-h-11 rounded-md px-3 py-1.5 text-xs font-medium text-text-muted-light transition-all hover:text-primary dark:text-text-muted-dark"
                     type="button"

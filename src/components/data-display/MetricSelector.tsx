@@ -58,6 +58,9 @@ const metricCatalog: MetricDefinition[] = [
   }
 ];
 
+/**
+ * Modal-based metric picker used to configure dashboard cards.
+ */
 function MetricSelector() {
   const [open, setOpen] = useState(false);
   const metricSelectorTitleId = "metric-selector-title";

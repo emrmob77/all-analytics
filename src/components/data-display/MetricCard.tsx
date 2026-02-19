@@ -13,6 +13,9 @@ interface MetricCardProps {
   onRemove?: () => void;
 }
 
+/**
+ * KPI summary card with trend direction and remove action.
+ */
 const MetricCard = memo(function MetricCard({
   metricName,
   value,

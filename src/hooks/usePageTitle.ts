@@ -8,7 +8,7 @@ import { getPageTitleByPath } from "@/modules/moduleRegistry";
 function usePageTitle() {
   const pathname = usePathname();
 
-  const pageTitle = useMemo(() => getPageTitleByPath(pathname), [pathname]);
+  const pageTitle = useMemo(() => getPageTitleByPath(pathname ?? "/"), [pathname]);
 
   useEffect(() => {
     document.title = `Allanalytics - ${pageTitle}`;

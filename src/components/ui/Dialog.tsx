@@ -38,6 +38,9 @@ function useDialogContext() {
   return context;
 }
 
+/**
+ * Accessible dialog root handling focus trap and escape close behavior.
+ */
 function Dialog({ children, onOpenChange, open }: DialogProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +122,9 @@ function Dialog({ children, onOpenChange, open }: DialogProps) {
   return <DialogContext.Provider value={{ contentRef, onOpenChange, open }}>{children}</DialogContext.Provider>;
 }
 
+/**
+ * Dialog panel rendered in portal with backdrop and animations.
+ */
 function DialogContent({
   ariaDescribedby,
   ariaLabel = "Dialog",

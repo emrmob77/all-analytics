@@ -3,6 +3,7 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import type { BrandLogoName } from "@/components/ui/BrandLogoIcon";
 import OptimizedBrandLogo from "@/components/ui/OptimizedBrandLogo";
+import Badge from "@/components/ui/Badge";
 
 interface Platform {
   id: string;
@@ -61,6 +62,9 @@ function getProgressColor(percentage: number) {
   return "bg-red-500";
 }
 
+/**
+ * Channel connection cards with spend tracking and toggle actions.
+ */
 const PlatformCard = memo(function PlatformCard() {
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
 
@@ -110,13 +114,11 @@ const PlatformCard = memo(function PlatformCard() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">{platform.name}</h3>
-                  {platform.connected ? (
-                    <p className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                      Connected
-                    </p>
-                  ) : (
-                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">Inactive</p>
-                  )}
+                  <Badge
+                    connectionState={platform.connected ? "connected" : "inactive"}
+                    size="sm"
+                    variant="connection"
+                  />
                 </div>
               </div>
 

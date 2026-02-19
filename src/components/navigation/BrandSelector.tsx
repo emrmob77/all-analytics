@@ -16,6 +16,9 @@ function getAvatarColorClass(avatar: string) {
   return "bg-secondary text-primary";
 }
 
+/**
+ * Brand switcher dropdown used in sidebar.
+ */
 function BrandSelector({ brand, brands, onSelectBrand }: BrandSelectorProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

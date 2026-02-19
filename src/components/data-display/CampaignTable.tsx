@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import type { BrandLogoName } from "@/components/ui/BrandLogoIcon";
 import OptimizedBrandLogo from "@/components/ui/OptimizedBrandLogo";
+import Badge from "@/components/ui/Badge";
 
 interface Campaign {
   id: string;
@@ -84,23 +85,18 @@ function getStatusMeta(status: Campaign["status"]) {
   if (status === "active") {
     return {
       label: "Active",
-      wrapperClass:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      dotClass: "bg-green-500"
+      tone: "green" as const
     };
   }
   if (status === "paused") {
     return {
       label: "Paused",
-      wrapperClass:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      dotClass: "bg-yellow-500"
+      tone: "yellow" as const
     };
   }
   return {
     label: "Stopped",
-    wrapperClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    dotClass: "bg-red-500"
+    tone: "red" as const
   };
 }
 
@@ -114,6 +110,9 @@ interface CampaignRowProps {
   campaign: Campaign;
 }
 
+/**
+ * Single campaign row with platform, status and budget metrics.
+ */
 const CampaignRow = memo(function CampaignRow({ campaign }: CampaignRowProps) {
   const status = useMemo(() => getStatusMeta(campaign.status), [campaign.status]);
   const platform = useMemo(() => getPlatformMeta(campaign.platform), [campaign.platform]);
@@ -136,15 +135,9 @@ const CampaignRow = memo(function CampaignRow({ campaign }: CampaignRowProps) {
         </div>
       </td>
       <td className="px-6 py-4">
-        <span
-          className={[
-            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-            status.wrapperClass
-          ].join(" ")}
-        >
-          <span className={["mr-1.5 h-1.5 w-1.5 rounded-full", status.dotClass].join(" ")} />
+        <Badge size="md" statusTone={status.tone} variant="status">
           {status.label}
-        </span>
+        </Badge>
       </td>
       <td className="w-48 px-6 py-4">
         <div className="mb-1 flex items-center justify-between">
@@ -174,6 +167,9 @@ const CampaignRow = memo(function CampaignRow({ campaign }: CampaignRowProps) {
   );
 });
 
+/**
+ * Campaign list table with status filter and summary actions.
+ */
 function CampaignTable() {
   const memoizedCampaigns = useMemo(() => campaigns, []);
 
