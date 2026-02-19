@@ -9,10 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PLATFORMS, type AdPlatform, type CampaignStatus } from '@/types';
+import { PLATFORMS, type AdPlatform, type CampaignStatus, type PlatformConfig } from '@/types';
 import { cn } from '@/lib/utils';
 
+const DEFAULT_PLATFORM: PlatformConfig = {
+  id: 'google',
+  label: 'Unknown',
+  color: '#9CA3AF',
+  bgColor: '#F3F4F6',
+};
+
 interface Campaign {
+  id: string;
   name: string;
   platform: AdPlatform;
   status: CampaignStatus;
@@ -27,11 +35,11 @@ interface Campaign {
 
 // Demo data
 const DEMO_CAMPAIGNS: Campaign[] = [
-  { name: 'Summer Sale 2025', platform: 'google', status: 'active', budget: 5000, spend: 3241, impressions: 842000, clicks: 14200, ctr: 1.69, conversions: 412, roas: 4.2 },
-  { name: 'Brand Awareness Q3', platform: 'meta', status: 'active', budget: 3500, spend: 2890, impressions: 1240000, clicks: 18600, ctr: 1.50, conversions: 290, roas: 3.8 },
-  { name: 'Product Launch Reel', platform: 'tiktok', status: 'active', budget: 2000, spend: 1750, impressions: 2100000, clicks: 42000, ctr: 2.00, conversions: 185, roas: 5.1 },
-  { name: 'Holiday Pins', platform: 'pinterest', status: 'paused', budget: 1200, spend: 890, impressions: 320000, clicks: 5200, ctr: 1.63, conversions: 98, roas: 2.9 },
-  { name: 'Retargeting — Cart', platform: 'google', status: 'active', budget: 2500, spend: 2100, impressions: 420000, clicks: 9800, ctr: 2.33, conversions: 320, roas: 6.8 },
+  { id: 'camp-001', name: 'Summer Sale 2025', platform: 'google', status: 'active', budget: 5000, spend: 3241, impressions: 842000, clicks: 14200, ctr: 1.69, conversions: 412, roas: 4.2 },
+  { id: 'camp-002', name: 'Brand Awareness Q3', platform: 'meta', status: 'active', budget: 3500, spend: 2890, impressions: 1240000, clicks: 18600, ctr: 1.50, conversions: 290, roas: 3.8 },
+  { id: 'camp-003', name: 'Product Launch Reel', platform: 'tiktok', status: 'active', budget: 2000, spend: 1750, impressions: 2100000, clicks: 42000, ctr: 2.00, conversions: 185, roas: 5.1 },
+  { id: 'camp-004', name: 'Holiday Pins', platform: 'pinterest', status: 'paused', budget: 1200, spend: 890, impressions: 320000, clicks: 5200, ctr: 1.63, conversions: 98, roas: 2.9 },
+  { id: 'camp-005', name: 'Retargeting — Cart', platform: 'google', status: 'active', budget: 2500, spend: 2100, impressions: 420000, clicks: 9800, ctr: 2.33, conversions: 320, roas: 6.8 },
 ];
 
 const STATUS_STYLES: Record<CampaignStatus, { bg: string; text: string; dot: string }> = {
@@ -73,21 +81,22 @@ export function CampaignTable() {
           </TableHeader>
           <TableBody>
             {DEMO_CAMPAIGNS.map((campaign) => {
-              const platform = PLATFORMS.find((p) => p.id === campaign.platform);
+              const platform = PLATFORMS.find((p) => p.id === campaign.platform) ?? DEFAULT_PLATFORM;
               const statusStyle = STATUS_STYLES[campaign.status];
+              const budgetRatio = campaign.budget > 0 ? campaign.spend / campaign.budget : 0;
 
               return (
-                <TableRow key={campaign.name} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell className="font-medium">{campaign.name}</TableCell>
                   <TableCell>
                     <span
                       className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium"
                       style={{
-                        backgroundColor: platform?.bgColor,
-                        color: platform?.color,
+                        backgroundColor: platform.bgColor,
+                        color: platform.color,
                       }}
                     >
-                      {platform?.label}
+                      {platform.label}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -115,13 +124,13 @@ export function CampaignTable() {
                         <div
                           className={cn(
                             'h-full rounded-full',
-                            campaign.spend / campaign.budget > 0.9
+                            budgetRatio > 0.9
                               ? 'bg-red-500'
-                              : campaign.spend / campaign.budget > 0.7
+                              : budgetRatio > 0.7
                               ? 'bg-yellow-500'
                               : 'bg-blue-500'
                           )}
-                          style={{ width: `${Math.min((campaign.spend / campaign.budget) * 100, 100)}%` }}
+                          style={{ width: `${Math.min(budgetRatio * 100, 100)}%` }}
                         />
                       </div>
                     </div>

@@ -10,16 +10,21 @@ interface WindowSize {
   isDesktop: boolean;
 }
 
+const DEFAULT_SIZE: WindowSize = {
+  width: 1200,
+  height: 800,
+  isMobile: false,
+  isTablet: false,
+  isDesktop: true,
+};
+
 export function useWindowSize(): WindowSize {
-  const [windowSize, setWindowSize] = useState<WindowSize>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800,
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
-  });
+  const [windowSize, setWindowSize] = useState<WindowSize>(DEFAULT_SIZE);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+
     function handleResize() {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -37,6 +42,11 @@ export function useWindowSize(): WindowSize {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Return default values during SSR to avoid hydration mismatch
+  if (!isClient) {
+    return DEFAULT_SIZE;
+  }
 
   return windowSize;
 }

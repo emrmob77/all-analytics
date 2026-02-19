@@ -1,7 +1,14 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PLATFORMS } from '@/types';
+import { PLATFORMS, type PlatformConfig } from '@/types';
+
+const DEFAULT_PLATFORM: PlatformConfig = {
+  id: 'google',
+  label: 'Unknown',
+  color: '#9CA3AF',
+  bgColor: '#F3F4F6',
+};
 
 interface PlatformMetric {
   platform: string;
@@ -28,21 +35,21 @@ export function PlatformSummary() {
       </CardHeader>
       <CardContent className="space-y-4">
         {DEMO_DATA.map((data) => {
-          const platform = PLATFORMS.find((p) => p.id === data.platform);
-          const percentage = Math.round((data.spend / totalSpend) * 100);
+          const platform = PLATFORMS.find((p) => p.id === data.platform) ?? DEFAULT_PLATFORM;
+          const percentage = totalSpend > 0 ? Math.round((data.spend / totalSpend) * 100) : 0;
 
           return (
             <div
               key={data.platform}
               className="rounded-lg p-3"
-              style={{ backgroundColor: platform?.bgColor }}
+              style={{ backgroundColor: platform.bgColor }}
             >
               <div className="flex items-center gap-2">
                 <div
                   className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: platform?.color }}
+                  style={{ backgroundColor: platform.color }}
                 />
-                <span className="text-sm font-medium">{platform?.label}</span>
+                <span className="text-sm font-medium">{platform.label}</span>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                 <div>
@@ -61,7 +68,7 @@ export function PlatformSummary() {
               <div className="mt-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Budget share</span>
-                  <span style={{ color: platform?.color }} className="font-semibold">
+                  <span style={{ color: platform.color }} className="font-semibold">
                     {percentage}%
                   </span>
                 </div>
@@ -70,7 +77,7 @@ export function PlatformSummary() {
                     className="h-full rounded-full transition-all"
                     style={{
                       width: `${percentage}%`,
-                      backgroundColor: platform?.color,
+                      backgroundColor: platform.color,
                     }}
                   />
                 </div>
