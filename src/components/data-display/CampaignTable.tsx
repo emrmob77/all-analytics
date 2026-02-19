@@ -1,3 +1,5 @@
+import BrandLogoIcon, { type BrandLogoName } from "@/components/ui/BrandLogoIcon";
+
 interface Campaign {
   id: string;
   name: string;
@@ -66,13 +68,13 @@ function currency(value: number) {
 function getPlatformMeta(platform: Campaign["platform"]) {
   switch (platform) {
     case "google":
-      return { label: "Google Ads", glyph: "G", className: "bg-blue-100 text-blue-700" };
+      return { label: "Google Ads", logo: "google-ads" as BrandLogoName };
     case "meta":
-      return { label: "Meta Ads", glyph: "f", className: "bg-blue-600 text-white" };
+      return { label: "Facebook Ads", logo: "facebook" as BrandLogoName };
     case "tiktok":
-      return { label: "TikTok Ads", glyph: "t", className: "bg-black text-white" };
+      return { label: "TikTok Ads", logo: "tiktok" as BrandLogoName };
     case "linkedin":
-      return { label: "LinkedIn Ads", glyph: "in", className: "bg-indigo-100 text-indigo-700" };
+      return { label: "LinkedIn Ads", logo: "linkedin" as BrandLogoName };
   }
 }
 
@@ -124,14 +126,7 @@ function CampaignRow({ campaign }: CampaignRowProps) {
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          <div
-            className={[
-              "grid h-6 w-6 place-items-center rounded-full text-[10px] font-bold",
-              platform.className
-            ].join(" ")}
-          >
-            {platform.glyph}
-          </div>
+          <BrandLogoIcon brand={platform.logo} size={18} />
           <span>{platform.label}</span>
         </div>
       </td>

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import BrandLogoIcon, { type BrandLogoName } from "@/components/ui/BrandLogoIcon";
 
 interface Platform {
   id: string;
   name: string;
-  glyph: string;
-  glyphClassName: string;
+  logo: BrandLogoName;
   connected: boolean;
   spend: number;
   limit: number;
@@ -16,8 +16,7 @@ const initialPlatforms: Platform[] = [
   {
     id: "google",
     name: "Google Ads",
-    glyph: "G",
-    glyphClassName: "text-blue-700",
+    logo: "google-ads",
     connected: true,
     spend: 12450,
     limit: 15000
@@ -25,17 +24,15 @@ const initialPlatforms: Platform[] = [
   {
     id: "linkedin",
     name: "LinkedIn Ads",
-    glyph: "in",
-    glyphClassName: "text-indigo-700",
+    logo: "linkedin",
     connected: false,
     spend: 0,
     limit: 5000
   },
   {
     id: "meta",
-    name: "Meta Ads",
-    glyph: "f",
-    glyphClassName: "text-blue-600",
+    name: "Facebook Ads",
+    logo: "facebook",
     connected: true,
     spend: 6200,
     limit: 10000
@@ -43,8 +40,7 @@ const initialPlatforms: Platform[] = [
   {
     id: "tiktok",
     name: "TikTok Ads",
-    glyph: "t",
-    glyphClassName: "text-black dark:text-white",
+    logo: "tiktok",
     connected: true,
     spend: 4700,
     limit: 5000
@@ -102,13 +98,8 @@ function PlatformCard() {
             >
               <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div
-                    className={[
-                      "flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-sm font-bold dark:bg-gray-800",
-                      platform.glyphClassName
-                    ].join(" ")}
-                  >
-                    {platform.glyph}
+                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                    <BrandLogoIcon brand={platform.logo} size={22} />
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold">{platform.name}</h3>

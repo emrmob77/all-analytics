@@ -35,7 +35,7 @@ function BrandSelector({ brand, brands, onSelectBrand }: BrandSelectorProps) {
   }, []);
 
   return (
-    <div className="relative mb-6 px-4" ref={rootRef}>
+    <div className="relative mb-5 px-4" ref={rootRef}>
       <button
         aria-expanded={open}
         aria-haspopup="listbox"

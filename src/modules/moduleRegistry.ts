@@ -103,13 +103,16 @@ const navigationSections: NavigationSection[] = [
     title: "Analytics",
     items: [
       { label: "Overview Dashboard", icon: "dashboard", path: "/" },
-      { label: "Google Ads", icon: "ads_click", path: "/google-ads" },
-      { label: "Meta Ads", icon: "campaign", path: "/meta-ads" },
-      { label: "GA4", icon: "analytics", path: "/ga4" },
+      { label: "Google Ads", icon: "brand:google-ads", path: "/google-ads" },
+      { label: "Meta Ads", icon: "brand:facebook", path: "/meta-ads" },
+      { label: "TikTok Ads", icon: "brand:tiktok", path: "/tiktok-ads" },
+      { label: "LinkedIn Ads", icon: "brand:linkedin", path: "/linkedin-ads" },
+      { label: "Yandex Ads", icon: "brand:yandex-ads", path: "/yandex-ads" },
+      { label: "GA4", icon: "brand:ga4", path: "/ga4" },
       { label: "Growth Intelligence", icon: "insights", path: "/growth-intelligence" },
       { label: "Market Insights", icon: "show_chart", path: "/market-insights" },
       { label: "Commerce Center", icon: "shopping_bag", path: "/commerce-center" },
-      { label: "Search Console", icon: "manage_search", path: "/search-console" }
+      { label: "Search Console", icon: "brand:search-console", path: "/search-console" }
     ]
   },
   {
@@ -123,7 +126,7 @@ const navigationSections: NavigationSection[] = [
   {
     title: "System",
     items: [
-      { label: "GlowyAI", icon: "auto_awesome", path: "/glowy-ai" },
+      { label: "AllanalyticsAI", icon: "auto_awesome", path: "/glowy-ai" },
       { label: "Settings", icon: "settings", path: "/settings" }
     ]
   }
