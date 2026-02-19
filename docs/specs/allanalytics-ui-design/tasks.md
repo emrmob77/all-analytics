@@ -455,7 +455,7 @@ src/
 
 ## 13. Supabase Database Schema
 
-### 13.1 Database Tables Oluşturma
+### [x] 13.1 Database Tables Oluşturma
 **Gereksinimler:** 6.3, 7.1, 8.1, 10.2
 **Detaylar:**
 - Supabase Dashboard'da SQL Editor kullan
@@ -465,7 +465,7 @@ src/
 - metrics, user_metric_preferences tabloları
 - Timestamp fields: created_at, updated_at
 
-### 13.2 Row Level Security (RLS) Policies
+### [x] 13.2 Row Level Security (RLS) Policies
 **Gereksinimler:** 6.3
 **Detaylar:**
 - Her tablo için RLS enable et
@@ -473,7 +473,7 @@ src/
 - INSERT/UPDATE/DELETE policies
 - auth.uid() fonksiyonu kullan
 
-### 13.3 Database Functions ve Triggers
+### [x] 13.3 Database Functions ve Triggers
 **Gereksinimler:** 10.3
 **Detaylar:**
 - update_updated_at_column() trigger function
@@ -481,7 +481,7 @@ src/
 
 ## 14. Environment ve Deployment
 
-### 14.1 Environment Variables Setup
+### [x] 14.1 Environment Variables Setup
 **Gereksinimler:** 6.3
 **Detaylar:**
 - .env.example dosyası oluştur
@@ -489,7 +489,7 @@ src/
 - VITE_SUPABASE_ANON_KEY
 - .gitignore'a .env ekle
 
-### 14.2 Build Configuration
+### [x] 14.2 Build Configuration
 **Gereksinimler:** 14.4, 14.5
 **Detaylar:**
 - Build config dosyasını optimize et
@@ -497,7 +497,7 @@ src/
 - Build output optimize et
 - Source maps production'da devre dışı
 
-### 14.3 Deployment Scripts
+### [x] 14.3 Deployment Scripts
 **Gereksinimler:** 14.1
 **Detaylar:**
 - package.json scripts: dev, build, preview, type-check, lint
