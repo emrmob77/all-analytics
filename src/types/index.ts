@@ -169,17 +169,23 @@ export const DEMO_CAMPAIGNS: Campaign[] = [
   { id: '8', name: 'Discovery Ads', platform: 'pinterest', status: 'active', budget: 1500, spend: 1100, impressions: 460000, clicks: 7600, ctr: 1.65, conversions: 142, roas: 3.4 },
 ];
 
-// Demo data - 30 days of impressions per platform
-export const DEMO_CHART_DATA: ChartDataPoint[] = Array.from({ length: 30 }, (_, i) => ({
+// Seeded pseudo-random number generator for deterministic values (avoids hydration mismatch)
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+}
+
+// Demo data - 90 days of impressions per platform (supports 7d, 30d, 90d ranges)
+export const DEMO_CHART_DATA: ChartDataPoint[] = Array.from({ length: 90 }, (_, i) => ({
   day: i + 1,
-  google: Math.round(3200 + Math.sin(i * 0.4) * 800 + Math.random() * 300),
-  meta: Math.round(2800 + Math.cos(i * 0.35) * 700 + Math.random() * 300),
-  tiktok: Math.round(1900 + Math.sin(i * 0.5 + 1) * 600 + Math.random() * 250),
-  pinterest: Math.round(900 + Math.cos(i * 0.6 + 2) * 300 + Math.random() * 150),
+  google: Math.round(3200 + Math.sin(i * 0.4) * 800 + seededRandom(i * 4 + 1) * 300),
+  meta: Math.round(2800 + Math.cos(i * 0.35) * 700 + seededRandom(i * 4 + 2) * 300),
+  tiktok: Math.round(1900 + Math.sin(i * 0.5 + 1) * 600 + seededRandom(i * 4 + 3) * 250),
+  pinterest: Math.round(900 + Math.cos(i * 0.6 + 2) * 300 + seededRandom(i * 4 + 4) * 150),
 }));
 
 // Demo data - hourly CTR
 export const DEMO_HOURLY_DATA: HourlyDataPoint[] = Array.from({ length: 24 }, (_, i) => ({
   h: `${i}h`,
-  ctr: +(0.8 + Math.sin(i * 0.5) * 0.6 + Math.random() * 0.3).toFixed(2),
+  ctr: +(0.8 + Math.sin(i * 0.5) * 0.6 + seededRandom(i * 7) * 0.3).toFixed(2),
 }));

@@ -25,10 +25,12 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export function PerformanceChart({ activePlatform, dateRange }: PerformanceChartProps) {
-  const dataLength = dateRange === '7d' ? 7 : 30;
+  const dataLength = dateRange === '7d' ? 7 : dateRange === '90d' ? 90 : 30;
   const chartData = DEMO_CHART_DATA.slice(0, dataLength);
   const activeColor = PLATFORM_COLORS[activePlatform] || '#1A73E8';
   const activePlatformConfig = PLATFORMS.find(p => p.id === activePlatform);
+
+  const dateRangeLabel = dateRange === '7d' ? 'Last 7 days' : dateRange === '90d' ? 'Last 90 days' : 'Last 30 days';
 
   return (
     <div className="flex-[2_1_380px] min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px]">
@@ -37,7 +39,7 @@ export function PerformanceChart({ activePlatform, dateRange }: PerformanceChart
         <div>
           <div className="text-sm font-semibold text-[#202124]">Performance Trend</div>
           <div className="mt-0.5 text-[11.5px] text-[#9AA0A6]">
-            Impressions · {dateRange === '7d' ? 'Last 7 days' : 'Last 30 days'}
+            Impressions · {dateRangeLabel}
           </div>
         </div>
         <button className="flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-[11px] py-[5px] text-[11.5px] text-[#5F6368] transition-colors hover:bg-gray-50">
