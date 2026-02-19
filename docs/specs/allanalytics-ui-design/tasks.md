@@ -64,7 +64,7 @@ src/
 **Gereksinimler:** 1.4, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 11.2
 **Detaylar:**
 - src/components/layout/Sidebar.tsx dosyası oluştur
-- Logo section: "G" harfi (primary bg), "Glowytics" başlığı, trademark (™), external link butonu
+- Logo section: "A" harfi (primary bg), "Allanalytics" başlığı, external link butonu
 - Sidebar'ı 4 bölüme ayır: Logo (üst), BrandSelector, NavigationMenu (orta), Footer (alt)
 - Footer section: Notifications (badge ile), Support linkleri, UserProfile
 - Özel scrollbar CSS ekle (6px genişlik, rounded, transparent track, gray thumb)
@@ -585,8 +585,8 @@ src/
 **Gereksinimler:** 2.1
 **Detaylar:**
 - src/components/ui/Logo.tsx dosyası oluştur
-- "G" harfi primary background'da
-- "Glowytics" text + trademark (™)
+- "A" harfi primary background'da
+- "Allanalytics" text
 - External link button (open_in_new ikonu)
 - Size variants: sm, md, lg
 - Dark mode desteği

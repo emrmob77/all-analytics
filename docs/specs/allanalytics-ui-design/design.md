@@ -1385,13 +1385,10 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md', showExternal = true }) 
         sizes[size].icon,
         "rounded bg-primary flex items-center justify-center text-white font-bold"
       )}>
-        G
+        A
       </div>
       <span className={cn(sizes[size].text, "font-bold tracking-tight")}>
-        Glowytics{' '}
-        <span className="text-xs align-top text-text-muted-light dark:text-text-muted-dark">
-          ™
-        </span>
+        Allanalytics
       </span>
       {showExternal && (
         <button className="ml-auto text-text-muted-light dark:text-text-muted-dark hover:text-primary transition-colors">

@@ -41,7 +41,7 @@ Allanalytics, çoklu reklam platformlarının (Google Ads, Meta Ads, TikTok Ads,
 
 #### Kabul Kriterleri
 
-1. THE Sidebar SHALL en üstte platform logosu (G harfi primary renkte), "Glowytics" başlığı, trademark işareti ve external link butonu göstermelidir
+1. THE Sidebar SHALL en üstte platform logosu (A harfi primary renkte), "Allanalytics" başlığı ve external link butonu göstermelidir
 2. THE Sidebar SHALL üç ana kategori göstermelidir: Analytics, Configuration ve System
 3. WHEN bir kullanıcı sidebar'daki bir menü öğesine tıkladığında, THE Sistem SHALL o öğeyi aktif olarak işaretlemeli ve ilgili sayfaya yönlendirmelidir
 4. THE Sidebar SHALL her kategori altında ilgili alt menü öğelerini listelenmelidir

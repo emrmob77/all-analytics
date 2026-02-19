@@ -25,10 +25,9 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         ].join(" ")}
       >
         <div className="flex items-center gap-3 p-6">
-          <div className="grid h-8 w-8 place-items-center rounded bg-primary text-lg font-bold text-white">G</div>
+          <div className="grid h-8 w-8 place-items-center rounded bg-primary text-lg font-bold text-white">A</div>
           <span className="text-xl font-bold tracking-tight text-text-main-light dark:text-text-main-dark">
-            Glowytics
-            <span className="align-top text-xs text-text-muted-light dark:text-text-muted-dark">™</span>
+            Allanalytics
           </span>
           <button
             aria-label="Open company website"
