@@ -2,10 +2,13 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useBrand } from "@/contexts/BrandContext";
+import { useAuthSession } from "@/contexts/AuthSessionContext";
 import { useAppStore } from "@/store/appStore";
+import { selectUnreadNotificationCount, useNotificationStore } from "@/store/notificationStore";
 import BrandSelector from "@/components/navigation/BrandSelector";
 import NavigationMenu from "@/components/navigation/NavigationMenu";
 import UserProfile from "@/components/navigation/UserProfile";
@@ -14,6 +17,7 @@ import Logo from "@/components/ui/Logo";
 import { backdropVariants, mobileSidebarVariants, modalTransition, withReducedMotion } from "@/lib/animations";
 import { toast } from "@/lib/toast";
 import { navigationSections } from "@/modules/moduleRegistry";
+import { cn } from "@/utils/cn";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -35,7 +39,26 @@ function getAvatarColorClass(avatar: string) {
 
 function SidebarContent({ onItemClick, onToggleCollapse, pathname, collapsed = false }: SidebarContentProps) {
   const { brands, activeBrand, isLoading, selectBrand } = useBrand();
+  const router = useRouter();
+  const { session, logout } = useAuthSession();
   const activePath = pathname ?? "/";
+  const unreadNotificationCount = useNotificationStore(selectUnreadNotificationCount);
+  const notificationBadgeValue = unreadNotificationCount > 9 ? "9" : String(unreadNotificationCount);
+  const isNotificationsPage = activePath === "/notifications";
+  const isSupportPage = activePath === "/support";
+  const profileName = session?.user.fullName ?? "Esra Bayatli";
+  const profileRole = session?.user.role
+    ? `${session.user.role.slice(0, 1).toUpperCase()}${session.user.role.slice(1)}`
+    : "Super Admin";
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/v1/auth/logout", { method: "POST" });
+    } finally {
+      logout();
+      router.push("/login");
+    }
+  }
 
   return (
     <>
@@ -89,78 +112,102 @@ function SidebarContent({ onItemClick, onToggleCollapse, pathname, collapsed = f
       {collapsed ? (
         <div className="mt-4 px-2 pb-4 pt-3">
           <div className="space-y-1">
-            <button
-              className="relative flex min-h-11 w-full items-center justify-center rounded-lg text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-              onClick={() => toast.info("Notifications panel will be available soon.")}
+            <Link
+              className={cn(
+                "relative flex min-h-11 w-full items-center justify-center rounded-lg transition-colors",
+                isNotificationsPage
+                  ? "sidebar-item-active"
+                  : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              )}
+              href="/notifications"
+              onClick={onItemClick}
               title="Notifications"
-              type="button"
             >
               <span className="material-icons-round text-[20px] text-rose-500 dark:text-rose-400">notifications</span>
               <span className="sr-only">Notifications</span>
-              <span className="absolute right-1 top-1">
-                <Badge size="sm" variant="notification">
-                  5
-                </Badge>
-              </span>
-            </button>
-            <button
-              className="flex min-h-11 w-full items-center justify-center rounded-lg text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-              onClick={() => toast.info("Support center will be available soon.")}
+              {unreadNotificationCount > 0 ? (
+                <span className="absolute right-1 top-1">
+                  <Badge size="sm" variant="notification">
+                    {notificationBadgeValue}
+                  </Badge>
+                </span>
+              ) : null}
+            </Link>
+            <Link
+              className={cn(
+                "flex min-h-11 w-full items-center justify-center rounded-lg transition-colors",
+                isSupportPage
+                  ? "sidebar-item-active"
+                  : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              )}
+              href="/support"
+              onClick={onItemClick}
               title="Support"
-              type="button"
             >
               <span className="material-icons-round text-[20px] text-sky-500 dark:text-sky-400">help_outline</span>
               <span className="sr-only">Support</span>
-            </button>
+            </Link>
           </div>
 
           <div className="mt-3">
             <UserProfile
               avatarUrl="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80&fm=webp"
               collapsed
-              name="Esra Bayatli"
-              onLogout={() => toast.info("Logout action not connected in demo mode.")}
+              name={profileName}
+              onLogout={() => void handleLogout()}
               onProfileClick={() => toast.info("Profile page will be available soon.")}
               onSettingsClick={() => toast.info("Settings page will be available soon.")}
               onToggleCollapse={onToggleCollapse}
-              role="Super Admin"
+              role={profileRole}
             />
           </div>
         </div>
       ) : (
         <div className="mt-4 px-4 pb-4 pt-3">
           <div className="mb-3 space-y-1">
-            <button
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-              onClick={() => toast.info("Notifications panel will be available soon.")}
-              type="button"
+            <Link
+              className={cn(
+                "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                isNotificationsPage
+                  ? "sidebar-item-active"
+                  : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              )}
+              href="/notifications"
+              onClick={onItemClick}
             >
               <span className="material-icons-round text-[20px] text-rose-500 dark:text-rose-400">notifications</span>
               Notifications
-              <span className="ml-auto">
-                <Badge size="sm" variant="notification">
-                  5
-                </Badge>
-              </span>
-            </button>
-            <button
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-              onClick={() => toast.info("Support center will be available soon.")}
-              type="button"
+              {unreadNotificationCount > 0 ? (
+                <span className="ml-auto">
+                  <Badge size="sm" variant="notification">
+                    {notificationBadgeValue}
+                  </Badge>
+                </span>
+              ) : null}
+            </Link>
+            <Link
+              className={cn(
+                "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                isSupportPage
+                  ? "sidebar-item-active"
+                  : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              )}
+              href="/support"
+              onClick={onItemClick}
             >
               <span className="material-icons-round text-[20px] text-sky-500 dark:text-sky-400">help_outline</span>
               Support
-            </button>
+            </Link>
           </div>
 
           <UserProfile
             avatarUrl="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80&fm=webp"
-            name="Esra Bayatli"
-            onLogout={() => toast.info("Logout action not connected in demo mode.")}
+            name={profileName}
+            onLogout={() => void handleLogout()}
             onProfileClick={() => toast.info("Profile page will be available soon.")}
             onSettingsClick={() => toast.info("Settings page will be available soon.")}
             onToggleCollapse={onToggleCollapse}
-            role="Super Admin"
+            role={profileRole}
           />
         </div>
       )}

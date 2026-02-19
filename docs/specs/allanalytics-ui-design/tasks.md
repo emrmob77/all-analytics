@@ -600,3 +600,328 @@ src/
 - Border-top ile üstten ayırma
 - Dropdown menu (logout, profile, settings)
 - Hover efekti
+
+## 18. SaaS Product ve Marketing Site
+
+### [x] 18.1 Product Scope ve Planlama
+**Gereksinimler:** Tüm
+**Detaylar:**
+- MVP ve V1 feature set tanımı
+- Persona ve kullanım senaryoları (agency, brand owner, analyst)
+- Plan bazlı feature matrix (Free, Pro, Team, Enterprise)
+- Information architecture (public site + app)
+
+### [x] 18.2 SaaS Landing Page (Ana Sayfa)
+**Gereksinimler:** 2.1, 7.2, 8.2, 9.2
+**Detaylar:**
+- Hero, feature blocks, social proof, CTA
+- Integrations showcase (Google Ads, Meta, TikTok, LinkedIn, Pinterest, Shopify, Yandex, GA4, Search Console, HubSpot)
+- Pricing teaser + "Start Free Trial" / "Book Demo" CTA
+- Responsive, SEO-friendly section yapısı
+
+### [x] 18.3 Pricing ve Satın Alma Giriş Sayfaları
+**Gereksinimler:** 18.1
+**Detaylar:**
+- /pricing sayfası (aylık/yıllık toggle)
+- Plan karşılaştırma tablosu
+- Checkout'a yönlenen CTA butonları
+- Success / Cancel yönlendirme senaryoları
+
+### [x] 18.4 Public Site Ek Sayfaları
+**Gereksinimler:** 18.2
+**Detaylar:**
+- /features, /integrations, /security, /about sayfaları
+- /contact-sales form sayfası
+- /privacy, /terms, /cookies yasal sayfaları
+- Footer navigation ve legal linkler
+
+## 19. Authentication ve Kullanıcı Erişimi
+
+### [x] 19.1 Auth Altyapısı
+**Gereksinimler:** 6.3, 13.1, 13.2
+**Detaylar:**
+- Supabase Auth yapılandırması
+- users/profile tablosu ile auth user senkronu
+- Protected route modeli (middleware)
+- Session persistence ve refresh token akışı
+
+### [x] 19.2 Giriş / Kayıt / Şifre Akışları
+**Gereksinimler:** 19.1
+**Detaylar:**
+- /login ve /register sayfaları
+- /forgot-password ve /reset-password sayfaları
+- E-posta doğrulama ve hata senaryoları
+- User-friendly form validation mesajları
+
+### [x] 19.3 Logout ve Oturum Yönetimi
+**Gereksinimler:** 19.1
+**Detaylar:**
+- Header ve profile menüsünden logout
+- Multi-tab logout sync
+- Session timeout handling
+- Unauthorized durumda login'e yönlendirme
+
+### [x] 19.4 Rol ve Yetki Modeli (RBAC)
+**Gereksinimler:** 13.2
+**Detaylar:**
+- owner/admin/member/viewer rollerinin net tanımı
+- Sayfa bazlı yetki kontrolü
+- API bazlı yetki kontrolü
+- Yetki yetersizliği UI state'leri (403)
+
+## 20. Billing, Checkout ve Abonelik
+
+### [x] 20.1 Plan ve Ürün Konfigürasyonu
+**Gereksinimler:** 18.3
+**Detaylar:**
+- Stripe product/price setup (monthly/yearly)
+- Trial period ve coupon desteği
+- Plan limitlerinin ürünle eşleştirilmesi
+- Sandbox/prod environment ayrımı
+
+### [x] 20.2 Checkout Akışı
+**Gereksinimler:** 20.1
+**Detaylar:**
+- /checkout sayfası
+- Plan seçimi + ödeme adımı
+- Başarılı ödeme sonrası onboarding yönlendirmesi
+- Başarısız/cancel ödeme senaryoları
+
+### [x] 20.3 Subscription Management
+**Gereksinimler:** 20.2
+**Detaylar:**
+- Billing portal entegrasyonu
+- Plan upgrade/downgrade/cancel
+- Invoice geçmişi ve fatura görüntüleme
+- Abonelik durumu badge'leri
+
+### [x] 20.4 Billing Webhook ve Access Sync
+**Gereksinimler:** 20.3
+**Detaylar:**
+- Webhook endpointleri (checkout, invoice, subscription events)
+- Abonelik durumunu DB ile senkronlama
+- Feature-gating (plan based access)
+- Idempotency ve webhook retry handling
+
+## 21. Çalışmayan Sayfaların Tamamlanması
+
+### [x] 21.1 Navigation Route Gap Analysis
+**Gereksinimler:** 4.2
+**Detaylar:**
+- Sidebar'daki tüm item'ların route kontrolü
+- Eksik route listesi çıkarma
+- Broken route ve 404 audit raporu
+- Route naming standardizasyonu
+
+### [x] 21.2 Eksik Modül Sayfaları
+**Gereksinimler:** 21.1
+**Detaylar:**
+- /tiktok-ads sayfası oluştur ve çalışır hale getir
+- /yandex-ads sayfası oluştur ve çalışır hale getir
+- /google-ads, /meta-ads, /linkedin-ads, /ga4, /search-console için app route doğrulaması
+- Her route için data placeholder yerine gerçek query/mutation bağlantısı
+
+### [x] 21.3 Route ve Menü Senkronizasyonu
+**Gereksinimler:** 21.2
+**Detaylar:**
+- Sidebar menü path'leri ile app router path'lerini birebir eşleştir
+- Active state ve page title doğruluğu
+- Mobile/desktop navigation parity
+- Kırık link regression testleri
+
+## 22. API Katmanı ve Entegrasyonlar
+
+### [x] 22.1 API Architecture (BFF)
+**Gereksinimler:** 6.1, 6.2
+**Detaylar:**
+- Next.js route handlers ile API katmanı tasarımı
+- DTO ve schema validation (zod vb.)
+- Error envelope standardı
+- Request tracing ve request-id propagation
+
+### [x] 22.2 Platform OAuth ve API Entegrasyonları
+**Gereksinimler:** 22.1
+**Detaylar:**
+- Reklam ağları: Google Ads, Meta Ads, TikTok Ads, LinkedIn Ads, Pinterest Ads, Microsoft Ads, Yandex Ads, Snapchat Ads, X Ads, Reddit Ads, Amazon Ads
+- Analytics: GA4, Search Console, YouTube Analytics, Mixpanel, Amplitude, Adobe Analytics
+- E-ticaret: Shopify, WooCommerce, BigCommerce, Magento, Amazon Seller Central, Etsy
+- CRM & Marketing: HubSpot, Salesforce, Pipedrive, Klaviyo, Mailchimp, ActiveCampaign, Brevo
+- Data Warehouse & DB: BigQuery, Snowflake, Redshift, Databricks, PostgreSQL
+- Destek ve operasyon: Zendesk, Intercom, Freshdesk, Slack
+- OAuth2 + API key + service account kimlik doğrulama modları
+- Her entegrasyon için scope, refresh token ve credential rotation planı
+
+### [x] 22.3 Data Sync Jobs
+**Gereksinimler:** 22.2
+**Detaylar:**
+- Scheduled sync (hourly/daily)
+- Incremental sync ve cursor yönetimi
+- Retry + dead-letter stratejisi
+- Rate limit handling ve backoff
+
+### [x] 22.4 Dashboard API Endpointleri
+**Gereksinimler:** 22.3
+**Detaylar:**
+- KPI summary endpointleri
+- Campaign / channel list endpointleri
+- Metrics preference endpointleri
+- Filters: date range, brand, platform
+
+### [x] 22.5 API Güvenlik ve Limitler
+**Gereksinimler:** 22.1, 13.2
+**Detaylar:**
+- JWT doğrulama ve tenant isolation
+- Rate limiting
+- Input sanitization
+- Audit log için kritik API event kayıtları
+
+### [x] 22.6 Connector Framework ve Marketplace
+**Gereksinimler:** 22.2, 22.3
+**Detaylar:**
+- Provider-agnostic connector interface (auth, sync, mapping, health)
+- Connector lifecycle state'leri: draft, connected, syncing, paused, failed
+- Integration marketplace sayfası (/integrations/marketplace)
+- "Request integration" akışı ve talep önceliklendirme
+- Connector sürümleme ve backward compatibility stratejisi
+
+### [x] 22.7 Data Mapping ve Normalization
+**Gereksinimler:** 22.4
+**Detaylar:**
+- Platform bazlı metric naming farklarını normalize etme
+- Currency/timezone normalization
+- Cross-platform attribution field mapping
+- Schema evolution ve migration stratejisi
+
+### [x] 22.8 Webhook Tabanlı Near Real-Time Entegrasyonlar
+**Gereksinimler:** 22.2, 22.3
+**Detaylar:**
+- Shopify webhook'ları (orders, refunds, products)
+- HubSpot / Salesforce event webhook'ları
+- Meta/Google conversion event ingestion
+- Signature verification, replay protection, dead-letter queue
+
+## 23. Notifications Sistemi
+
+### [x] 23.1 In-App Notifications Merkezi
+**Gereksinimler:** 17.3
+**Detaylar:**
+- Notifications panel/page
+- read/unread state
+- kategori bazlı filtreleme
+- action link'li notification kartları
+
+### [x] 23.2 Notification Preferences
+**Gereksinimler:** 23.1
+**Detaylar:**
+- Kullanıcı bazlı notification ayarları
+- E-posta/in-app kanal seçimi
+- Threshold bazlı alert ayarları
+- Quiet hours/timezone desteği
+
+### [x] 23.3 Notification Delivery Pipeline
+**Gereksinimler:** 23.2
+**Detaylar:**
+- Event-to-notification mapping
+- Queue/worker altyapısı
+- Template yönetimi
+- Delivery logs ve başarısız gönderim retry
+
+## 24. Settings, Profile ve Workspace Yönetimi
+
+### [x] 24.1 User Profile Settings
+**Gereksinimler:** 17.5, 19.1
+**Detaylar:**
+- Profil düzenleme (ad, soyad, avatar)
+- E-posta ve parola değişikliği
+- Dil, timezone, locale ayarları
+- "Delete account" güvenli akışı
+
+### [x] 24.2 Workspace Settings
+**Gereksinimler:** 19.4
+**Detaylar:**
+- Workspace adı, logo, default currency
+- Brand/workspace ilişki ayarları
+- Data retention ve export ayarları
+- Workspace-level permission defaults
+
+### [x] 24.3 Team Management
+**Gereksinimler:** 19.4, 24.2
+**Detaylar:**
+- Davet gönderme / kabul akışı
+- Üye rolü düzenleme
+- Üye kaldırma ve audit trail
+- Pending invite yönetimi
+
+### [x] 24.4 Integration Settings Paneli
+**Gereksinimler:** 22.2
+**Detaylar:**
+- Bağlı hesap listesi
+- Reconnect / disconnect işlemleri
+- Sync status ve son sync zamanı
+- Health check state'leri
+- OAuth scope görüntüleme ve yeniden yetkilendirme
+- API key/service account credential yenileme
+- Connector bazlı sync frequency ayarı
+- "Test connection" ve troubleshooting sonuç ekranı
+
+## 25. Support ve Help Center
+
+### [x] 25.1 Support Modülü
+**Gereksinimler:** 18.4
+**Detaylar:**
+- /support sayfası
+- Ticket oluşturma formu (kategori, öncelik, açıklama)
+- Ticket durum takibi (open, in progress, resolved)
+- Kullanıcıya geri bildirim bildirimleri
+
+### [x] 25.2 Knowledge Base
+**Gereksinimler:** 25.1
+**Detaylar:**
+- SSS (FAQ) sayfası
+- Aranabilir yardım makaleleri
+- Onboarding rehberi
+- API/integration troubleshooting dökümanı
+
+## 26. Onboarding ve İlk Kurulum Akışı
+
+### [x] 26.1 İlk Giriş Onboarding Wizard
+**Gereksinimler:** 19.2, 22.2
+**Detaylar:**
+- Brand/workspace oluşturma adımı
+- İlk platform bağlantısı adımı
+- Varsayılan KPI seçim adımı
+- Onboarding completion state kaydı
+
+### [x] 26.2 Demo Data ve Empty States
+**Gereksinimler:** 26.1
+**Detaylar:**
+- Veri yokken açıklayıcı empty states
+- Demo data ile ürün keşfi
+- "Connect your first channel" CTA
+- Onboarding sonrası next-step checklist
+
+## 27. Güvenlik, İzlenebilirlik ve Release
+
+### [x] 27.1 Observability ve Monitoring
+**Gereksinimler:** 16.1, 16.2
+**Detaylar:**
+- Frontend error tracking (Sentry vb.)
+- API log aggregation
+- Health check endpointleri
+- Alerting kuralları
+
+### [x] 27.2 Security Hardening
+**Gereksinimler:** 13.2, 22.5
+**Detaylar:**
+- Secrets yönetimi ve rotasyon
+- CSP, security headers
+- CSRF/XSS kontrolleri
+- Dependency ve vuln scanning
+
+### [x] 27.3 E2E ve Release Checklist
+**Gereksinimler:** 12.3, 21.3, 20.4
+**Detaylar:**
+- Kritik akışlar için E2E testler (signup -> checkout -> dashboard)
+- Release smoke test checklist
+- Rollback planı
+- Staging -> production release prosedürü

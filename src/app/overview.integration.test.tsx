@@ -2,9 +2,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { orderMock, pathnameMock } = vi.hoisted(() => ({
+const { orderMock, pathnameMock, routerPushMock } = vi.hoisted(() => ({
   orderMock: vi.fn(),
-  pathnameMock: vi.fn()
+  pathnameMock: vi.fn(),
+  routerPushMock: vi.fn()
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -18,10 +19,17 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => pathnameMock()
+  usePathname: () => pathnameMock(),
+  useRouter: () => ({
+    push: routerPushMock,
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn()
+  })
 }));
 
 import App from "@/App";
+import { AuthSessionProvider } from "@/contexts/AuthSessionContext";
 import { BrandProvider } from "@/contexts/BrandContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { queryClient } from "@/lib/queryClient";
@@ -30,11 +38,13 @@ import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
 function renderOverviewApp() {
   return render(
     <ThemeProvider>
-      <BrandProvider>
-        <App>
-          <ModulePlaceholderRenderer moduleKey="overview" />
-        </App>
-      </BrandProvider>
+      <AuthSessionProvider>
+        <BrandProvider>
+          <App>
+            <ModulePlaceholderRenderer moduleKey="overview" />
+          </App>
+        </BrandProvider>
+      </AuthSessionProvider>
     </ThemeProvider>
   );
 }
@@ -43,6 +53,7 @@ describe("Overview integration", () => {
   beforeEach(() => {
     pathnameMock.mockReturnValue("/");
     orderMock.mockReset();
+    routerPushMock.mockReset();
     orderMock.mockResolvedValue({
       data: [
         { id: "brand-1", name: "Growth Hacking Inc.", avatar: "GH", active_admins: 3 },

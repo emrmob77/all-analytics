@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { BrandProvider } from "@/contexts/BrandContext";
+import { AuthSessionProvider } from "@/contexts/AuthSessionContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import "./globals.css";
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body>
         <ThemeProvider>
-          <BrandProvider>{children}</BrandProvider>
+          <AuthSessionProvider>
+            <BrandProvider>{children}</BrandProvider>
+          </AuthSessionProvider>
         </ThemeProvider>
       </body>
     </html>

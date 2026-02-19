@@ -1,10 +1,10 @@
 import App from "@/App";
-import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
+import SettingsWorkspaceModule from "@/modules/saas/SettingsWorkspaceModule";
 
 export default function SettingsPage() {
   return (
     <App>
-      <ModulePlaceholderRenderer moduleKey="settings" />
+      <SettingsWorkspaceModule />
     </App>
   );
 }

@@ -35,6 +35,10 @@ function getMaterialIconColorClass(icon: string) {
   if (icon === "description") return "text-orange-500 dark:text-orange-400";
   if (icon === "auto_awesome") return "text-fuchsia-500 dark:text-fuchsia-400";
   if (icon === "settings") return "text-slate-500 dark:text-slate-400";
+  if (icon === "payments") return "text-emerald-500 dark:text-emerald-400";
+  if (icon === "support_agent") return "text-sky-500 dark:text-sky-400";
+  if (icon === "menu_book") return "text-indigo-500 dark:text-indigo-400";
+  if (icon === "rocket_launch") return "text-amber-500 dark:text-amber-400";
   return "text-text-muted-light dark:text-text-muted-dark";
 }
 

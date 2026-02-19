@@ -2,6 +2,8 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+import { captureFrontendError } from "@/lib/observability/monitoring";
+
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
@@ -26,6 +28,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    captureFrontendError(error, { componentStack: errorInfo.componentStack ?? undefined });
     console.error("[ErrorBoundary] UI crash captured", { error, errorInfo });
   }
 

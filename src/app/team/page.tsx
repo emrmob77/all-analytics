@@ -1,10 +1,10 @@
 import App from "@/App";
-import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
+import TeamManagementModule from "@/modules/saas/TeamManagementModule";
 
 export default function TeamPage() {
   return (
     <App>
-      <ModulePlaceholderRenderer moduleKey="team" />
+      <TeamManagementModule />
     </App>
   );
 }

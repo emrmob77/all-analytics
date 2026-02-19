@@ -126,15 +126,26 @@ const navigationSections: NavigationSection[] = [
   {
     title: "System",
     items: [
-      { label: "AllanalyticsAI", icon: "auto_awesome", path: "/glowy-ai" },
-      { label: "Settings", icon: "settings", path: "/settings" }
+      { label: "AllanalyticsAI", icon: "auto_awesome", path: "/allanalytics-ai" },
+      { label: "Settings", icon: "settings", path: "/settings" },
+      { label: "Billing", icon: "payments", path: "/billing" },
+      { label: "Support", icon: "support_agent", path: "/support" },
+      { label: "Knowledge Base", icon: "menu_book", path: "/knowledge-base" },
+      { label: "Onboarding", icon: "rocket_launch", path: "/onboarding" }
     ]
   }
 ];
 
+const navigationItemByPath = new Map(
+  navigationSections.flatMap((section) => section.items).map((item) => [item.path, item])
+);
+
 function getPageTitleByPath(pathname: string) {
   const route = moduleByPath.get(pathname);
   if (route) return route.title;
+
+  const navigationItem = navigationItemByPath.get(pathname);
+  if (navigationItem) return navigationItem.label;
 
   const lastSegment = pathname.split("/").filter(Boolean).at(-1);
   if (!lastSegment) return moduleByKey.overview.title;

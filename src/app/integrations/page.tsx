@@ -1,10 +1,10 @@
 import App from "@/App";
-import ModulePlaceholderRenderer from "@/modules/ModulePlaceholderRenderer";
+import IntegrationSettingsModule from "@/modules/saas/IntegrationSettingsModule";
 
 export default function IntegrationsPage() {
   return (
     <App>
-      <ModulePlaceholderRenderer moduleKey="integrations" />
+      <IntegrationSettingsModule />
     </App>
   );
 }
