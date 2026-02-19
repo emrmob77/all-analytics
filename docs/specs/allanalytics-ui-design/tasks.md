@@ -239,7 +239,7 @@ src/
 
 ## 6. API Integration ve Data Fetching
 
-### 6.1 Supabase Queries (React Query Hooks)
+### [x] 6.1 Supabase Queries (React Query Hooks)
 **Gereksinimler:** 6.3, 7.1, 8.1, 10.2
 **Detaylar:**
 - src/hooks/useBrands.ts: Brand listesi
@@ -249,7 +249,7 @@ src/
 - src/hooks/useUserMetricPreferences.ts: Kullanıcı metrik tercihleri
 - Her hook için error handling ve loading state
 
-### 6.2 Supabase Mutations
+### [x] 6.2 Supabase Mutations
 **Gereksinimler:** 8.3, 10.1, 10.2
 **Detaylar:**
 - src/hooks/useTogglePlatformConnection.ts: Platform aktif/pasif
@@ -258,7 +258,7 @@ src/
 - src/hooks/useReorderMetricPreferences.ts: Metrik sıralama
 - Toast notification ile success/error mesajları
 
-### 6.3 Toast Notification System
+### [x] 6.3 Toast Notification System
 **Gereksinimler:** 15.1, 15.2
 **Detaylar:**
 - shadcn/ui Toast component kullan
