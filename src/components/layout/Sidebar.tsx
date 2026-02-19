@@ -77,7 +77,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
               src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80"
             />
             <div>
-              <div className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">Rahat Ali</div>
+              <div className="text-sm font-semibold text-text-main-light dark:text-text-main-dark">Esra Bayatlı</div>
               <div className="text-xs text-text-muted-light dark:text-text-muted-dark">Super Admin</div>
             </div>
           </div>

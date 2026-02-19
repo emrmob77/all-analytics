@@ -7,6 +7,7 @@ interface Campaign {
   budgetLimit: number;
   roas: number;
   roasTrend: "up" | "down" | "flat";
+  budgetBarClass: string;
 }
 
 const campaigns: Campaign[] = [
@@ -18,7 +19,8 @@ const campaigns: Campaign[] = [
     budgetUsed: 4200,
     budgetLimit: 6000,
     roas: 4.2,
-    roasTrend: "up"
+    roasTrend: "up",
+    budgetBarClass: "bg-primary"
   },
   {
     id: "CMP-8832",
@@ -28,7 +30,8 @@ const campaigns: Campaign[] = [
     budgetUsed: 1100,
     budgetLimit: 5000,
     roas: 1.8,
-    roasTrend: "flat"
+    roasTrend: "flat",
+    budgetBarClass: "bg-yellow-500"
   },
   {
     id: "CMP-7741",
@@ -38,7 +41,8 @@ const campaigns: Campaign[] = [
     budgetUsed: 8540,
     budgetLimit: 9300,
     roas: 5.1,
-    roasTrend: "up"
+    roasTrend: "up",
+    budgetBarClass: "bg-red-500"
   },
   {
     id: "CMP-6418",
@@ -47,8 +51,9 @@ const campaigns: Campaign[] = [
     status: "stopped",
     budgetUsed: 7430,
     budgetLimit: 7700,
-    roas: 1.1,
-    roasTrend: "down"
+    roas: 0.9,
+    roasTrend: "down",
+    budgetBarClass: "bg-red-500"
   }
 ];
 
@@ -93,12 +98,6 @@ function getStatusMeta(status: Campaign["status"]) {
     wrapperClass: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     dotClass: "bg-red-500"
   };
-}
-
-function getProgressColor(percentage: number) {
-  if (percentage <= 70) return "bg-primary";
-  if (percentage <= 90) return "bg-yellow-500";
-  return "bg-red-500";
 }
 
 function getTrendMeta(trend: Campaign["roasTrend"]) {
@@ -147,13 +146,13 @@ function CampaignRow({ campaign }: CampaignRowProps) {
           {status.label}
         </span>
       </td>
-      <td className="w-52 px-6 py-4">
+      <td className="w-48 px-6 py-4">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs font-medium">{currency(campaign.budgetUsed)}</span>
           <span className="text-xs text-text-muted-light dark:text-text-muted-dark">{percentage}%</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-          <div className={["h-1.5 rounded-full", getProgressColor(percentage)].join(" ")} style={{ width: `${percentage}%` }} />
+          <div className={["h-1.5 rounded-full", campaign.budgetBarClass].join(" ")} style={{ width: `${percentage}%` }} />
         </div>
       </td>
       <td className="px-6 py-4">
@@ -233,14 +232,14 @@ function CampaignTable() {
           </table>
         </div>
 
-        <div className="border-t border-border-light px-6 py-4 dark:border-border-dark">
-          <a
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-            href="#"
+        <div className="flex items-center justify-center border-t border-border-light px-6 py-4 dark:border-border-dark">
+          <button
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:underline"
+            type="button"
           >
             View All Campaigns
-            <span className="material-icons-round text-base">arrow_forward</span>
-          </a>
+            <span className="material-icons-round text-sm">arrow_forward</span>
+          </button>
         </div>
       </div>
     </section>

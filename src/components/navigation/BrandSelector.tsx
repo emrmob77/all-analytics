@@ -10,6 +10,12 @@ interface BrandSelectorProps {
   onSelectBrand: (brand: Brand) => void;
 }
 
+function getAvatarColorClass(avatar: string) {
+  if (avatar === "NR") return "bg-blue-100 text-blue-700";
+  if (avatar === "ML") return "bg-amber-100 text-amber-700";
+  return "bg-secondary text-primary";
+}
+
 function BrandSelector({ brand, brands, onSelectBrand }: BrandSelectorProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -37,7 +43,12 @@ function BrandSelector({ brand, brands, onSelectBrand }: BrandSelectorProps) {
         onClick={() => setOpen((prev) => !prev)}
         type="button"
       >
-        <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold text-primary">
+        <div
+          className={[
+            "grid h-8 w-8 place-items-center rounded-full text-xs font-semibold",
+            getAvatarColorClass(brand.avatar)
+          ].join(" ")}
+        >
           {brand.avatar}
         </div>
         <div className="min-w-0 flex-1">
@@ -68,7 +79,12 @@ function BrandSelector({ brand, brands, onSelectBrand }: BrandSelectorProps) {
                 }}
                 type="button"
               >
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold text-primary">
+                <div
+                  className={[
+                    "grid h-8 w-8 place-items-center rounded-full text-xs font-semibold",
+                    getAvatarColorClass(item.avatar)
+                  ].join(" ")}
+                >
                   {item.avatar}
                 </div>
                 <div className="min-w-0 flex-1">

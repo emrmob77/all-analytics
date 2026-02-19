@@ -1,6 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #5A8A5E;
+  --color-secondary: #D4E5D6;
+  --color-background-light: #F3F4F6;
+  --color-background-dark: #111827;
+  --color-surface-light: #FFFFFF;
+  --color-surface-dark: #1F2937;
+  --color-text-main-light: #111827;
+  --color-text-main-dark: #F9FAFB;
+  --color-text-muted-light: #6B7280;
+  --color-text-muted-dark: #9CA3AF;
+  --color-border-light: #E5E7EB;
+  --color-border-dark: #374151;
+}
+
 :root {
   color-scheme: light dark;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

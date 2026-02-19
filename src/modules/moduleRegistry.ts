@@ -102,24 +102,29 @@ const navigationSections: NavigationSection[] = [
   {
     title: "Analytics",
     items: [
-      { label: "Dashboard", icon: moduleByKey.overview.icon, path: moduleByKey.overview.path },
-      { label: "Performance", icon: moduleByKey.performance.icon, path: moduleByKey.performance.path },
-      { label: "Campaigns", icon: moduleByKey.campaigns.icon, path: moduleByKey.campaigns.path },
-      { label: "Channels", icon: moduleByKey.channels.icon, path: moduleByKey.channels.path }
+      { label: "Overview Dashboard", icon: "dashboard", path: "/" },
+      { label: "Google Ads", icon: "ads_click", path: "/google-ads" },
+      { label: "Meta Ads", icon: "campaign", path: "/meta-ads" },
+      { label: "GA4", icon: "analytics", path: "/ga4" },
+      { label: "Growth Intelligence", icon: "insights", path: "/growth-intelligence" },
+      { label: "Market Insights", icon: "show_chart", path: "/market-insights" },
+      { label: "Commerce Center", icon: "shopping_bag", path: "/commerce-center" },
+      { label: "Search Console", icon: "manage_search", path: "/search-console" }
     ]
   },
   {
     title: "Configuration",
     items: [
-      { label: "Integrations", icon: moduleByKey.integrations.icon, path: moduleByKey.integrations.path },
-      { label: "Attribution", icon: moduleByKey.attribution.icon, path: moduleByKey.attribution.path }
+      { label: "Integrations", icon: "extension", path: "/integrations" },
+      { label: "Task Board", icon: "task_alt", path: "/task-board" },
+      { label: "Custom Report", icon: "description", path: "/custom-report" }
     ]
   },
   {
     title: "System",
     items: [
-      { label: "Team", icon: moduleByKey.team.icon, path: moduleByKey.team.path },
-      { label: "Settings", icon: moduleByKey.settings.icon, path: moduleByKey.settings.path }
+      { label: "GlowyAI", icon: "auto_awesome", path: "/glowy-ai" },
+      { label: "Settings", icon: "settings", path: "/settings" }
     ]
   }
 ];

@@ -17,11 +17,12 @@ function Layout({ children }: LayoutProps) {
     <div className="flex h-screen overflow-hidden bg-background-light text-text-main-light transition-colors duration-200 dark:bg-background-dark dark:text-text-main-dark">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background-light dark:bg-background-dark">
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="mx-auto max-w-[1600px]">{children}</div>
+          {children}
+          <div className="h-8" />
         </main>
       </div>
     </div>

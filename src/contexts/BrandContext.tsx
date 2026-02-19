@@ -20,8 +20,8 @@ const STORAGE_KEY = "allanalytics-active-brand-id";
 
 const fallbackBrands: Brand[] = [
   { id: "brand-1", name: "Growth Hacking Inc.", avatar: "GH", activeAdmins: 3 },
-  { id: "brand-2", name: "Allanalytics Labs", avatar: "AL", activeAdmins: 2 },
-  { id: "brand-3", name: "Digital Nova", avatar: "DN", activeAdmins: 4 }
+  { id: "brand-2", name: "Nova Retail Group", avatar: "NR", activeAdmins: 2 },
+  { id: "brand-3", name: "Momentum Labs", avatar: "ML", activeAdmins: 5 }
 ];
 
 const BrandContext = createContext<BrandContextValue | null>(null);

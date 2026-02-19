@@ -5,8 +5,8 @@ import { useState } from "react";
 interface Platform {
   id: string;
   name: string;
-  logo: string;
-  logoClassName: string;
+  glyph: string;
+  glyphClassName: string;
   connected: boolean;
   spend: number;
   limit: number;
@@ -16,38 +16,38 @@ const initialPlatforms: Platform[] = [
   {
     id: "google",
     name: "Google Ads",
-    logo: "G",
-    logoClassName: "bg-blue-100 text-blue-700",
+    glyph: "G",
+    glyphClassName: "text-blue-700",
     connected: true,
-    spend: 12400,
-    limit: 18000
+    spend: 12450,
+    limit: 15000
   },
   {
     id: "linkedin",
     name: "LinkedIn Ads",
-    logo: "in",
-    logoClassName: "bg-indigo-100 text-indigo-700",
+    glyph: "in",
+    glyphClassName: "text-indigo-700",
     connected: false,
     spend: 0,
-    limit: 9000
+    limit: 5000
   },
   {
-    id: "facebook",
-    name: "Facebook Ads",
-    logo: "f",
-    logoClassName: "bg-blue-600 text-white",
+    id: "meta",
+    name: "Meta Ads",
+    glyph: "f",
+    glyphClassName: "text-blue-600",
     connected: true,
-    spend: 8700,
-    limit: 12000
+    spend: 6200,
+    limit: 10000
   },
   {
     id: "tiktok",
     name: "TikTok Ads",
-    logo: "t",
-    logoClassName: "bg-black text-white",
-    connected: false,
-    spend: 0,
-    limit: 10000
+    glyph: "t",
+    glyphClassName: "text-black dark:text-white",
+    connected: true,
+    spend: 4700,
+    limit: 5000
   }
 ];
 
@@ -57,7 +57,8 @@ function currency(value: number) {
   );
 }
 
-function progressColor(percentage: number) {
+function getProgressColor(percentage: number) {
+  if (percentage === 0) return "bg-gray-400";
   if (percentage <= 70) return "bg-primary";
   if (percentage <= 90) return "bg-yellow-500";
   return "bg-red-500";
@@ -75,77 +76,81 @@ function PlatformCard() {
   }
 
   return (
-    <section className="rounded-xl border border-border-light bg-surface-light p-6 shadow-sm dark:border-border-dark dark:bg-surface-dark">
+    <section className="flex flex-col">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-text-main-light dark:text-text-main-dark">Platform Connections</h2>
+        <h2 className="text-lg font-semibold">Connected Channels</h2>
         <button
-          aria-label="Open platform settings"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border-light text-text-muted-light transition-colors hover:bg-gray-50 dark:border-border-dark dark:text-text-muted-dark dark:hover:bg-gray-800"
+          aria-label="Channel settings"
+          className="min-h-11 min-w-11 rounded-lg text-text-muted-light transition-colors hover:text-primary dark:text-text-muted-dark"
           type="button"
         >
-          <span className="material-icons-round text-lg">settings</span>
+          <span className="material-icons-round">settings</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {platforms.map((platform) => {
           const percentage = platform.limit === 0 ? 0 : Math.round((platform.spend / platform.limit) * 100);
 
           return (
             <article
               className={[
-                "rounded-xl border border-border-light p-4 shadow-sm transition-all hover:shadow-md dark:border-border-dark",
+                "rounded-xl border border-border-light bg-surface-light p-5 shadow-sm transition-shadow hover:shadow-md dark:border-border-dark dark:bg-surface-dark",
                 platform.connected ? "" : "opacity-60"
               ].join(" ")}
               key={platform.id}
             >
-              <div className="mb-3 flex items-center gap-3">
-                <div
-                  className={[
-                    "grid h-9 w-9 place-items-center rounded-full text-xs font-bold",
-                    platform.logoClassName
-                  ].join(" ")}
-                >
-                  {platform.logo}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-semibold text-text-main-light dark:text-text-main-dark">
-                    {platform.name}
-                  </h3>
-                  <p
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div
                     className={[
-                      "text-xs",
-                      platform.connected ? "text-green-600 dark:text-green-400" : "text-text-muted-light dark:text-text-muted-dark"
+                      "flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-sm font-bold dark:bg-gray-800",
+                      platform.glyphClassName
                     ].join(" ")}
                   >
-                    {platform.connected ? "Connected" : "Inactive"}
-                  </p>
+                    {platform.glyph}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold">{platform.name}</h3>
+                    {platform.connected ? (
+                      <p className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                        Connected
+                      </p>
+                    ) : (
+                      <p className="text-xs text-text-muted-light dark:text-text-muted-dark">Inactive</p>
+                    )}
+                  </div>
                 </div>
 
-                <label className="relative inline-flex cursor-pointer items-center">
+                <label
+                  aria-label={`Toggle ${platform.name} connection`}
+                  className="relative inline-flex cursor-pointer items-center"
+                >
                   <input
                     checked={platform.connected}
                     className="peer sr-only"
                     onChange={() => togglePlatform(platform.id)}
                     type="checkbox"
                   />
-                  <span className="h-6 w-11 rounded-full bg-gray-200 transition-colors peer-checked:bg-primary dark:bg-gray-700" />
-                  <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+                  <span className="relative h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700" />
                 </label>
               </div>
 
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-text-muted-light dark:text-text-muted-dark">
-                  Spend <strong className="text-text-main-light dark:text-text-main-dark">{currency(platform.spend)}</strong>
-                </span>
-                <span className="text-text-muted-light dark:text-text-muted-dark">
-                  Limit <strong className="text-text-main-light dark:text-text-main-dark">{currency(platform.limit)}</strong>
-                </span>
-              </div>
-
-              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                <div className={["h-1.5 rounded-full", progressColor(percentage)].join(" ")} style={{ width: `${percentage}%` }} />
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted-light dark:text-text-muted-dark">Spend</span>
+                  <span className="font-semibold">{currency(platform.spend)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted-light dark:text-text-muted-dark">Limit</span>
+                  <span className="font-semibold">{currency(platform.limit)}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div
+                    className={["h-1.5 rounded-full", getProgressColor(percentage)].join(" ")}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
               </div>
             </article>
           );
