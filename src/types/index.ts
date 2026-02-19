@@ -4,7 +4,7 @@ export type CampaignStatus = 'active' | 'paused' | 'archived' | 'deleted';
 export type Role = 'owner' | 'admin' | 'member' | 'viewer';
 export type SyncStatus = 'in_progress' | 'completed' | 'failed';
 export type ExportFormat = 'csv' | 'excel' | 'pdf';
-export type DateRangePreset = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'custom';
+export type DateRangePreset = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'last90days' | 'custom';
 
 // User & Organization
 export interface User {

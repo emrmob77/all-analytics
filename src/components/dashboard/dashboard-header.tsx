@@ -7,7 +7,7 @@ import { useState } from 'react';
 const DATE_PRESETS: { value: DateRangePreset; label: string }[] = [
   { value: 'last7days', label: '7d' },
   { value: 'last30days', label: '30d' },
-  { value: 'custom', label: '90d' },
+  { value: 'last90days', label: '90d' },
 ];
 
 export function DashboardHeader() {
