@@ -269,7 +269,7 @@ src/
 
 ## 7. Animasyonlar ve Geçişler
 
-### 7.1 Framer Motion Variants Tanımlama
+### [x] 7.1 Framer Motion Variants Tanımlama
 **Gereksinimler:** 12.1, 12.2, 12.3, 12.4
 **Detaylar:**
 - src/lib/animations.ts dosyası oluştur
@@ -279,14 +279,14 @@ src/
 - staggerContainer ve staggerItem
 - Transition timing: 200ms-300ms
 
-### 7.2 Page Transitions Uygulama
+### [x] 7.2 Page Transitions Uygulama
 **Gereksinimler:** 12.1
 **Detaylar:**
 - AnimatePresence component ile route transitions
 - Her sayfa component'ine motion.div wrapper
 - pageVariants ve pageTransition kullan
 
-### 7.3 Loading States ve Skeleton Screens
+### [x] 7.3 Loading States ve Skeleton Screens
 **Gereksinimler:** 12.5
 **Detaylar:**
 - src/components/ui/Skeleton.tsx component oluştur
@@ -294,7 +294,7 @@ src/
 - Shimmer animasyonu ekle
 - React Query isLoading state'inde göster
 
-### 7.4 Prefers-Reduced-Motion Desteği
+### [x] 7.4 Prefers-Reduced-Motion Desteği
 **Gereksinimler:** 12.6
 **Detaylar:**
 - CSS media query: @media (prefers-reduced-motion: reduce)
