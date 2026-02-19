@@ -1,4 +1,6 @@
-import BrandLogoIcon, { type BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import { memo, useMemo } from "react";
+import type { BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import OptimizedBrandLogo from "@/components/ui/OptimizedBrandLogo";
 
 interface Campaign {
   id: string;
@@ -112,11 +114,14 @@ interface CampaignRowProps {
   campaign: Campaign;
 }
 
-function CampaignRow({ campaign }: CampaignRowProps) {
-  const status = getStatusMeta(campaign.status);
-  const platform = getPlatformMeta(campaign.platform);
-  const trend = getTrendMeta(campaign.roasTrend);
-  const percentage = Math.round((campaign.budgetUsed / campaign.budgetLimit) * 100);
+const CampaignRow = memo(function CampaignRow({ campaign }: CampaignRowProps) {
+  const status = useMemo(() => getStatusMeta(campaign.status), [campaign.status]);
+  const platform = useMemo(() => getPlatformMeta(campaign.platform), [campaign.platform]);
+  const trend = useMemo(() => getTrendMeta(campaign.roasTrend), [campaign.roasTrend]);
+  const percentage = useMemo(
+    () => Math.round((campaign.budgetUsed / campaign.budgetLimit) * 100),
+    [campaign.budgetLimit, campaign.budgetUsed]
+  );
 
   return (
     <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -126,7 +131,7 @@ function CampaignRow({ campaign }: CampaignRowProps) {
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          <BrandLogoIcon brand={platform.logo} size={18} />
+          <OptimizedBrandLogo brand={platform.logo} size={18} />
           <span>{platform.label}</span>
         </div>
       </td>
@@ -167,9 +172,11 @@ function CampaignRow({ campaign }: CampaignRowProps) {
       </td>
     </tr>
   );
-}
+});
 
 function CampaignTable() {
+  const memoizedCampaigns = useMemo(() => campaigns, []);
+
   return (
     <section>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -182,7 +189,7 @@ function CampaignTable() {
           <div className="relative">
             <select
               aria-label="Filter campaigns by status"
-              className="appearance-none rounded-lg border border-border-light bg-surface-light py-2 pl-3 pr-8 text-sm text-text-main-light outline-none transition-colors focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-main-dark"
+              className="min-h-11 appearance-none rounded-lg border border-border-light bg-surface-light py-2 pl-3 pr-8 text-sm text-text-main-light outline-none transition-colors focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-text-main-dark"
               defaultValue="all"
               id="campaign-status-filter"
             >
@@ -220,7 +227,7 @@ function CampaignTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light dark:divide-border-dark">
-              {campaigns.map((campaign) => (
+              {memoizedCampaigns.map((campaign) => (
                 <CampaignRow campaign={campaign} key={campaign.id} />
               ))}
             </tbody>
@@ -229,7 +236,7 @@ function CampaignTable() {
 
         <div className="flex items-center justify-center border-t border-border-light px-6 py-4 dark:border-border-dark">
           <button
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:underline"
+            className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-medium text-primary transition-colors hover:underline"
             type="button"
           >
             View All Campaigns

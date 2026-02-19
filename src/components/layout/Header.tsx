@@ -13,7 +13,10 @@ function Header({ onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-20 flex h-20 flex-shrink-0 items-center justify-between border-b border-border-light bg-surface-light px-4 dark:border-border-dark dark:bg-surface-dark md:px-8">
+    <header
+      aria-label="Top bar"
+      className="sticky top-0 z-20 flex h-20 flex-shrink-0 items-center justify-between border-b border-border-light bg-surface-light px-4 dark:border-border-dark dark:bg-surface-dark md:px-8"
+    >
       <h1 className="truncate text-lg font-bold tracking-tight text-text-main-light dark:text-text-main-dark md:text-2xl">
         {pageTitle}
       </h1>

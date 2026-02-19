@@ -1,3 +1,5 @@
+import { formatCurrency, formatNumber, formatPercentage } from "@/utils/formatters";
+
 interface FormatValueOptions {
   style?: "number" | "currency" | "percent";
   currency?: string;
@@ -8,19 +10,12 @@ export function formatValue(value: number, options: FormatValueOptions = {}) {
   const { style = "number", currency = "USD", maximumFractionDigits = 1 } = options;
 
   if (style === "currency") {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits
-    }).format(value);
+    return formatCurrency(value, { currency, maximumFractionDigits });
   }
 
   if (style === "percent") {
-    return new Intl.NumberFormat("en-US", {
-      style: "percent",
-      maximumFractionDigits
-    }).format(value);
+    return formatPercentage(value, { maximumFractionDigits });
   }
 
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits }).format(value);
+  return formatNumber(value, { maximumFractionDigits });
 }

@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { NavigationSection } from "@/types/navigation";
-import BrandLogoIcon, { type BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import type { BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import OptimizedBrandLogo from "@/components/ui/OptimizedBrandLogo";
 
 interface NavigationMenuProps {
   sections: NavigationSection[];
   activePath: string;
   onItemClick?: () => void;
+  collapsed?: boolean;
 }
 
 function getBrandIcon(icon: string): BrandLogoName | null {
@@ -36,7 +38,7 @@ function getMaterialIconColorClass(icon: string) {
   return "text-text-muted-light dark:text-text-muted-dark";
 }
 
-function NavigationMenu({ sections, activePath, onItemClick }: NavigationMenuProps) {
+function NavigationMenu({ sections, activePath, onItemClick, collapsed = false }: NavigationMenuProps) {
   const sectionTitles = useMemo(() => sections.map((section) => section.title), [sections]);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(sectionTitles.map((title) => [title, true]))
@@ -50,29 +52,36 @@ function NavigationMenu({ sections, activePath, onItemClick }: NavigationMenuPro
   }
 
   return (
-    <nav className="space-y-4 px-4" aria-label="Sidebar navigation">
+    <nav className={collapsed ? "space-y-3 px-2" : "space-y-4 px-4"} aria-label="Sidebar navigation">
       {sections.map((section) => (
         <section key={section.title}>
-          <button
-            aria-controls={`nav-section-${section.title.toLowerCase().replace(/\s+/g, "-")}`}
-            aria-expanded={openSections[section.title] ?? true}
-            className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-xs font-semibold uppercase tracking-wider text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
-            onClick={() => toggleSection(section.title)}
-            type="button"
-          >
-            {section.title}
-            <span
-              className={[
-                "material-icons-round text-base normal-case transition-transform duration-200",
-                openSections[section.title] ?? true ? "rotate-180" : ""
-              ].join(" ")}
+          {!collapsed ? (
+            <button
+              aria-controls={`nav-section-${section.title.toLowerCase().replace(/\s+/g, "-")}`}
+              aria-expanded={openSections[section.title] ?? true}
+              className="mb-2 flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              onClick={() => toggleSection(section.title)}
+              type="button"
             >
-              expand_more
-            </span>
-          </button>
+              {section.title}
+              <span
+                className={[
+                  "material-icons-round text-base normal-case transition-transform duration-200",
+                  openSections[section.title] ?? true ? "rotate-180" : ""
+                ].join(" ")}
+              >
+                expand_more
+              </span>
+            </button>
+          ) : null}
 
-          {(openSections[section.title] ?? true) ? (
-            <ul className="space-y-0.5" id={`nav-section-${section.title.toLowerCase().replace(/\s+/g, "-")}`}>
+          {(collapsed || (openSections[section.title] ?? true)) ? (
+            <ul
+              className={collapsed ? "space-y-1" : "space-y-0.5"}
+              id={`nav-section-${section.title.toLowerCase().replace(/\s+/g, "-")}`}
+              role="menu"
+              aria-label={section.title}
+            >
               {section.items.map((item) => {
                 const isActive = activePath === item.path;
                 const brandIcon = getBrandIcon(item.icon);
@@ -81,18 +90,28 @@ function NavigationMenu({ sections, activePath, onItemClick }: NavigationMenuPro
                 return (
                   <li key={item.path}>
                     <Link
+                      aria-current={isActive ? "page" : undefined}
                       className={[
-                        "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm leading-5 transition-colors",
+                        "flex min-h-11 w-full items-center rounded-lg transition-colors",
+                        collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2 text-sm leading-5",
                         isActive
                           ? "sidebar-item-active"
                           : "text-text-muted-light hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
                       ].join(" ")}
                       href={item.path}
+                      onKeyDown={(event) => {
+                        if (event.key === " ") {
+                          event.preventDefault();
+                          event.currentTarget.click();
+                        }
+                      }}
                       onClick={onItemClick}
+                      role="menuitem"
+                      title={collapsed ? item.label : undefined}
                     >
-                      <span className="grid h-5 w-5 shrink-0 place-items-center">
+                      <span className={collapsed ? "grid h-6 w-6 shrink-0 place-items-center" : "grid h-5 w-5 shrink-0 place-items-center"}>
                         {brandIcon ? (
-                          <BrandLogoIcon
+                          <OptimizedBrandLogo
                             brand={brandIcon}
                             className={isActive ? "opacity-100" : "opacity-95"}
                             size={18}
@@ -109,7 +128,7 @@ function NavigationMenu({ sections, activePath, onItemClick }: NavigationMenuPro
                           </span>
                         )}
                       </span>
-                      {item.label}
+                      {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
                     </Link>
                   </li>
                 );

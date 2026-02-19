@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import BrandLogoIcon, { type BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import { memo, useCallback, useMemo, useState } from "react";
+import type { BrandLogoName } from "@/components/ui/BrandLogoIcon";
+import OptimizedBrandLogo from "@/components/ui/OptimizedBrandLogo";
 
 interface Platform {
   id: string;
@@ -60,16 +61,25 @@ function getProgressColor(percentage: number) {
   return "bg-red-500";
 }
 
-function PlatformCard() {
+const PlatformCard = memo(function PlatformCard() {
   const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
 
-  function togglePlatform(platformId: string) {
+  const togglePlatform = useCallback((platformId: string) => {
     setPlatforms((current) =>
       current.map((platform) =>
         platform.id === platformId ? { ...platform, connected: !platform.connected } : platform
       )
     );
-  }
+  }, []);
+
+  const platformItems = useMemo(
+    () =>
+      platforms.map((platform) => ({
+        ...platform,
+        percentage: platform.limit === 0 ? 0 : Math.round((platform.spend / platform.limit) * 100)
+      })),
+    [platforms]
+  );
 
   return (
     <section className="flex flex-col">
@@ -85,70 +95,66 @@ function PlatformCard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {platforms.map((platform) => {
-          const percentage = platform.limit === 0 ? 0 : Math.round((platform.spend / platform.limit) * 100);
-
-          return (
-            <article
-              className={[
-                "rounded-xl border border-border-light bg-surface-light p-5 shadow-sm transition-shadow hover:shadow-md dark:border-border-dark dark:bg-surface-dark",
-                platform.connected ? "" : "opacity-60"
-              ].join(" ")}
-              key={platform.id}
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-gray-100 dark:bg-gray-800">
-                    <BrandLogoIcon brand={platform.logo} size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold">{platform.name}</h3>
-                    {platform.connected ? (
-                      <p className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                        Connected
-                      </p>
-                    ) : (
-                      <p className="text-xs text-text-muted-light dark:text-text-muted-dark">Inactive</p>
-                    )}
-                  </div>
+        {platformItems.map((platform) => (
+          <article
+            className={[
+              "rounded-xl border border-border-light bg-surface-light p-5 shadow-sm transition-shadow hover:shadow-md dark:border-border-dark dark:bg-surface-dark",
+              platform.connected ? "" : "opacity-60"
+            ].join(" ")}
+            key={platform.id}
+          >
+            <div className="mb-4 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <OptimizedBrandLogo brand={platform.logo} size={22} />
                 </div>
-
-                <label
-                  aria-label={`Toggle ${platform.name} connection`}
-                  className="relative inline-flex cursor-pointer items-center"
-                >
-                  <input
-                    checked={platform.connected}
-                    className="peer sr-only"
-                    onChange={() => togglePlatform(platform.id)}
-                    type="checkbox"
-                  />
-                  <span className="relative h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700" />
-                </label>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted-light dark:text-text-muted-dark">Spend</span>
-                  <span className="font-semibold">{currency(platform.spend)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted-light dark:text-text-muted-dark">Limit</span>
-                  <span className="font-semibold">{currency(platform.limit)}</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                  <div
-                    className={["h-1.5 rounded-full", getProgressColor(percentage)].join(" ")}
-                    style={{ width: `${percentage}%` }}
-                  />
+                <div>
+                  <h3 className="text-sm font-semibold">{platform.name}</h3>
+                  {platform.connected ? (
+                    <p className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                      Connected
+                    </p>
+                  ) : (
+                    <p className="text-xs text-text-muted-light dark:text-text-muted-dark">Inactive</p>
+                  )}
                 </div>
               </div>
-            </article>
-          );
-        })}
+
+              <label
+                aria-label={`Toggle ${platform.name} connection`}
+                className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center"
+              >
+                <input
+                  checked={platform.connected}
+                  className="peer sr-only"
+                  onChange={() => togglePlatform(platform.id)}
+                  type="checkbox"
+                />
+                <span className="relative h-5 w-9 rounded-full bg-gray-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white dark:bg-gray-700" />
+              </label>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted-light dark:text-text-muted-dark">Spend</span>
+                <span className="font-semibold">{currency(platform.spend)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted-light dark:text-text-muted-dark">Limit</span>
+                <span className="font-semibold">{currency(platform.limit)}</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div
+                  className={["h-1.5 rounded-full", getProgressColor(platform.percentage)].join(" ")}
+                  style={{ width: `${platform.percentage}%` }}
+                />
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
-}
+});
 
 export default PlatformCard;

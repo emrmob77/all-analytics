@@ -20,7 +20,7 @@ function Layout({ children }: LayoutProps) {
       <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background-light dark:bg-background-dark">
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8" id="main-content">
           {children}
           <div className="h-8" />
         </main>

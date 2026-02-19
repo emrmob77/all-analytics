@@ -78,7 +78,7 @@ function IntegrationList() {
 
               {integration.state === "connect" ? (
                 <button
-                  className="rounded-md border border-border-light px-3 py-1.5 text-xs font-medium transition-all hover:border-primary hover:text-primary dark:border-border-dark"
+                  className="min-h-11 rounded-md border border-border-light px-3 py-1.5 text-xs font-medium transition-all hover:border-primary hover:text-primary dark:border-border-dark"
                   type="button"
                 >
                   Connect
@@ -86,7 +86,7 @@ function IntegrationList() {
               ) : null}
 
               {integration.state === "beta" ? (
-                <span className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-500 dark:bg-gray-800">
+                <span className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                   Beta
                 </span>
               ) : null}
@@ -97,7 +97,7 @@ function IntegrationList() {
                     Connected
                   </span>
                   <button
-                    className="rounded-md px-3 py-1.5 text-xs font-medium text-text-muted-light transition-all hover:text-primary dark:text-text-muted-dark"
+                    className="min-h-11 rounded-md px-3 py-1.5 text-xs font-medium text-text-muted-light transition-all hover:text-primary dark:text-text-muted-dark"
                     type="button"
                   >
                     Configure

@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { formatValue } from "@/utils/formatValue";
 
 interface MetricCardProps {
@@ -11,7 +13,7 @@ interface MetricCardProps {
   onRemove?: () => void;
 }
 
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   metricName,
   value,
   valueStyle = "number",
@@ -27,7 +29,7 @@ function MetricCard({
         <h3 className="text-sm font-medium text-text-muted-light dark:text-text-muted-dark">{metricName}</h3>
         <button
           aria-label={`Remove ${metricName}`}
-          className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-md text-text-muted-light transition-colors hover:bg-gray-50 hover:text-primary dark:text-text-muted-dark dark:hover:bg-gray-800"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-text-muted-light transition-colors hover:bg-gray-50 hover:text-primary dark:text-text-muted-dark dark:hover:bg-gray-800 md:min-h-8 md:min-w-8"
           onClick={onRemove}
           type="button"
         >
@@ -50,6 +52,6 @@ function MetricCard({
       </div>
     </article>
   );
-}
+});
 
 export default MetricCard;

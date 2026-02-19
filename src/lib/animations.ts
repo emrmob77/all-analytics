@@ -76,6 +76,27 @@ export const dropdownVariants: Variants = {
   }
 };
 
+export const mobileSidebarVariants: Variants = {
+  hidden: {
+    x: -320,
+    opacity: 0.98
+  },
+  visible: {
+    x: 0,
+    opacity: 1
+  },
+  exit: {
+    x: -320,
+    opacity: 0.98
+  }
+};
+
+export const backdropVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 }
+};
+
 export const staggerContainerVariants: Variants = {
   hidden: {},
   visible: {}

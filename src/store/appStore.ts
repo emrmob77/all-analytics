@@ -2,9 +2,11 @@ import { create } from "zustand";
 
 interface AppState {
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   selectedMetrics: string[];
   campaignFilter: string;
   setSidebarOpen: (open: boolean) => void;
+  toggleSidebarCollapsed: () => void;
   addMetric: (metric: string) => void;
   removeMetric: (metric: string) => void;
   reorderMetrics: (sourceIndex: number, targetIndex: number) => void;
@@ -13,9 +15,11 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: false,
+  sidebarCollapsed: false,
   selectedMetrics: [],
   campaignFilter: "all",
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
   addMetric: (metric) =>
     set((state) => {
       if (state.selectedMetrics.includes(metric)) {

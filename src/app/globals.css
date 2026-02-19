@@ -75,6 +75,15 @@ body {
   color: #f9fafb;
 }
 
+:focus-visible {
+  outline: 2px solid #5a8a5e;
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

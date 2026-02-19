@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { Dialog, DialogContent } from "@/components/ui/Dialog";
+import { debounce } from "@/utils/performance";
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
@@ -12,16 +15,22 @@ function SearchBar({ onSearch, debounceMs = 300 }: SearchBarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchTitleId = "mobile-search-title";
+  const mobileSearchDescriptionId = "mobile-search-description";
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((nextQuery: string) => {
+        onSearch?.(nextQuery.trim());
+      }, debounceMs),
+    [debounceMs, onSearch]
+  );
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      onSearch?.(query.trim());
-    }, debounceMs);
-
+    debouncedSearch(query);
     return () => {
-      window.clearTimeout(timeoutId);
+      debouncedSearch.cancel();
     };
-  }, [debounceMs, onSearch, query]);
+  }, [debouncedSearch, query]);
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -29,7 +38,7 @@ function SearchBar({ onSearch, debounceMs = 300 }: SearchBarProps) {
       if (!isShortcut) return;
 
       event.preventDefault();
-      if (window.matchMedia("(max-width: 639px)").matches) {
+      if (window.matchMedia("(max-width: 767px)").matches) {
         setMobileOpen(true);
         return;
       }
@@ -73,7 +82,7 @@ function SearchBar({ onSearch, debounceMs = 300 }: SearchBarProps) {
           value={query}
         />
         <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-          <kbd className="inline-block rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-mono text-gray-500 dark:border-gray-600 dark:text-gray-400">
+          <kbd className="inline-block rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-mono text-gray-700 dark:border-gray-500 dark:text-gray-200">
             ⌘K
           </kbd>
         </div>
@@ -88,41 +97,48 @@ function SearchBar({ onSearch, debounceMs = 300 }: SearchBarProps) {
         <span className="material-icons-round text-lg">search</span>
       </button>
 
-      {mobileOpen ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/40 p-4 md:hidden"
-          onClick={() => setMobileOpen(false)}
-          role="dialog"
+      <Dialog onOpenChange={setMobileOpen} open={mobileOpen}>
+        <DialogContent
+          ariaDescribedby={mobileSearchDescriptionId}
+          ariaLabel="Mobile search"
+          ariaLabelledby={mobileSearchTitleId}
+          className="flex h-[100dvh] max-w-none flex-col rounded-none border-0 shadow-none md:hidden"
+          fullscreen
         >
-          <div
-            className="mt-16 rounded-xl border border-border-light bg-surface-light p-4 shadow-lg dark:border-border-dark dark:bg-surface-dark"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center gap-2">
-              <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark">search</span>
-              <input
-                aria-label="Mobile search"
-                className="w-full border-0 bg-transparent text-sm text-text-main-light outline-none placeholder:text-text-muted-light focus:ring-0 dark:text-text-main-dark dark:placeholder:text-text-muted-dark"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search..."
-                ref={mobileInputRef}
-                type="search"
-                value={query}
-              />
-              <button
-                aria-label="Close search"
-                className="min-h-11 min-w-11 rounded-lg text-text-muted-light dark:text-text-muted-dark"
-                onClick={() => setMobileOpen(false)}
-                type="button"
-              >
-                <span className="material-icons-round">close</span>
-              </button>
-            </div>
-            <p className="text-xs text-text-muted-light dark:text-text-muted-dark">Shortcut: ⌘K</p>
+          <div className="flex items-center gap-2 border-b border-border-light px-4 py-3 dark:border-border-dark">
+            <span className="material-icons-round text-text-muted-light dark:text-text-muted-dark">search</span>
+            <input
+              aria-label="Mobile search"
+              className="w-full border-0 bg-transparent text-base text-text-main-light outline-none placeholder:text-text-muted-light focus:ring-0 dark:text-text-main-dark dark:placeholder:text-text-muted-dark"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search anything..."
+              ref={mobileInputRef}
+              type="search"
+              value={query}
+            />
+            <button
+              aria-label="Close search"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-text-muted-light transition-colors hover:bg-gray-50 dark:text-text-muted-dark dark:hover:bg-gray-800"
+              onClick={() => setMobileOpen(false)}
+              type="button"
+            >
+              <span className="material-icons-round">close</span>
+            </button>
           </div>
-        </div>
-      ) : null}
+          <div className="flex-1 px-4 py-4">
+            <h2
+              className="text-base font-semibold text-text-main-light dark:text-text-main-dark"
+              id={mobileSearchTitleId}
+            >
+              Search
+            </h2>
+            <p className="mt-1 text-sm text-text-muted-light dark:text-text-muted-dark" id={mobileSearchDescriptionId}>
+              Start typing to search campaigns, channels, metrics and integrations.
+            </p>
+            <p className="mt-2 text-xs text-text-muted-light dark:text-text-muted-dark">Shortcut: ⌘K</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
