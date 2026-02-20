@@ -81,6 +81,7 @@ export function MetricCard({
 
   useEffect(() => {
     if (loading) { setVisible(true); return; }
+    setVisible(false);
     const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
   }, [delay, loading]);
