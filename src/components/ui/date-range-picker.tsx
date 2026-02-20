@@ -147,7 +147,11 @@ export function DateRangePicker({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent
+        className="w-auto p-0"
+        align="end"
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <div className="flex">
           {/* Preset list */}
           <div className="flex flex-col border-r border-[#E3E8EF] py-2">
