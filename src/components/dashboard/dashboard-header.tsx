@@ -23,9 +23,9 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const handleDateRangeChange: DateRangePickerProps['onChange'] = (_range: DateRange, preset) => {
     const presetMap: Record<string, string> = {
-      today: '1d',
-      yesterday: '1d',
-      last7days: '7d',
+      today:     'today',
+      yesterday: 'yesterday',
+      last7days:  '7d',
       last30days: '30d',
       last90days: '90d',
     };
@@ -34,10 +34,11 @@ export function DashboardHeader({
   };
 
   const defaultPreset: DateRangePickerProps['defaultPreset'] =
-    dateRange === '7d'     ? 'last7days'  :
-    dateRange === '90d'    ? 'last90days' :
-    dateRange === '1d'     ? 'today'      :
-    dateRange === 'custom' ? 'custom'     : 'last30days';
+    dateRange === '7d'        ? 'last7days'  :
+    dateRange === '90d'       ? 'last90days' :
+    dateRange === 'today'     ? 'today'      :
+    dateRange === 'yesterday' ? 'yesterday'  :
+    dateRange === 'custom'    ? 'custom'     : 'last30days';
 
   return (
     <div className="space-y-5">

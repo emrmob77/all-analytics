@@ -24,11 +24,19 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
   // useId ensures gradient IDs are unique per component instance, preventing
   // collisions when multiple PerformanceChart instances exist in the document.
   const uid = useId();
-  const dataLength = dateRange === '7d' ? 7 : dateRange === '90d' ? 90 : 30;
+  const dataLength =
+    dateRange === '7d'        ? 7  :
+    dateRange === '90d'       ? 90 :
+    dateRange === 'today'     ? 1  :
+    dateRange === 'yesterday' ? 1  : 30;
   const chartData = DEMO_CHART_DATA.slice(0, dataLength);
   const activeColor = PLATFORM_COLORS[activePlatform] || '#1A73E8';
   const activePlatformConfig = PLATFORMS.find(p => p.id === activePlatform);
-  const dateRangeLabel = dateRange === '7d' ? 'Last 7 days' : dateRange === '90d' ? 'Last 90 days' : 'Last 30 days';
+  const dateRangeLabel =
+    dateRange === '7d'        ? 'Last 7 days'  :
+    dateRange === '90d'       ? 'Last 90 days' :
+    dateRange === 'today'     ? 'Today'        :
+    dateRange === 'yesterday' ? 'Yesterday'    : 'Last 30 days';
 
   const filterBtn = (
     <button type="button" className="flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-[11px] py-[5px] text-[11.5px] text-[#5F6368] transition-colors hover:bg-gray-50">
