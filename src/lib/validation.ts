@@ -1,3 +1,4 @@
+import { dateRangeDays } from '@/lib/date';
 import type { DateRange } from '@/types';
 
 /** Maximum allowed date range in days (per requirements). */
@@ -23,13 +24,8 @@ export function isValidBudget(value: number): boolean {
  * - span does not exceed MAX_DATE_RANGE_DAYS
  */
 export function isValidDateRange(range: DateRange): boolean {
-  const from = range.from.getTime();
-  const to = range.to.getTime();
-
-  if (from > to) return false;
-
-  const days = Math.round((to - from) / 86_400_000) + 1;
-  return days <= MAX_DATE_RANGE_DAYS;
+  if (range.from.getTime() > range.to.getTime()) return false;
+  return dateRangeDays(range) <= MAX_DATE_RANGE_DAYS;
 }
 
 /**
@@ -40,8 +36,7 @@ export function dateRangeError(range: DateRange): string | null {
     return 'Start date must be before end date.';
   }
 
-  const days = Math.round((range.to.getTime() - range.from.getTime()) / 86_400_000) + 1;
-  if (days > MAX_DATE_RANGE_DAYS) {
+  if (dateRangeDays(range) > MAX_DATE_RANGE_DAYS) {
     return `Date range cannot exceed ${MAX_DATE_RANGE_DAYS} days.`;
   }
 
