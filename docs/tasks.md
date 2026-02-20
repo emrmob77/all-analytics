@@ -66,7 +66,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
 - [ ] 4. Authentication sistemi
-  - [ ] 4.1 Auth provider ve hooks oluştur
+  - [x] 4.1 Auth provider ve hooks oluştur ✅
     - Supabase Auth provider component
     - useAuth hook (user, session, loading states)
     - useUser hook (user profile data)
