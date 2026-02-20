@@ -98,7 +98,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Server action: createDefaultOrganization
     - _Requirements: 2.1, 2.2, 2.6_
   
-  - [ ] 5.2 Organization member invitation sistemi
+  - [x] 5.2 Organization member invitation sistemi ✅
     - Server action: inviteOrgMember
     - Email notification service entegrasyonu
     - Invitation token generation ve validation
