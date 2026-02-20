@@ -72,7 +72,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - useUser hook (user profile data)
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
   
-  - [ ] 4.2 Login sayfası ve Google OAuth
+  - [x] 4.2 Login sayfası ve Google OAuth ✅
     - Login page (/login)
     - Google OAuth button ve flow
     - Magic Link email authentication
@@ -92,7 +92,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
 - [ ] 5. Organization management
-  - [ ] 5.1 Organization creation ve default setup
+  - [x] 5.1 Organization creation ve default setup ✅
     - İlk authentication'da default organization oluşturma
     - Owner role assignment
     - Server action: createDefaultOrganization
