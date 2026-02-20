@@ -65,8 +65,8 @@ export async function createDefaultOrganization(): Promise<{
     (user.user_metadata?.name as string) ??
     '';
   const emailPrefix = user.email?.split('@')[0] ?? '';
-  const displayName = fullName || emailPrefix;
-  const orgName = `${displayName}'s Workspace`;
+  const displayName = (fullName || emailPrefix).trim();
+  const orgName = displayName ? `${displayName}'s Workspace` : 'My Workspace';
   const slug = generateSlug(displayName);
 
   // Atomically create org + owner membership via RPC.

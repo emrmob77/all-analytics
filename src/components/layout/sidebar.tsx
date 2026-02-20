@@ -27,9 +27,11 @@ const CONNECTED_PLATFORMS = [
 ];
 
 function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
+  const trimmed = name.trim();
+  if (!trimmed) return '?';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return trimmed.slice(0, 2).toUpperCase() || '?';
 }
 
 export function Sidebar() {
