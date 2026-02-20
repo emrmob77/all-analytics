@@ -248,7 +248,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - _Requirements: 4.5, 4.6_
 
 - [ ] 12. Dashboard overview page
-  - [x] 12.1 Dashboard layout ve header ✅
+  - [ ] 12.1 Dashboard layout ve header
     - Page layout (/dashboard/page.tsx)
     - Header with title, filters, actions
     - Mobile responsive design
