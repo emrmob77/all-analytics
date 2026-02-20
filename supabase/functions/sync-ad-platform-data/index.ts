@@ -6,7 +6,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // ---------------------------------------------------------------------------
 
 type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest';
-type CampaignStatus = 'active' | 'paused' | 'draft' | 'archived';
+type CampaignStatus = 'active' | 'paused' | 'stopped' | 'archived';
 
 interface SyncPayload {
   ad_account_id: string;
@@ -216,7 +216,8 @@ async function syncMeta(
   const fields = 'id,name,status,daily_budget,lifetime_budget,budget_remaining,account_currency';
 
   const campaignRes = await fetch(
-    `https://graph.facebook.com/v21.0/${accountRef}/campaigns?fields=${fields}&access_token=${accessToken}&limit=200`
+    `https://graph.facebook.com/v21.0/${accountRef}/campaigns?fields=${fields}&limit=200`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
   if (!campaignRes.ok) throw new Error(`Meta campaigns fetch failed: ${await campaignRes.text()}`);
 
@@ -253,7 +254,8 @@ async function syncMeta(
 
   const insightFields = 'campaign_id,date_start,spend,impressions,clicks,actions,action_values';
   const insightRes = await fetch(
-    `https://graph.facebook.com/v21.0/${accountRef}/insights?fields=${insightFields}&time_range={"since":"${startDate}","until":"${endDate}"}&time_increment=1&level=campaign&access_token=${accessToken}&limit=500`
+    `https://graph.facebook.com/v21.0/${accountRef}/insights?fields=${insightFields}&time_range={"since":"${startDate}","until":"${endDate}"}&time_increment=1&level=campaign&limit=500`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   const dailyMetrics: Record<string, DailyMetric[]> = {};
@@ -412,7 +414,6 @@ async function writeResults(
   result: PlatformSyncResult
 ): Promise<void> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
-  const hours = last7DaysHours();
 
   for (const campaign of result.campaigns) {
     // Upsert campaign
@@ -490,8 +491,6 @@ async function writeResults(
     .update({ last_synced_at: new Date().toISOString() })
     .eq('id', adAccount.id);
 
-  // Suppress unused variable warning for hours
-  void hours;
 }
 
 // ---------------------------------------------------------------------------
@@ -621,6 +620,9 @@ Deno.serve(async (req: Request) => {
   // Run platform sync
   try {
     const syncer = getPlatformSyncer(adAccount.platform as AdPlatform);
+    if (!syncer) {
+      return failSync(`Unsupported platform: ${adAccount.platform}`);
+    }
     const result = await syncer(accessToken, adAccount.external_account_id);
     await writeResults(supabase, adAccount as { id: string; organization_id: string; platform: AdPlatform; external_account_id: string }, result);
 
