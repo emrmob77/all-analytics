@@ -50,13 +50,13 @@ export function ChartContainer({
       {/* Chart area */}
       <div style={{ height }} className="w-full">
         {loading ? (
-          <div className="flex h-full w-full flex-col justify-end gap-1 pb-2">
-            {/* Skeleton bars */}
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="flex h-full w-full items-end gap-1 overflow-hidden pb-2">
+            {/* Skeleton bars — fixed pixel heights so they don't overflow the container */}
+            {[40, 70, 55, 90, 65, 45].map((px, i) => (
               <div
                 key={i}
-                className="animate-pulse rounded bg-[#F1F3F4]"
-                style={{ height: `${30 + (i % 3) * 20}%` }}
+                className="flex-1 animate-pulse rounded bg-[#F1F3F4]"
+                style={{ height: px }}
               />
             ))}
           </div>

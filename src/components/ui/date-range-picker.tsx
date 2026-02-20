@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -83,6 +83,11 @@ export function DateRangePicker({
   const [activePreset, setActivePreset] = useState<DateRangePreset>(defaultPreset);
   const [customRange, setCustomRange] = useState<DateRange | undefined>(value);
   const [rangeError, setRangeError] = useState<string | null>(null);
+
+  // Keep activePreset in sync when the parent changes defaultPreset (e.g. quick-range buttons)
+  useEffect(() => {
+    setActivePreset(defaultPreset);
+  }, [defaultPreset]);
 
   function handlePreset(preset: typeof PRESETS[number]) {
     const range = preset.range();
