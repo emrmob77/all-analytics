@@ -282,11 +282,8 @@ async function syncTikTok(
   accessToken: string,
   externalAccountId: string
 ): Promise<PlatformSyncResult> {
-  const appId = Deno.env.get('TIKTOK_ADS_APP_ID') ?? '';
-  const appSecret = Deno.env.get('TIKTOK_ADS_APP_SECRET') ?? '';
-
   const campaignRes = await fetch(
-    `https://business-api.tiktok.com/open_api/v1.3/campaign/get/?app_id=${appId}&secret=${appSecret}&advertiser_id=${externalAccountId}&fields=["campaign_id","campaign_name","status","budget","budget_mode"]`,
+    `https://business-api.tiktok.com/open_api/v1.3/campaign/get/?advertiser_id=${externalAccountId}&fields=["campaign_id","campaign_name","status","budget","budget_mode"]`,
     { headers: { 'Access-Token': accessToken } }
   );
   if (!campaignRes.ok) throw new Error(`TikTok campaigns fetch failed: ${await campaignRes.text()}`);
@@ -315,7 +312,7 @@ async function syncTikTok(
   const endDate = dates[dates.length - 1];
 
   const reportRes = await fetch(
-    `https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/?app_id=${appId}&secret=${appSecret}&advertiser_id=${externalAccountId}&report_type=BASIC&dimensions=["campaign_id","stat_time_day"]&metrics=["spend","impressions","clicks","conversion","real_value"]&start_date=${startDate}&end_date=${endDate}&page_size=200`,
+    `https://business-api.tiktok.com/open_api/v1.3/report/integrated/get/?advertiser_id=${externalAccountId}&report_type=BASIC&dimensions=["campaign_id","stat_time_day"]&metrics=["spend","impressions","clicks","conversion","real_value"]&start_date=${startDate}&end_date=${endDate}&page_size=200`,
     { headers: { 'Access-Token': accessToken } }
   );
 
