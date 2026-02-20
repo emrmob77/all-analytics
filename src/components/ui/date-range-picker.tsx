@@ -81,6 +81,7 @@ export function DateRangePicker({
   const [open, setOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<DateRangePreset>(defaultPreset);
   const [customRange, setCustomRange] = useState<DateRange | undefined>(value);
+  const [lastAppliedRange, setLastAppliedRange] = useState<DateRange | undefined>(value);
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [panelPos, setPanelPos] = useState({ top: 0, right: 0 });
 
@@ -95,12 +96,12 @@ export function DateRangePicker({
   const closePanel = useCallback(() => {
     // Discard invalid draft selection so trigger label always reflects applied range.
     if (rangeError) {
-      setCustomRange(value);
+      setCustomRange(lastAppliedRange);
       setActivePreset(defaultPreset);
       setRangeError(null);
     }
     setOpen(false);
-  }, [defaultPreset, rangeError, value]);
+  }, [defaultPreset, lastAppliedRange, rangeError]);
 
   // Click-outside: close only when the click target is outside the panel.
   // Uses DOM containment check — immune to z-index and React event delegation quirks.
@@ -155,11 +156,13 @@ export function DateRangePicker({
     // Don't close yet — wait for the user to click a second (different) date.
     if (daysDiff === 0) return;
 
-    if (daysDiff > MAX_DAYS) {
+    const inclusiveDays = daysDiff + 1;
+    if (inclusiveDays > MAX_DAYS) {
       setRangeError(`Range cannot exceed ${MAX_DAYS} days`);
       return;
     }
 
+    setLastAppliedRange(range);
     onChange(range, 'custom');
     setOpen(false);
   }
