@@ -23,7 +23,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - ESLint, Prettier yapılandırması
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
 
-  - [ ] 1.2 Supabase entegrasyonu ve environment variables
+  - [x] 1.2 Supabase entegrasyonu ve environment variables ✅
     - Supabase client kurulumu
     - Environment variables yapılandırması (.env.local)
     - Supabase Auth yapılandırması
@@ -35,14 +35,14 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Global CSS ve font yapılandırması (Google Sans, Roboto)
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
 
-- [ ] 2. Veritabanı şeması ve RLS politikaları
-  - [ ] 2.1 Supabase migration dosyaları oluştur
+- [x] 2. Veritabanı şeması ve RLS politikaları
+  - [x] 2.1 Supabase migration dosyaları oluştur ✅
     - organizations, org_members, ad_accounts, campaigns, campaign_metrics, hourly_metrics, sync_logs, invitations tablolarını oluştur
     - Gerekli indexleri ekle
     - Foreign key ilişkilerini tanımla
     - _Requirements: 2.1, 2.2, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
-  
-  - [ ] 2.2 Row Level Security (RLS) politikalarını uygula
+
+  - [x] 2.2 Row Level Security (RLS) politikalarını uygula ✅
     - Her tablo için organization-based RLS politikaları yaz
     - SELECT, INSERT, UPDATE, DELETE politikalarını tanımla
     - Policy test senaryoları oluştur
@@ -79,7 +79,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Session management (7 gün)
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 16.4_
   
-  - [ ] 4.3 Auth middleware ve protected routes
+  - [x] 4.3 Auth middleware ve protected routes ✅
     - Middleware for authentication check
     - Redirect logic (authenticated → /dashboard, unauthenticated → /login)
     - Session expiry handling
