@@ -127,7 +127,7 @@ function Navbar({ page, setPage }: { page: string; setPage: (p: string) => void 
               Sign in
             </button>
           )}
-          <button onClick={() => setPage('pricing')} style={{
+          <button onClick={() => router.push('/register')} style={{
             background: '#1A73E8', border: 'none', cursor: 'pointer',
             color: '#fff', fontSize: 13.5, fontWeight: 600,
             padding: '8px 18px', borderRadius: 8, fontFamily: 'inherit',
@@ -166,21 +166,22 @@ function Navbar({ page, setPage }: { page: string; setPage: (p: string) => void 
 function HomePage({ setPage }: { setPage: (p: string) => void }) {
   const w = useWindowWidth();
   const isMobile = w < 768;
+  const router = useRouter();
 
   const features = [
-    { icon: '📊', title: 'Unified Dashboard', desc: 'Google, Meta, TikTok ve Pinterest verilerini tek ekranda görün. Platform değiştirme derdi yok.' },
-    { icon: '⚡', title: 'Real-time Sync', desc: 'Her 6 saatte otomatik, dilediğinizde manuel sync. Verileriniz her zaman güncel.' },
-    { icon: '📈', title: 'Advanced Analytics', desc: 'ROAS, CTR, CPC, conversion rate — tüm metrikler için derin trend analizleri.' },
-    { icon: '🎯', title: 'Smart Filtering', desc: 'Platform, durum, bütçe ve ROAS\'a göre saniyeler içinde filtreleyin ve karşılaştırın.' },
-    { icon: '📋', title: 'Report Export', desc: 'CSV, Excel ve PDF formatında detaylı raporlar indirin veya ekibinizle paylaşın.' },
-    { icon: '👥', title: 'Team Collaboration', desc: 'Ekip üyelerini davet edin, rol bazlı erişim yönetimiyle güvenli çalışın.' },
+    { icon: '📊', title: 'Unified Dashboard', desc: 'View Google, Meta, TikTok and Pinterest data on a single screen. No more switching between tabs.' },
+    { icon: '⚡', title: 'Real-time Sync', desc: 'Automatic sync every 6 hours, or trigger it manually anytime. Your data is always up to date.' },
+    { icon: '📈', title: 'Advanced Analytics', desc: 'ROAS, CTR, CPC, conversion rate — deep trend analysis for every metric you care about.' },
+    { icon: '🎯', title: 'Smart Filtering', desc: 'Filter and compare by platform, status, budget and ROAS in seconds.' },
+    { icon: '📋', title: 'Report Export', desc: 'Download detailed reports in CSV, Excel and PDF formats or share them with your team.' },
+    { icon: '👥', title: 'Team Collaboration', desc: 'Invite team members and work securely with role-based access management.' },
   ];
 
   const logos = [
-    { name: 'Google Ads', icon: <GoogleIcon />, color: '#1A73E8' },
-    { name: 'Meta Ads', icon: <MetaIcon />, color: '#0866FF' },
-    { name: 'TikTok Ads', icon: <TikTokIcon />, color: '#161823' },
-    { name: 'Pinterest Ads', icon: <PinterestIcon />, color: '#E60023' },
+    { name: 'Google Ads', icon: <GoogleIcon /> },
+    { name: 'Meta Ads', icon: <MetaIcon /> },
+    { name: 'TikTok Ads', icon: <TikTokIcon /> },
+    { name: 'Pinterest Ads', icon: <PinterestIcon /> },
   ];
 
   const stats = [
@@ -191,9 +192,9 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
   ];
 
   const testimonials = [
-    { name: 'Sarah K.', role: 'Performance Marketing Lead', company: 'Bloom Agency', text: 'Daha önce 4 farklı sekmeyi aynı anda açıp çalışıyordum. AdsPulse ile tüm kampanyalarımı tek yerden görüyorum. Rapor süremi %70 azalttı.', avatar: 'SK' },
-    { name: 'Mert D.', role: 'E-commerce Director', company: 'TrendStore', text: 'ROAS karşılaştırması ve platform breakdown özellikleri çok güçlü. Bütçe dağılımını optimize etmemiz çok kolaylaştı.', avatar: 'MD' },
-    { name: 'Lena W.', role: 'Freelance Media Buyer', company: 'Self-employed', text: 'Müşterilerime PDF rapor göndermek artık 2 dakika sürüyor. Fiyat-performans açısından kategorisinin en iyisi.', avatar: 'LW' },
+    { name: 'Sarah K.', role: 'Performance Marketing Lead', company: 'Bloom Agency', text: 'I used to have 4 different tabs open at the same time. With AdsPulse I see all my campaigns in one place. It cut my reporting time by 70%.', avatar: 'SK' },
+    { name: 'Mert D.', role: 'E-commerce Director', company: 'TrendStore', text: 'The ROAS comparison and platform breakdown features are incredibly powerful. Optimizing our budget allocation has never been easier.', avatar: 'MD' },
+    { name: 'Lena W.', role: 'Freelance Media Buyer', company: 'Self-employed', text: 'Sending PDF reports to clients now takes 2 minutes. Best value-for-money tool in its category.', avatar: 'LW' },
   ];
 
   return (
@@ -203,36 +204,36 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
         <div style={{ maxWidth: 760, margin: '0 auto' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#EAF1FB', border: '1px solid #D2E3FC', borderRadius: 20, padding: '5px 14px', fontSize: 12.5, color: '#1A73E8', fontWeight: 600, marginBottom: 28 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34A853', display: 'inline-block' }} />
-            v1.0 şimdi çıktı · 4 platform desteği
+            v1.0 is live · 4 platform support
           </div>
           <h1 style={{ fontSize: isMobile ? 36 : 58, fontWeight: 800, color: '#202124', letterSpacing: -1.5, lineHeight: 1.1, marginBottom: 22 }}>
-            Tüm reklam{' '}
-            <span style={{ color: '#1A73E8' }}>kampanyalarınızı</span>
-            <br />tek panelden yönetin
+            Manage all your{' '}
+            <span style={{ color: '#1A73E8' }}>ad campaigns</span>
+            <br />from one dashboard
           </h1>
           <p style={{ fontSize: isMobile ? 16 : 18, color: '#5F6368', lineHeight: 1.65, marginBottom: 36, maxWidth: 580, margin: '0 auto 36px' }}>
-            Google Ads, Meta, TikTok ve Pinterest verilerini birleştirin. Gerçek zamanlı metrikler, derin analizler ve ekip işbirliği — hepsi bir arada.
+            Connect Google Ads, Meta, TikTok and Pinterest. Real-time metrics, deep analytics and team collaboration — all in one place.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => setPage('pricing')} style={{ background: '#1A73E8', color: '#fff', border: 'none', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(26,115,232,0.35)', transition: 'transform .15s, box-shadow .15s' }}
+            <button onClick={() => router.push('/register')} style={{ background: '#1A73E8', color: '#fff', border: 'none', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(26,115,232,0.35)', transition: 'transform .15s, box-shadow .15s' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(26,115,232,0.45)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(26,115,232,0.35)'; }}>
-              Ücretsiz başla →
+              Start for free →
             </button>
             <button style={{ background: '#fff', color: '#202124', border: '1.5px solid #E3E8EF', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A73E8'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3E8EF'; }}>
-              Demo izle
+              Watch demo
             </button>
           </div>
           <div style={{ marginTop: 18, fontSize: 12.5, color: '#9AA0A6' }}>
-            Kredi kartı gerekmez · 14 gün ücretsiz deneme
+            No credit card required · 14-day free trial
           </div>
         </div>
 
         {/* Platforms */}
         <div style={{ marginTop: 60, display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 28, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span style={{ fontSize: 12.5, color: '#9AA0A6', fontWeight: 500 }}>Bağlı platformlar:</span>
+          <span style={{ fontSize: 12.5, color: '#9AA0A6', fontWeight: 500 }}>Connected platforms:</span>
           {logos.map(l => (
             <div key={l.name} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #E3E8EF', borderRadius: 8, padding: '7px 12px', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
               {l.icon}
@@ -254,15 +255,15 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
           <div style={{ padding: isMobile ? '16px' : '24px', background: '#F8F9FA' }}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
               {[
-                { l: 'Impressions', v: '5.9M', c: '+12.4%', pos: true },
-                { l: 'Clicks', v: '105.3K', c: '+8.7%', pos: true },
-                { l: 'Total Spend', v: '$10,471', c: '+5.2%', pos: true },
-                { l: 'Avg. ROAS', v: '4.58x', c: '+2.1%', pos: true },
+                { l: 'Impressions', v: '5.9M', c: '+12.4%' },
+                { l: 'Clicks', v: '105.3K', c: '+8.7%' },
+                { l: 'Total Spend', v: '$10,471', c: '+5.2%' },
+                { l: 'Avg. ROAS', v: '4.58x', c: '+2.1%' },
               ].map((m, i) => (
                 <div key={i} style={{ background: '#fff', borderRadius: 8, border: '1px solid #E3E8EF', padding: '12px 14px' }}>
                   <div style={{ fontSize: 10, color: '#9AA0A6', marginBottom: 5 }}>{m.l}</div>
                   <div style={{ fontSize: isMobile ? 16 : 19, fontWeight: 700, color: '#202124', marginBottom: 4 }}>{m.v}</div>
-                  <div style={{ fontSize: 10.5, color: m.pos ? '#137333' : '#C5221F', fontWeight: 600 }}>↑ {m.c}</div>
+                  <div style={{ fontSize: 10.5, color: '#137333', fontWeight: 600 }}>↑ {m.c}</div>
                 </div>
               ))}
             </div>
@@ -317,9 +318,9 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <Fade>
             <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 14, border: '1px solid #D2E3FC' }}>Özellikler</div>
-              <h2 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, color: '#202124', letterSpacing: -0.8, marginBottom: 14 }}>Reklam yönetimini yeniden tanımlıyoruz</h2>
-              <p style={{ fontSize: 16, color: '#5F6368', maxWidth: 480, margin: '0 auto' }}>Kampanyalarınızı analiz etmek için ihtiyacınız olan her şey, tek bir yerde.</p>
+              <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 14, border: '1px solid #D2E3FC' }}>Features</div>
+              <h2 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, color: '#202124', letterSpacing: -0.8, marginBottom: 14 }}>Redefining ad management</h2>
+              <p style={{ fontSize: 16, color: '#5F6368', maxWidth: 480, margin: '0 auto' }}>Everything you need to analyze your campaigns, in one place.</p>
             </div>
           </Fade>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 18 }}>
@@ -343,16 +344,16 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
         <div style={{ maxWidth: 880, margin: '0 auto' }}>
           <Fade>
             <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 14, border: '1px solid #D2E3FC' }}>Nasıl çalışır?</div>
-              <h2 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, color: '#202124', letterSpacing: -0.8 }}>3 adımda başlayın</h2>
+              <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 14, border: '1px solid #D2E3FC' }}>How it works</div>
+              <h2 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, color: '#202124', letterSpacing: -0.8 }}>Get started in 3 steps</h2>
             </div>
           </Fade>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: isMobile ? 24 : 40, position: 'relative' }}>
             {!isMobile && <div style={{ position: 'absolute', top: 28, left: '18%', right: '18%', height: 1, background: 'linear-gradient(90deg, #E3E8EF, #1A73E8, #E3E8EF)', zIndex: 0 }} />}
             {[
-              { step: '01', title: 'Hesabını bağla', desc: 'Google, Meta, TikTok veya Pinterest hesabınızı OAuth ile güvenli bağlayın. 2 dakika sürer.' },
-              { step: '02', title: 'Verileri senkronize et', desc: 'Sistem otomatik olarak kampanya verilerini çeker. Manuel sync butonu da mevcut.' },
-              { step: '03', title: 'Analiz et ve optimize et', desc: 'Dashboard\'unuza bakın, metrikleri karşılaştırın, rapor indirin.' },
+              { step: '01', title: 'Connect your account', desc: 'Securely connect your Google, Meta, TikTok or Pinterest account via OAuth. Takes 2 minutes.' },
+              { step: '02', title: 'Sync your data', desc: 'The system automatically pulls your campaign data. A manual sync button is also available.' },
+              { step: '03', title: 'Analyze & optimize', desc: 'Check your dashboard, compare metrics, and download reports.' },
             ].map((s, i) => (
               <Fade key={i} delay={i * 0.12}>
                 <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
@@ -373,7 +374,7 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <Fade>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
-              <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 800, color: '#202124', letterSpacing: -0.7 }}>Kullanıcılarımız ne diyor?</h2>
+              <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 800, color: '#202124', letterSpacing: -0.7 }}>What our users say</h2>
             </div>
           </Fade>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 18 }}>
@@ -403,19 +404,19 @@ function HomePage({ setPage }: { setPage: (p: string) => void }) {
         <Fade>
           <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
             <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, color: '#fff', letterSpacing: -0.8, marginBottom: 16 }}>
-              Hemen başlamaya hazır mısınız?
+              Ready to get started?
             </h2>
             <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 32, lineHeight: 1.6 }}>
-              14 günlük ücretsiz deneme. Kredi kartı gerekmez. İstediğiniz zaman iptal edin.
+              14-day free trial. No credit card required. Cancel anytime.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => setPage('pricing')} style={{ background: '#fff', color: '#1A73E8', border: 'none', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'transform .15s' }}
+              <button onClick={() => router.push('/register')} style={{ background: '#fff', color: '#1A73E8', border: 'none', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'transform .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
-                Ücretsiz dene →
+                Try for free →
               </button>
               <button style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)', padding: '13px 28px', borderRadius: 9, fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Demo talep et
+                Request a demo
               </button>
             </div>
           </div>
@@ -434,21 +435,21 @@ function FeaturesPage() {
 
   const sections = [
     {
-      title: 'Platform Entegrasyonu', badge: 'Connect',
+      title: 'Platform Integrations', badge: 'Connect',
       items: [
-        { icon: <GoogleIcon />, title: 'Google Ads', desc: 'Search, Display, Shopping ve YouTube kampanyalarını anlık olarak takip edin. Conversion tracking ile ROAS hesaplama tam entegre.' },
-        { icon: <MetaIcon />, title: 'Meta Ads', desc: 'Facebook ve Instagram kampanyalarınızı yönetin. Audience Insights ve creative performance verilerini görün.' },
-        { icon: <TikTokIcon />, title: 'TikTok Ads', desc: 'TopView, In-Feed ve Branded Hashtag kampanyalarınızı takip edin. Genç kitle metrikleri özel olarak gösterilir.' },
-        { icon: <PinterestIcon />, title: 'Pinterest Ads', desc: 'Promoted Pins ve Idea Ads kampanyalarınızı izleyin. Görsel odaklı e-ticaret metrikleri ile optimize edin.' },
+        { icon: <GoogleIcon />, title: 'Google Ads', desc: 'Track Search, Display, Shopping and YouTube campaigns in real time. ROAS calculation with full conversion tracking integration.' },
+        { icon: <MetaIcon />, title: 'Meta Ads', desc: 'Manage your Facebook and Instagram campaigns. View Audience Insights and creative performance data.' },
+        { icon: <TikTokIcon />, title: 'TikTok Ads', desc: 'Monitor TopView, In-Feed and Branded Hashtag campaigns. Young audience metrics displayed separately.' },
+        { icon: <PinterestIcon />, title: 'Pinterest Ads', desc: 'Track Promoted Pins and Idea Ads campaigns. Optimize with visual-focused e-commerce metrics.' },
       ]
     },
     {
-      title: 'Raporlama & Analiz', badge: 'Analyze',
+      title: 'Reporting & Analytics', badge: 'Analyze',
       items: [
-        { icon: '📊', title: 'Özelleştirilebilir Raporlar', desc: 'Tarih aralığı, platform ve metrik bazında filtreli raporlar oluşturun. CSV, Excel ve PDF export.' },
-        { icon: '📅', title: 'Karşılaştırmalı Analiz', desc: 'Bu dönemi geçen dönemle karşılaştırın. Yükselme ve düşüş trendlerini anında fark edin.' },
-        { icon: '⏰', title: 'Saatlik Performans', desc: 'Reklamlarınızın günün hangi saatinde en çok tıklandığını görün ve bütçenizi buna göre optimize edin.' },
-        { icon: '💰', title: 'ROAS Optimizasyonu', desc: 'Platform bazında ROAS karşılaştırması yapın. Hangi kanalın en çok değer ürettiğini anlık görün.' },
+        { icon: '📊', title: 'Customizable Reports', desc: 'Build filtered reports by date range, platform and metric. Export to CSV, Excel and PDF.' },
+        { icon: '📅', title: 'Comparative Analysis', desc: 'Compare this period to the previous one. Instantly spot rising and falling trends.' },
+        { icon: '⏰', title: 'Hourly Performance', desc: 'See which hours of the day your ads get the most clicks and optimize your budget accordingly.' },
+        { icon: '💰', title: 'ROAS Optimization', desc: 'Compare ROAS by platform. See in real time which channel generates the most value.' },
       ]
     },
   ];
@@ -457,9 +458,9 @@ function FeaturesPage() {
     <div style={{ paddingTop: 62 }}>
       <section style={{ background: 'linear-gradient(180deg, #F0F6FF, #fff)', padding: '80px 24px 64px', textAlign: 'center' }}>
         <Fade>
-          <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 18, border: '1px solid #D2E3FC' }}>Tüm Özellikler</div>
-          <h1 style={{ fontSize: isMobile ? 32 : 48, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 16 }}>Güçlü araçlar, sade arayüz</h1>
-          <p style={{ fontSize: 17, color: '#5F6368', maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>Ajanslar ve in-house ekipler için tasarlandı. Karmaşıklık yok, sadece sonuçlar.</p>
+          <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 18, border: '1px solid #D2E3FC' }}>All Features</div>
+          <h1 style={{ fontSize: isMobile ? 32 : 48, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 16 }}>Powerful tools, simple interface</h1>
+          <p style={{ fontSize: 17, color: '#5F6368', maxWidth: 520, margin: '0 auto', lineHeight: 1.65 }}>Designed for agencies and in-house teams. No complexity — just results.</p>
         </Fade>
       </section>
 
@@ -514,54 +515,55 @@ function PricingPage() {
   const w = useWindowWidth();
   const isMobile = w < 768;
   const [annual, setAnnual] = useState(true);
+  const router = useRouter();
 
   const plans = [
     {
       name: 'Starter', color: '#5F6368',
       price: annual ? 29 : 39,
-      desc: 'Küçük ekipler ve freelancerlar için',
+      desc: 'For small teams and freelancers',
       popular: false,
-      features: ['2 platform bağlantısı', '5 aktif kampanya', '30 günlük veri geçmişi', 'CSV export', '1 kullanıcı', 'Email desteği'],
-      cta: 'Başla',
+      features: ['2 platform connections', '5 active campaigns', '30-day data history', 'CSV export', '1 user', 'Email support'],
+      cta: 'Get started',
     },
     {
       name: 'Pro', color: '#1A73E8',
       price: annual ? 79 : 99,
-      desc: 'Büyüyen ekipler ve ajanslar için',
+      desc: 'For growing teams and agencies',
       popular: true,
-      features: ['4 platform bağlantısı', 'Sınırsız kampanya', '12 aylık veri geçmişi', 'CSV + Excel + PDF export', '5 kullanıcı', 'Öncelikli destek', 'API erişimi', 'Özel raporlar'],
-      cta: '14 gün ücretsiz dene',
+      features: ['4 platform connections', 'Unlimited campaigns', '12-month data history', 'CSV + Excel + PDF export', '5 users', 'Priority support', 'API access', 'Custom reports'],
+      cta: 'Start 14-day free trial',
     },
     {
       name: 'Agency', color: '#137333',
       price: annual ? 199 : 249,
-      desc: 'Büyük ajanslar ve kurumsal ekipler',
+      desc: 'For large agencies and enterprise teams',
       popular: false,
-      features: ['4 platform bağlantısı', 'Sınırsız kampanya', 'Sınırsız veri geçmişi', 'Tüm export formatları', 'Sınırsız kullanıcı', 'Dedicated destek', 'White-label raporlar', 'SSO / SAML', 'SLA güvencesi'],
-      cta: 'Satış ile görüş',
+      features: ['4 platform connections', 'Unlimited campaigns', 'Unlimited data history', 'All export formats', 'Unlimited users', 'Dedicated support', 'White-label reports', 'SSO / SAML', 'SLA guarantee'],
+      cta: 'Talk to sales',
     },
   ];
 
   const faqs = [
-    { q: 'Ücretsiz deneme nasıl çalışıyor?', a: 'Pro planı 14 gün boyunca kredi kartı olmadan deneyebilirsiniz. Deneme bitiminde ister Pro\'ya geçin, ister Starter\'a düşün.' },
-    { q: 'İstediğim zaman iptal edebilir miyim?', a: 'Evet, her zaman iptal edebilirsiniz. İptal ettiğinizde mevcut dönem sonuna kadar erişiminiz devam eder.' },
-    { q: 'Hangi ödeme yöntemleri destekleniyor?', a: 'Kredi kartı (Visa, Mastercard, Amex) ve banka havalesi desteklenmektedir. Yıllık planlarda fatura seçeneği de mevcuttur.' },
-    { q: 'Kaç platformu aynı anda bağlayabilirim?', a: 'Starter\'da 2, Pro ve Agency\'de 4 platform (Google Ads, Meta, TikTok, Pinterest) bağlanabilir.' },
-    { q: 'Verilerim güvende mi?', a: 'Tüm veriler Supabase (PostgreSQL) üzerinde şifreli saklanır. Platform token\'ları pgcrypto ile korunur. Row Level Security aktif.' },
-    { q: 'API erişimi nedir?', a: 'Pro ve üzeri planlarda REST API erişimiyle kendi sistemlerinize veri aktarabilirsiniz. Webhook desteği de mevcuttur.' },
+    { q: 'How does the free trial work?', a: 'You can try the Pro plan for 14 days without a credit card. After the trial, switch to Pro or downgrade to Starter.' },
+    { q: 'Can I cancel anytime?', a: 'Yes, you can cancel at any time. After cancellation, you keep access until the end of your current billing period.' },
+    { q: 'What payment methods are supported?', a: 'Credit cards (Visa, Mastercard, Amex) and bank transfer are supported. Annual plans also support invoicing.' },
+    { q: 'How many platforms can I connect at the same time?', a: 'Starter supports 2 platforms; Pro and Agency support all 4 (Google Ads, Meta, TikTok, Pinterest).' },
+    { q: 'Is my data secure?', a: 'All data is stored encrypted on Supabase (PostgreSQL). Platform tokens are protected with pgcrypto and Row Level Security is active.' },
+    { q: 'What is API access?', a: 'Pro and above plans let you push data to your own systems via REST API. Webhook support is also available.' },
   ];
 
   return (
     <div style={{ paddingTop: 62 }}>
       <section style={{ background: 'linear-gradient(180deg, #F0F6FF, #fff)', padding: '72px 24px 52px', textAlign: 'center' }}>
         <Fade>
-          <h1 style={{ fontSize: isMobile ? 32 : 46, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 14 }}>Basit ve şeffaf fiyatlandırma</h1>
-          <p style={{ fontSize: 16, color: '#5F6368', marginBottom: 28 }}>İhtiyacınıza göre büyüyen planlar. Gizli ücret yok.</p>
+          <h1 style={{ fontSize: isMobile ? 32 : 46, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 14 }}>Simple, transparent pricing</h1>
+          <p style={{ fontSize: 16, color: '#5F6368', marginBottom: 28 }}>Plans that grow with you. No hidden fees.</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #E3E8EF', borderRadius: 10, padding: '6px 8px' }}>
-            <button onClick={() => setAnnual(false)} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: !annual ? '#202124' : 'transparent', color: !annual ? '#fff' : '#5F6368', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s' }}>Aylık</button>
+            <button onClick={() => setAnnual(false)} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: !annual ? '#202124' : 'transparent', color: !annual ? '#fff' : '#5F6368', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s' }}>Monthly</button>
             <button onClick={() => setAnnual(true)} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: annual ? '#202124' : 'transparent', color: annual ? '#fff' : '#5F6368', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 7 }}>
-              Yıllık
-              <span style={{ background: '#E6F4EA', color: '#137333', fontSize: 10.5, fontWeight: 700, borderRadius: 5, padding: '1px 7px' }}>%25 indirim</span>
+              Annual
+              <span style={{ background: '#E6F4EA', color: '#137333', fontSize: 10.5, fontWeight: 700, borderRadius: 5, padding: '1px 7px' }}>25% off</span>
             </button>
           </div>
         </Fade>
@@ -575,18 +577,18 @@ function PricingPage() {
                 <div style={{ borderRadius: 14, border: plan.popular ? '2px solid #1A73E8' : '1px solid #E3E8EF', background: '#fff', padding: '28px 26px', position: 'relative', boxShadow: plan.popular ? '0 8px 32px rgba(26,115,232,.14)' : 'none', transform: plan.popular && !isMobile ? 'scale(1.03)' : 'none' }}>
                   {plan.popular && (
                     <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#1A73E8', color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 14px', whiteSpace: 'nowrap' }}>
-                      En Popüler
+                      Most Popular
                     </div>
                   )}
                   <div style={{ fontSize: 11, fontWeight: 700, color: plan.color, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>{plan.name}</div>
                   <div style={{ fontSize: 13, color: '#9AA0A6', marginBottom: 18 }}>{plan.desc}</div>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 4 }}>
                     <span style={{ fontSize: 42, fontWeight: 800, color: '#202124', letterSpacing: -1.5 }}>${plan.price}</span>
-                    <span style={{ fontSize: 13, color: '#9AA0A6', paddingBottom: 8 }}>/ay</span>
+                    <span style={{ fontSize: 13, color: '#9AA0A6', paddingBottom: 8 }}>/mo</span>
                   </div>
-                  {annual && <div style={{ fontSize: 11.5, color: '#137333', fontWeight: 600, marginBottom: 20 }}>Yıllık faturalandırılır · ${plan.price * 12}/yıl</div>}
+                  {annual && <div style={{ fontSize: 11.5, color: '#137333', fontWeight: 600, marginBottom: 20 }}>Billed annually · ${plan.price * 12}/yr</div>}
                   {!annual && <div style={{ height: 20, marginBottom: 20 }} />}
-                  <button style={{ width: '100%', padding: '11px', borderRadius: 9, border: plan.popular ? 'none' : '1.5px solid #E3E8EF', background: plan.popular ? '#1A73E8' : '#fff', color: plan.popular ? '#fff' : '#202124', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 22, transition: 'transform .15s' }}
+                  <button onClick={() => router.push('/register')} style={{ width: '100%', padding: '11px', borderRadius: 9, border: plan.popular ? 'none' : '1.5px solid #E3E8EF', background: plan.popular ? '#1A73E8' : '#fff', color: plan.popular ? '#fff' : '#202124', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 22, transition: 'transform .15s' }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                     {plan.cta}
@@ -607,11 +609,11 @@ function PricingPage() {
           <Fade delay={0.3}>
             <div style={{ marginTop: 24, background: '#F8F9FA', borderRadius: 12, border: '1px solid #E3E8EF', padding: '24px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#202124', marginBottom: 4 }}>Kurumsal ihtiyaçlarınız mı var?</div>
-                <div style={{ fontSize: 13.5, color: '#5F6368' }}>Özel entegrasyon, dedicated sunucu ve SLA anlaşması için bizimle iletişime geçin.</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#202124', marginBottom: 4 }}>Have enterprise needs?</div>
+                <div style={{ fontSize: 13.5, color: '#5F6368' }}>Custom integrations, dedicated infrastructure and SLA agreements — get in touch.</div>
               </div>
               <button style={{ background: '#202124', color: '#fff', border: 'none', padding: '10px 22px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                Satış ekibiyle görüş →
+                Talk to our sales team →
               </button>
             </div>
           </Fade>
@@ -621,13 +623,13 @@ function PricingPage() {
       <section style={{ padding: '60px 24px', background: '#F8F9FA' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <Fade>
-            <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, color: '#202124', letterSpacing: -0.5, textAlign: 'center', marginBottom: 32 }}>Plan karşılaştırması</h2>
+            <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, color: '#202124', letterSpacing: -0.5, textAlign: 'center', marginBottom: 32 }}>Plan comparison</h2>
           </Fade>
           <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E3E8EF', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F8F9FA', borderBottom: '1px solid #E3E8EF' }}>
-                  <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: 12, color: '#9AA0A6', fontWeight: 600 }}>Özellik</th>
+                  <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: 12, color: '#9AA0A6', fontWeight: 600 }}>Feature</th>
                   {['Starter', 'Pro', 'Agency'].map((p, i) => (
                     <th key={p} style={{ padding: '14px 18px', textAlign: 'center', fontSize: 13, fontWeight: 700, color: i === 1 ? '#1A73E8' : '#202124' }}>{p}</th>
                   ))}
@@ -635,14 +637,14 @@ function PricingPage() {
               </thead>
               <tbody>
                 {[
-                  ['Platform bağlantısı', '2', '4', '4'],
-                  ['Aktif kampanya', '5', 'Sınırsız', 'Sınırsız'],
-                  ['Kullanıcı sayısı', '1', '5', 'Sınırsız'],
-                  ['Veri geçmişi', '30 gün', '12 ay', 'Sınırsız'],
+                  ['Platform connections', '2', '4', '4'],
+                  ['Active campaigns', '5', 'Unlimited', 'Unlimited'],
+                  ['Users', '1', '5', 'Unlimited'],
+                  ['Data history', '30 days', '12 months', 'Unlimited'],
                   ['PDF/Excel export', '—', '✓', '✓'],
-                  ['API erişimi', '—', '✓', '✓'],
-                  ['White-label rapor', '—', '—', '✓'],
-                  ['Öncelikli destek', '—', '✓', '✓'],
+                  ['API access', '—', '✓', '✓'],
+                  ['White-label reports', '—', '—', '✓'],
+                  ['Priority support', '—', '✓', '✓'],
                 ].map(([feature, ...vals], ri) => (
                   <tr key={ri} style={{ borderBottom: ri < 7 ? '1px solid #F1F3F4' : 'none' }}>
                     <td style={{ padding: '12px 18px', fontSize: 13, color: '#5F6368' }}>{feature}</td>
@@ -660,7 +662,7 @@ function PricingPage() {
       <section style={{ padding: '60px 24px 80px', background: '#fff' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <Fade>
-            <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, color: '#202124', letterSpacing: -0.5, textAlign: 'center', marginBottom: 36 }}>Sık sorulan sorular</h2>
+            <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, color: '#202124', letterSpacing: -0.5, textAlign: 'center', marginBottom: 36 }}>Frequently asked questions</h2>
           </Fade>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {faqs.map((f, i) => (
@@ -683,27 +685,27 @@ function AboutPage() {
   const isMobile = w < 768;
 
   const team = [
-    { name: 'Alex Chen', role: 'CEO & Co-founder', bio: 'Ex-Google Ads ekibi. 10 yıl performance marketing deneyimi.', initials: 'AC', color: '#1A73E8' },
-    { name: 'Maya Rodriguez', role: 'CTO & Co-founder', bio: 'Ex-Meta Engineer. Full-stack ve data infra uzmanı.', initials: 'MR', color: '#0866FF' },
-    { name: 'Tom Bakker', role: 'Head of Product', bio: '5 yıl SaaS ürün yönetimi. UX ve growth odaklı.', initials: 'TB', color: '#137333' },
-    { name: 'Sarah Park', role: 'Head of Design', bio: 'Ex-Figma tasarımcı. Data visualization ve UI sistemleri.', initials: 'SP', color: '#E60023' },
+    { name: 'Alex Chen', role: 'CEO & Co-founder', bio: 'Ex-Google Ads team. 10 years of performance marketing experience.', initials: 'AC', color: '#1A73E8' },
+    { name: 'Maya Rodriguez', role: 'CTO & Co-founder', bio: 'Ex-Meta Engineer. Full-stack and data infra specialist.', initials: 'MR', color: '#0866FF' },
+    { name: 'Tom Bakker', role: 'Head of Product', bio: '5 years of SaaS product management. UX and growth focused.', initials: 'TB', color: '#137333' },
+    { name: 'Sarah Park', role: 'Head of Design', bio: 'Ex-Figma designer. Data visualization and UI systems.', initials: 'SP', color: '#E60023' },
   ];
 
   const values = [
-    { icon: '🎯', title: 'Sadelik', desc: 'Karmaşık verileri basit, anlaşılır arayüzlere dönüştürmek en büyük önceliğimiz.' },
-    { icon: '🔒', title: 'Güven', desc: 'Müşteri verilerini korumak bir seçenek değil, temel bir sorumluluk.' },
-    { icon: '⚡', title: 'Hız', desc: 'Karar almak için gereken veriye anında ulaşmak, rekabet avantajıdır.' },
-    { icon: '🤝', title: 'Müşteri Başarısı', desc: 'Sizin başarınız bizim başarımız. Destek ekibimiz her zaman yanınızda.' },
+    { icon: '🎯', title: 'Simplicity', desc: 'Turning complex data into simple, understandable interfaces is our top priority.' },
+    { icon: '🔒', title: 'Trust', desc: 'Protecting customer data is not an option — it is a core responsibility.' },
+    { icon: '⚡', title: 'Speed', desc: 'Instant access to the data you need to make decisions is a competitive advantage.' },
+    { icon: '🤝', title: 'Customer Success', desc: 'Your success is our success. Our support team is always by your side.' },
   ];
 
   return (
     <div style={{ paddingTop: 62 }}>
       <section style={{ background: 'linear-gradient(180deg, #F0F6FF, #fff)', padding: '80px 24px 64px', textAlign: 'center' }}>
         <Fade>
-          <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 18, border: '1px solid #D2E3FC' }}>Hakkımızda</div>
-          <h1 style={{ fontSize: isMobile ? 30 : 46, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 18 }}>Pazarlamacılar tarafından,<br/>pazarlamacılar için</h1>
+          <div style={{ display: 'inline-block', background: '#EAF1FB', color: '#1A73E8', fontSize: 12, fontWeight: 600, borderRadius: 20, padding: '4px 14px', marginBottom: 18, border: '1px solid #D2E3FC' }}>About us</div>
+          <h1 style={{ fontSize: isMobile ? 30 : 46, fontWeight: 800, color: '#202124', letterSpacing: -1, marginBottom: 18 }}>Built by marketers,<br/>for marketers</h1>
           <p style={{ fontSize: 16, color: '#5F6368', maxWidth: 540, margin: '0 auto', lineHeight: 1.65 }}>
-            AdsPulse, kendi ajanslarında çalışırken her gün 4 farklı reklam panelini açmaktan bıkan iki girişimci tarafından 2024&apos;te kuruldu.
+            AdsPulse was founded in 2024 by two entrepreneurs who got tired of opening 4 different ad panels every day while running their own agency.
           </p>
         </Fade>
       </section>
@@ -713,11 +715,11 @@ function AboutPage() {
           <Fade>
             <div style={{ background: '#F8F9FA', borderRadius: 16, border: '1px solid #E3E8EF', padding: isMobile ? '28px 22px' : '40px 44px' }}>
               <div style={{ fontSize: 32, marginBottom: 18 }}>💡</div>
-              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: '#202124', marginBottom: 16, letterSpacing: -0.5 }}>Hikayemiz</h2>
+              <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: '#202124', marginBottom: 16, letterSpacing: -0.5 }}>Our story</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 14.5, color: '#5F6368', lineHeight: 1.75 }}>
-                <p>2023&apos;te bir performance marketing ajansı yönetirken, her sabah yapılan rutin şuydu: Google Ads aç, rakam not et, kapat. Meta Ads aç, rakam not et, kapat. TikTok Ads aç... Bu döngü bazen 45 dakika alıyordu.</p>
-                <p>Piyasadaki araçlar ya çok pahalıydı (enterprise odaklı) ya da çok karmaşıktı. &quot;Sadece verileri bir araya getiren, temiz bir dashboard&quot; yoktu.</p>
-                <p>AdsPulse&apos;u yazmaya başladık. Kendimiz için. 3 ay sonra arkadaşlarımızdan ilk beta geri bildirimleri geldi. 6 ay sonra ilk ücretli müşteriler. Şimdi 4.200+ kullanıcıyla buradayız.</p>
+                <p>While managing a performance marketing agency in 2023, the morning routine was always the same: open Google Ads, note the numbers, close. Open Meta Ads, note the numbers, close. Open TikTok Ads... This cycle sometimes took 45 minutes.</p>
+                <p>The tools on the market were either too expensive (enterprise-focused) or too complex. There was no &quot;clean dashboard that just brings all the data together.&quot;</p>
+                <p>We started building AdsPulse. For ourselves. 3 months later, the first beta feedback came from friends. 6 months later, the first paying customers. Now we&apos;re here with 4,200+ users.</p>
               </div>
             </div>
           </Fade>
@@ -727,7 +729,7 @@ function AboutPage() {
       <section style={{ padding: '64px 24px', background: '#F8F9FA' }}>
         <div style={{ maxWidth: 880, margin: '0 auto' }}>
           <Fade>
-            <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 800, color: '#202124', letterSpacing: -0.5, marginBottom: 36, textAlign: 'center' }}>Değerlerimiz</h2>
+            <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 800, color: '#202124', letterSpacing: -0.5, marginBottom: 36, textAlign: 'center' }}>Our values</h2>
           </Fade>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 16 }}>
             {values.map((v, i) => (
@@ -746,7 +748,7 @@ function AboutPage() {
       <section style={{ padding: '64px 24px 80px', background: '#fff' }}>
         <div style={{ maxWidth: 880, margin: '0 auto' }}>
           <Fade>
-            <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 800, color: '#202124', letterSpacing: -0.5, marginBottom: 36, textAlign: 'center' }}>Ekibimiz</h2>
+            <h2 style={{ fontSize: isMobile ? 26 : 34, fontWeight: 800, color: '#202124', letterSpacing: -0.5, marginBottom: 36, textAlign: 'center' }}>Our team</h2>
           </Fade>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 18 }}>
             {team.map((m, i) => (
@@ -784,12 +786,12 @@ function Footer({ setPage }: { setPage: (p: string) => void }) {
               </div>
               <span style={{ fontWeight: 700, fontSize: 16, color: '#fff' }}>AdsPulse</span>
             </div>
-            <p style={{ fontSize: 13, color: '#9AA0A6', lineHeight: 1.65, maxWidth: 240 }}>Tüm reklam kampanyalarınızı tek panelden yönetin.</p>
+            <p style={{ fontSize: 13, color: '#9AA0A6', lineHeight: 1.65, maxWidth: 240 }}>Manage all your ad campaigns from one dashboard.</p>
           </div>
           {[
-            { title: 'Ürün', links: [{ l: 'Özellikler', id: 'features' }, { l: 'Pricing', id: 'pricing' }, { l: 'Changelog', id: 'home' }, { l: 'Roadmap', id: 'home' }] },
-            { title: 'Şirket', links: [{ l: 'Hakkımızda', id: 'about' }, { l: 'Blog', id: 'home' }, { l: 'Kariyer', id: 'home' }, { l: 'İletişim', id: 'home' }] },
-            { title: 'Destek', links: [{ l: 'Dokümantasyon', id: 'home' }, { l: 'API Referansı', id: 'home' }, { l: 'Status', id: 'home' }, { l: 'Topluluk', id: 'home' }] },
+            { title: 'Product', links: [{ l: 'Features', id: 'features' }, { l: 'Pricing', id: 'pricing' }, { l: 'Changelog', id: 'home' }, { l: 'Roadmap', id: 'home' }] },
+            { title: 'Company', links: [{ l: 'About', id: 'about' }, { l: 'Blog', id: 'home' }, { l: 'Careers', id: 'home' }, { l: 'Contact', id: 'home' }] },
+            { title: 'Support', links: [{ l: 'Documentation', id: 'home' }, { l: 'API Reference', id: 'home' }, { l: 'Status', id: 'home' }, { l: 'Community', id: 'home' }] },
           ].map((col, i) => (
             <div key={i}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 14 }}>{col.title}</div>
@@ -804,9 +806,9 @@ function Footer({ setPage }: { setPage: (p: string) => void }) {
           ))}
         </div>
         <div style={{ borderTop: '1px solid #2D3142', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ fontSize: 12.5, color: '#5F6368' }}>© 2026 AdsPulse. Tüm hakları saklıdır.</div>
+          <div style={{ fontSize: 12.5, color: '#5F6368' }}>© 2026 AdsPulse. All rights reserved.</div>
           <div style={{ display: 'flex', gap: 20 }}>
-            {['Gizlilik', 'Kullanım Şartları', 'Çerezler'].map(l => (
+            {['Privacy', 'Terms of Service', 'Cookies'].map(l => (
               <button key={l} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: '#5F6368', fontFamily: 'inherit', transition: 'color .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#9AA0A6'; }}
                 onMouseLeave={e => { e.currentTarget.style.color = '#5F6368'; }}>

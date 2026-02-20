@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Auth sayfaları
-  const authPaths = ['/login']
+  const authPaths = ['/login', '/register']
   const isAuthPath = authPaths.some((path) => pathname.startsWith(path))
 
   if (!user && isProtectedPath) {
