@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const succeeded = results.filter(r => r.status === 'ok').length;
-  const failed = results.filter(r => r.status === 'error').length;
+  const failed = results.filter(r => r.status !== 'ok').length;
 
   return new Response(
     JSON.stringify({ synced: succeeded, failed, results }),
