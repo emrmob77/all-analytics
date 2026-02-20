@@ -213,26 +213,38 @@ async function syncMeta(
   externalAccountId: string
 ): Promise<PlatformSyncResult> {
   const accountRef = `act_${externalAccountId}`;
-  const fields = 'id,name,status,daily_budget,budget_remaining,account_currency';
+  const fields = 'id,name,status,daily_budget,lifetime_budget,budget_remaining,account_currency';
 
   const campaignRes = await fetch(
     `https://graph.facebook.com/v21.0/${accountRef}/campaigns?fields=${fields}&access_token=${accessToken}&limit=200`
   );
   if (!campaignRes.ok) throw new Error(`Meta campaigns fetch failed: ${await campaignRes.text()}`);
 
-  const campaignData = await campaignRes.json() as { data?: Array<{ id: string; name: string; status: string; daily_budget?: string; budget_remaining?: string; account_currency?: string }> };
+  const campaignData = await campaignRes.json() as { data?: Array<{ id: string; name: string; status: string; daily_budget?: string; lifetime_budget?: string; budget_remaining?: string; account_currency?: string }> };
   const statusMap: Record<string, CampaignStatus> = {
     ACTIVE: 'active', PAUSED: 'paused', DELETED: 'archived', ARCHIVED: 'archived',
   };
 
-  const campaigns: CampaignData[] = (campaignData.data ?? []).map(c => ({
-    external_campaign_id: c.id,
-    name: c.name,
-    status: statusMap[c.status] ?? 'paused',
-    budget_limit: Number(c.daily_budget ?? 0) / 100,
-    budget_used: Number(c.daily_budget ?? 0) / 100 - Number(c.budget_remaining ?? 0) / 100,
-    currency: c.account_currency ?? 'USD',
-  }));
+  const campaigns: CampaignData[] = (campaignData.data ?? []).map(c => {
+    // lifetime_budget and daily_budget are mutually exclusive on Meta campaigns.
+    // budget_remaining is only meaningful for lifetime campaigns.
+    const isLifetime = c.lifetime_budget != null && Number(c.lifetime_budget) > 0;
+    const budgetLimit = isLifetime
+      ? Number(c.lifetime_budget) / 100
+      : Number(c.daily_budget ?? 0) / 100;
+    const budgetUsed = isLifetime
+      ? Math.max(0, budgetLimit - Number(c.budget_remaining ?? 0) / 100)
+      : 0; // actual spend for daily campaigns comes from insights, not campaign fields
+
+    return {
+      external_campaign_id: c.id,
+      name: c.name,
+      status: statusMap[c.status] ?? 'paused',
+      budget_limit: budgetLimit,
+      budget_used: budgetUsed,
+      currency: c.account_currency ?? 'USD',
+    };
+  });
 
   // Daily insights (last 30 days)
   const dates = lastNDays(30);
