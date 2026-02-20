@@ -1,4 +1,13 @@
 /**
+ * Returns a compact decimal string, omitting the trailing ".0" for whole numbers.
+ * e.g. compactFixed(842) → "842", compactFixed(1.2) → "1.2"
+ */
+function compactFixed(n: number): string {
+  const s = n.toFixed(1);
+  return s.endsWith('.0') ? s.slice(0, -2) : s;
+}
+
+/**
  * Formats a number as a currency string.
  * e.g. formatCurrency(1234.5) → "$1,234.50"
  * e.g. formatCurrency(1234.5, 'EUR', 'de-DE') → "1.234,50 €"
@@ -22,11 +31,15 @@ export function formatCurrency(
  * e.g. formatCurrencyCompact(1234567) → "$1.2M"
  */
 export function formatCurrencyCompact(value: number, currency = 'USD'): string {
-  if (Math.abs(value) >= 1_000_000) {
-    return `${formatCurrencySymbol(currency)}${(value / 1_000_000).toFixed(1)}M`;
+  const sign = value < 0 ? '-' : '';
+  const sym = formatCurrencySymbol(currency);
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000) {
+    return `${sign}${sym}${compactFixed(abs / 1_000_000)}M`;
   }
-  if (Math.abs(value) >= 1_000) {
-    return `${formatCurrencySymbol(currency)}${(value / 1_000).toFixed(1)}K`;
+  if (abs >= 1_000) {
+    return `${sign}${sym}${compactFixed(abs / 1_000)}K`;
   }
   return formatCurrency(value, currency);
 }
@@ -57,15 +70,12 @@ export function formatPercent(value: number, decimals = 2): string {
  * e.g. formatNumber(1240000) → "1.2M"
  */
 export function formatNumber(value: number): string {
-  if (Math.abs(value) >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (Math.abs(value) >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
-  }
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  if (abs >= 1_000_000_000) return `${sign}${compactFixed(abs / 1_000_000_000)}B`;
+  if (abs >= 1_000_000)     return `${sign}${compactFixed(abs / 1_000_000)}M`;
+  if (abs >= 1_000)         return `${sign}${compactFixed(abs / 1_000)}K`;
   return value.toLocaleString('en-US');
 }
 
