@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { GoogleIcon, MetaIcon, TikTokIcon, PinterestIcon } from '@/components/ui/platform-icons';
+import { useUser } from '@/hooks/useUser';
+import { useOrganization } from '@/hooks/useOrganization';
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', href: '/dashboard' },
@@ -24,8 +26,18 @@ const CONNECTED_PLATFORMS = [
   { id: 'pinterest', label: 'Pinterest', icon: PinterestIcon },
 ];
 
+function getInitials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '?';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return trimmed.slice(0, 2).toUpperCase() || '?';
+}
+
 export function Sidebar() {
   const pathname = usePathname();
+  const user = useUser();
+  const { organization, role } = useOrganization();
 
   return (
     <aside className="flex h-full w-[220px] flex-col border-r border-[#E3E8EF] bg-[#FAFAFA]">
@@ -42,11 +54,13 @@ export function Sidebar() {
       {/* Account Switcher */}
       <div className="mx-3 mb-[14px] flex cursor-pointer items-center gap-[9px] rounded-[9px] border border-[#E3E8EF] bg-white p-[9px_11px]">
         <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#FBBC05] text-xs font-bold text-white">
-          A
+          {organization ? getInitials(organization.name) : '…'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="truncate text-[12.5px] font-semibold text-[#202124]">Acme Corp</div>
-          <div className="text-[10.5px] text-[#9AA0A6]">4 ad accounts</div>
+          <div className="truncate text-[12.5px] font-semibold text-[#202124]">
+            {organization?.name ?? 'Loading…'}
+          </div>
+          <div className="text-[10.5px] text-[#9AA0A6] capitalize">{role ?? ''}</div>
         </div>
         <svg width="12" height="12" fill="none" stroke="#9AA0A6" strokeWidth="1.5" strokeLinecap="round">
           <path d="M2 4l4 4 4-4"/>
@@ -113,12 +127,22 @@ export function Sidebar() {
 
       {/* User */}
       <div className="flex items-center gap-[10px] border-t border-[#E3E8EF] px-4 py-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A73E8] text-[11px] font-bold text-white">
-          JD
-        </div>
-        <div>
-          <div className="text-[12.5px] font-semibold text-[#202124]">John Doe</div>
-          <div className="text-[10.5px] text-[#9AA0A6]">Admin</div>
+        {user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.fullName}
+            className="h-8 w-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A73E8] text-[11px] font-bold text-white">
+            {user ? getInitials(user.fullName) : '…'}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="truncate text-[12.5px] font-semibold text-[#202124]">
+            {user?.fullName ?? 'Loading…'}
+          </div>
+          <div className="truncate text-[10.5px] text-[#9AA0A6]">{user?.email ?? ''}</div>
         </div>
       </div>
     </aside>
