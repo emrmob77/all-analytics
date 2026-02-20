@@ -150,6 +150,7 @@ export function DateRangePicker({
       <PopoverContent
         className="w-auto p-0"
         align="end"
+        onInteractOutside={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
       >
         <div className="flex">
