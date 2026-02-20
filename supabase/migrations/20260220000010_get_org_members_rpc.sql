@@ -18,10 +18,13 @@ SET search_path = public
 AS $$
 BEGIN
   -- Any org member may list the members of their own org.
+  -- Use table alias to avoid ambiguity with the RETURNS TABLE output
+  -- parameter also named "user_id" (PostgreSQL raises a conflict error
+  -- when an unqualified name matches both a PL/pgSQL variable and a column).
   IF NOT EXISTS (
-    SELECT 1 FROM org_members
-    WHERE organization_id = p_org_id
-      AND user_id = auth.uid()
+    SELECT 1 FROM org_members om_check
+    WHERE om_check.organization_id = p_org_id
+      AND om_check.user_id = auth.uid()
   ) THEN
     RAISE EXCEPTION 'Permission denied: not a member of this organization';
   END IF;
