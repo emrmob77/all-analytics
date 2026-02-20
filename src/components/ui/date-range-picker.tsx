@@ -82,30 +82,37 @@ export function DateRangePicker({
   const [activePreset, setActivePreset] = useState<DateRangePreset>(defaultPreset);
   const [customRange, setCustomRange] = useState<DateRange | undefined>(value);
   const [rangeError, setRangeError] = useState<string | null>(null);
+  const [panelPos, setPanelPos] = useState({ top: 0, right: 0 });
 
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   // Keep activePreset in sync when the parent changes defaultPreset (e.g. quick-range buttons)
   useEffect(() => {
     setActivePreset(defaultPreset);
   }, [defaultPreset]);
 
-  // Click-outside detection — close the panel when the user clicks outside both
-  // the trigger button and the floating panel.
+  // Close on any mousedown that wasn't stopped by the panel itself.
+  // The panel calls e.stopPropagation() on its onMouseDown, so clicks inside
+  // never bubble to the document — only true outside clicks reach here.
   useEffect(() => {
     if (!open) return;
-    function handleMouseDown(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        panelRef.current?.contains(target) ||
-        triggerRef.current?.contains(target)
-      ) return;
+    function handleMouseDown() {
       setOpen(false);
     }
-    document.addEventListener('mousedown', handleMouseDown, true);
-    return () => document.removeEventListener('mousedown', handleMouseDown, true);
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
   }, [open]);
+
+  function openPanel() {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPanelPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(true);
+  }
 
   function handlePreset(preset: typeof PRESETS[number]) {
     const range = preset.range();
@@ -118,8 +125,6 @@ export function DateRangePicker({
   function handleCustomSelect(range: DateRange | undefined) {
     setCustomRange(range);
     setRangeError(null);
-    // Switch to 'custom' immediately so the calendar reflects the first click
-    // even before the user has picked both from and to dates.
     setActivePreset('custom');
 
     if (!range?.from || !range?.to) return;
@@ -148,14 +153,14 @@ export function DateRangePicker({
     : 'Select date range';
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <>
       <Button
         ref={triggerRef}
         type="button"
         variant="outline"
         size="sm"
         disabled={disabled}
-        onClick={() => setOpen(prev => !prev)}
+        onClick={() => open ? setOpen(false) : openPanel()}
         className="h-[30px] gap-1.5 border-[#E3E8EF] bg-white px-3.5 text-xs font-medium text-[#5F6368] hover:bg-gray-50"
       >
         <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -167,8 +172,11 @@ export function DateRangePicker({
 
       {open && (
         <div
-          ref={panelRef}
-          className="absolute right-0 z-50 mt-1 rounded-md border border-[#E3E8EF] bg-white shadow-md"
+          // stopPropagation ensures mousedown inside the panel never bubbles to
+          // the document listener above, so the panel stays open during selection.
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: panelPos.top, right: panelPos.right, zIndex: 9999 }}
+          className="rounded-md border border-[#E3E8EF] bg-white shadow-md"
         >
           <div className="flex">
             {/* Preset list */}
@@ -200,7 +208,7 @@ export function DateRangePicker({
               </button>
             </div>
 
-            {/* Calendar for custom range */}
+            {/* Calendar */}
             <div className="p-2">
               <Calendar
                 mode="range"
@@ -216,6 +224,6 @@ export function DateRangePicker({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

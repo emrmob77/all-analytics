@@ -9,6 +9,7 @@ import type { DateRange } from 'react-day-picker';
 interface DashboardHeaderProps {
   dateRange: string;
   setDateRange: (range: string) => void;
+  setCustomDays: (days: number) => void;
   activePlatform: AdPlatform | 'all';
   setActivePlatform: (platform: AdPlatform | 'all') => void;
 }
@@ -18,10 +19,11 @@ const QUICK_RANGES = ['7d', '30d', '90d'] as const;
 export function DashboardHeader({
   dateRange,
   setDateRange,
+  setCustomDays,
   activePlatform,
   setActivePlatform,
 }: DashboardHeaderProps) {
-  const handleDateRangeChange: DateRangePickerProps['onChange'] = (_range: DateRange, preset) => {
+  const handleDateRangeChange: DateRangePickerProps['onChange'] = (range: DateRange, preset) => {
     const presetMap: Record<string, string> = {
       today:     'today',
       yesterday: 'yesterday',
@@ -29,8 +31,13 @@ export function DashboardHeader({
       last30days: '30d',
       last90days: '90d',
     };
-    if (preset in presetMap) setDateRange(presetMap[preset]);
-    else setDateRange('custom');
+    if (preset in presetMap) {
+      setDateRange(presetMap[preset]);
+    } else if (range.from && range.to) {
+      const days = Math.round((range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      setCustomDays(days);
+      setDateRange('custom');
+    }
   };
 
   const defaultPreset: DateRangePickerProps['defaultPreset'] =

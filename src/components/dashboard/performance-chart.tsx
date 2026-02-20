@@ -10,6 +10,7 @@ import { DEMO_CHART_DATA, PLATFORMS, type AdPlatform } from '@/types';
 interface PerformanceChartProps {
   activePlatform: AdPlatform | 'all';
   dateRange: string;
+  customDays?: number;
   loading?: boolean;
 }
 
@@ -20,23 +21,25 @@ const PLATFORM_COLORS: Record<string, string> = {
   pinterest: '#E60023',
 };
 
-export function PerformanceChart({ activePlatform, dateRange, loading = false }: PerformanceChartProps) {
+export function PerformanceChart({ activePlatform, dateRange, customDays = 30, loading = false }: PerformanceChartProps) {
   // useId ensures gradient IDs are unique per component instance, preventing
   // collisions when multiple PerformanceChart instances exist in the document.
   const uid = useId();
   const dataLength =
-    dateRange === '7d'        ? 7  :
-    dateRange === '90d'       ? 90 :
-    dateRange === 'today'     ? 1  :
-    dateRange === 'yesterday' ? 1  : 30;
+    dateRange === '7d'        ? 7          :
+    dateRange === '90d'       ? 90         :
+    dateRange === 'today'     ? 1          :
+    dateRange === 'yesterday' ? 1          :
+    dateRange === 'custom'    ? customDays : 30;
   const chartData = DEMO_CHART_DATA.slice(0, dataLength);
   const activeColor = PLATFORM_COLORS[activePlatform] || '#1A73E8';
   const activePlatformConfig = PLATFORMS.find(p => p.id === activePlatform);
   const dateRangeLabel =
-    dateRange === '7d'        ? 'Last 7 days'  :
-    dateRange === '90d'       ? 'Last 90 days' :
-    dateRange === 'today'     ? 'Today'        :
-    dateRange === 'yesterday' ? 'Yesterday'    : 'Last 30 days';
+    dateRange === '7d'        ? 'Last 7 days'              :
+    dateRange === '90d'       ? 'Last 90 days'             :
+    dateRange === 'today'     ? 'Today'                    :
+    dateRange === 'yesterday' ? 'Yesterday'                :
+    dateRange === 'custom'    ? `Last ${customDays} days`  : 'Last 30 days';
 
   const filterBtn = (
     <button type="button" className="flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-[11px] py-[5px] text-[11.5px] text-[#5F6368] transition-colors hover:bg-gray-50">
