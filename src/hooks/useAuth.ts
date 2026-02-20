@@ -16,7 +16,7 @@ export interface UseAuthReturn {
   user: ReturnType<typeof useAuthContext>['user'];
   session: ReturnType<typeof useAuthContext>['session'];
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null; emailConfirmationRequired?: boolean }>;
@@ -30,16 +30,24 @@ export function useAuth(): UseAuthReturn {
 
   const loading = authLoading || actionLoading;
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<{ error: string | null }> => {
     setActionLoading(true);
     const supabase = getSupabase();
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    // Redirect handled by OAuth flow; loading stays true until navigation
+
+    if (error) {
+      setActionLoading(false);
+      return { error: error.message };
+    }
+
+    // On success the browser navigates away; loading intentionally stays true
+    // until the redirect completes.
+    return { error: null };
   };
 
   const signInWithEmail = async (
