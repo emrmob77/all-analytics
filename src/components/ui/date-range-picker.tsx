@@ -136,6 +136,10 @@ export function DateRangePicker({
       (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    // react-day-picker v9 sets from===to on the first click (single-day selection).
+    // Don't close yet — wait for the user to click a second (different) date.
+    if (daysDiff === 0) return;
+
     if (daysDiff > MAX_DAYS) {
       setRangeError(`Range cannot exceed ${MAX_DAYS} days`);
       return;
