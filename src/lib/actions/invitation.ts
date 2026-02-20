@@ -37,22 +37,15 @@ export async function inviteOrgMember(
     return { invitation: null, error: 'Only owners and admins can invite members' };
   }
 
-  // Prevent inviting someone who is already a member
-  const { data: existing } = await supabase
-    .from('org_members')
-    .select('user_id, users(email)')
-    .eq('organization_id', membership.organization.id)
-    .maybeSingle();
-
-  // Check via users table join — simpler: check invitations + org_members by email
-  const { data: existingMember } = await supabase
-    .from('org_members')
-    .select('id, users!inner(email)')
-    .eq('organization_id', membership.organization.id)
-    .eq('users.email', email)
-    .maybeSingle();
-
-  if (existingMember) {
+  // Prevent inviting someone who is already a member.
+  // Uses a SECURITY DEFINER RPC because users table RLS prevents admins
+  // from querying other users' email addresses directly.
+  const { data: isMember, error: checkError } = await supabase.rpc(
+    'check_org_member_by_email',
+    { p_org_id: membership.organization.id, p_email: email }
+  );
+  if (checkError) return { invitation: null, error: checkError.message };
+  if (isMember) {
     return { invitation: null, error: 'This user is already a member of your organization' };
   }
 
@@ -183,23 +176,22 @@ export async function getInvitationByToken(
 ): Promise<{ preview: InvitationPreview | null; error: string | null }> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('invitations')
-    .select('email, role, expires_at, organizations(name)')
-    .eq('token', token)
-    .is('accepted_at', null)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
+  // Uses a SECURITY DEFINER RPC — the broad invitations_select_by_token RLS
+  // policy has been removed; access is gated by knowing the exact token.
+  const { data, error } = await supabase.rpc('get_invitation_by_token', {
+    p_token: token,
+  });
 
   if (error) return { preview: null, error: error.message };
-  if (!data) return { preview: null, error: 'Invalid or expired invitation' };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { preview: null, error: 'Invalid or expired invitation' };
 
   return {
     preview: {
-      email: data.email,
-      role: data.role as OrgRole,
-      org_name: (data.organizations as unknown as { name: string })?.name ?? '',
-      expires_at: data.expires_at,
+      email: row.email as string,
+      role: row.role as OrgRole,
+      org_name: row.org_name as string,
+      expires_at: row.expires_at as string,
     },
     error: null,
   };
