@@ -3,12 +3,13 @@
 import { useRole } from '@/hooks/useRole';
 import type { OrgRole, Permission } from '@/lib/rbac';
 
-interface RoleGuardProps {
+type RoleGuardProps = {
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  permission?: Permission;
-  minimumRole?: OrgRole;
-}
+} & (
+  | { permission: Permission; minimumRole?: OrgRole }
+  | { minimumRole: OrgRole; permission?: Permission }
+);
 
 export function RoleGuard({
   children,
