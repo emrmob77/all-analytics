@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { getRecentSyncLogs, triggerManualSync, type SyncLog } from '@/lib/actions/sync';
+import { getRecentSyncLogs, triggerManualSync, type SyncLogRow } from '@/lib/actions/sync';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,7 +19,7 @@ function formatRelative(iso: string): string {
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
-function getStatus(logs: SyncLog[]): SyncStatus {
+function getStatus(logs: SyncLogRow[]): SyncStatus {
   const latest = logs[0];
   if (!latest) return 'idle';
   if (latest.status === 'in_progress') return 'syncing';
@@ -54,7 +54,7 @@ export function SyncStatusIndicator({
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const { data: logs = [] } = useQuery<SyncLog[]>({
+  const { data: logs = [] } = useQuery<SyncLogRow[]>({
     queryKey: ['sync-logs'],
     queryFn: async () => {
       const { logs: data, error } = await getRecentSyncLogs();
