@@ -35,6 +35,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   const passwordChecks = [
@@ -57,8 +58,9 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = () => {
-    setLoading(true);
+    setGoogleLoading(true);
     // TODO: Supabase Google OAuth
+    // setGoogleLoading(false) will be called after OAuth redirect or on error
   };
 
   return (
@@ -98,11 +100,11 @@ export default function RegisterPage() {
             </div>
 
             {/* Google button */}
-            <button onClick={handleGoogleRegister} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 16px', borderRadius: 9, border: '1.5px solid #E3E8EF', background: '#fff', fontSize: 14, fontWeight: 600, color: '#202124', transition: 'border-color .15s, box-shadow .15s', marginBottom: 20 }}
+            <button onClick={handleGoogleRegister} disabled={googleLoading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 16px', borderRadius: 9, border: '1.5px solid #E3E8EF', background: '#fff', fontSize: 14, fontWeight: 600, color: '#202124', transition: 'border-color .15s, box-shadow .15s', marginBottom: 20 }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#1A73E8'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(26,115,232,.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#E3E8EF'; e.currentTarget.style.boxShadow = 'none'; }}>
               <GoogleIcon />
-              Continue with Google
+              {googleLoading ? 'Redirecting...' : 'Continue with Google'}
             </button>
 
             {/* Divider */}

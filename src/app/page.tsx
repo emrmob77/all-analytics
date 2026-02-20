@@ -831,16 +831,7 @@ export default function MarketingPage() {
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: #fff; color: #202124; }
-        * { -webkit-font-smoothing: antialiased; }
-        button { font-family: 'Inter', sans-serif; }
-      `}</style>
-
+    <div style={{ fontFamily: 'var(--font-inter), -apple-system, sans-serif', background: '#fff', color: '#202124' }}>
       <Navbar page={page} setPage={setPage} />
 
       {page === 'home'     && <HomePage setPage={setPage} />}
@@ -849,6 +840,6 @@ export default function MarketingPage() {
       {page === 'about'    && <AboutPage />}
 
       <Footer setPage={setPage} />
-    </>
+    </div>
   );
 }
