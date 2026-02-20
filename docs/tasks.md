@@ -135,28 +135,28 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - **Property 2: Role hierarchy - Owner > Admin > Member > Viewer yetki hiyerarşisi korunur**
     - **Validates: Requirements 12.1, 12.2, 12.3, 12.4**
 
-- [ ] 7. Ad platform OAuth entegrasyonu
-  - [ ] 7.1 OAuth service layer oluştur
+- [x] 7. Ad platform OAuth entegrasyonu
+  - [x] 7.1 OAuth service layer oluştur
     - AdPlatformService interface implementation
     - Google Ads OAuth (API v18)
     - Meta Ads OAuth (API v21)
     - TikTok Ads OAuth (API v1.3)
     - Pinterest Ads OAuth (API v5)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
-  
-  - [ ] 7.2 OAuth callback handlers
+
+  - [x] 7.2 OAuth callback handlers
     - API route: /api/oauth/[platform]/callback
     - Token exchange ve storage (encrypted)
     - Error handling
     - _Requirements: 3.5, 3.6, 16.1, 16.3_
-  
-  - [ ] 7.3 Token refresh mechanism
+
+  - [x] 7.3 Token refresh mechanism
     - Automatic token refresh logic
     - Token expiry check
     - Refresh failure notification
     - _Requirements: 3.6, 3.7, 20.1_
-  
-  - [ ] 7.4 Ad account connection UI
+
+  - [x] 7.4 Ad account connection UI
     - Settings page - Ad Accounts tab
     - Platform connection buttons (OAuthConnector component)
     - Connected accounts list
