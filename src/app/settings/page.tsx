@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MembersTab } from '@/components/settings/MembersTab';
+import { AdAccountsTab } from '@/components/settings/AdAccountsTab';
 import { useOrganization } from '@/hooks/useOrganization';
 
 export default function SettingsPage() {
@@ -54,9 +55,11 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="ad-accounts">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-            Ad account connections — coming soon (Task 7.4)
-          </div>
+          <Suspense fallback={
+            <div className="text-sm text-gray-400 py-8 text-center">Loading ad accounts…</div>
+          }>
+            <AdAccountsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
