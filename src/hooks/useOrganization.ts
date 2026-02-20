@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthContext } from '@/components/providers/AuthProvider';
 import {
   getUserOrganization,
@@ -24,6 +24,8 @@ export function useOrganization(): UseOrganizationReturn {
   const [role, setRole] = useState<OrgMembership['role'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Prevent concurrent executions (React Strict Mode double-invoke, fast remounts)
+  const runningRef = useRef(false);
 
   const fetchOrganization = useCallback(async () => {
     if (!user) {
@@ -33,30 +35,35 @@ export function useOrganization(): UseOrganizationReturn {
       return;
     }
 
+    if (runningRef.current) return;
+    runningRef.current = true;
+
     setLoading(true);
     setError(null);
 
-    const existing = await getUserOrganization();
-    if (existing) {
-      setOrganization(existing.organization);
-      setRole(existing.role);
+    try {
+      const existing = await getUserOrganization();
+      if (existing) {
+        setOrganization(existing.organization);
+        setRole(existing.role);
+        return;
+      }
+
+      // No org found — provision a default workspace
+      const { organization: created, error: createError } =
+        await createDefaultOrganization();
+
+      if (createError || !created) {
+        setError(createError ?? 'Failed to initialize workspace');
+        return;
+      }
+
+      setOrganization(created);
+      setRole('owner');
+    } finally {
       setLoading(false);
-      return;
+      runningRef.current = false;
     }
-
-    // No org found — provision a default workspace
-    const { organization: created, error: createError } =
-      await createDefaultOrganization();
-
-    if (createError || !created) {
-      setError(createError ?? 'Failed to initialize workspace');
-      setLoading(false);
-      return;
-    }
-
-    setOrganization(created);
-    setRole('owner');
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {

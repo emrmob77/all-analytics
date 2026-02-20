@@ -59,23 +59,6 @@ export async function createDefaultOrganization(): Promise<{
   } = await supabase.auth.getUser();
   if (!user) return { organization: null, error: 'Not authenticated' };
 
-  // Check if user already has an org membership
-  const { data: existing } = await supabase
-    .from('org_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (existing) {
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('id, name, slug, avatar_url, created_at')
-      .eq('id', existing.organization_id)
-      .single();
-    return { organization: org as Organization, error: null };
-  }
-
   // Build org name and slug from user metadata
   const fullName: string =
     (user.user_metadata?.full_name as string) ??
@@ -86,30 +69,22 @@ export async function createDefaultOrganization(): Promise<{
   const orgName = `${displayName}'s Workspace`;
   const slug = generateSlug(displayName);
 
-  // Insert organization
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .insert({ name: orgName, slug })
-    .select('id, name, slug, avatar_url, created_at')
-    .single();
+  // Atomically create org + owner membership via RPC.
+  // The function checks for an existing org first (idempotent) and performs
+  // org + member inserts in a single transaction — no rollback needed.
+  const { data, error } = await supabase.rpc('create_default_organization', {
+    p_name: orgName,
+    p_slug: slug,
+  });
 
-  if (orgError || !org) {
-    return {
-      organization: null,
-      error: orgError?.message ?? 'Failed to create organization',
-    };
+  if (error) {
+    return { organization: null, error: error.message };
   }
 
-  // Add user as owner (RLS: org_members_insert_first_owner allows this)
-  const { error: memberError } = await supabase
-    .from('org_members')
-    .insert({ organization_id: org.id, user_id: user.id, role: 'owner' });
-
-  if (memberError) {
-    // Best-effort rollback
-    await supabase.from('organizations').delete().eq('id', org.id);
-    return { organization: null, error: memberError.message };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) {
+    return { organization: null, error: 'Failed to create organization' };
   }
 
-  return { organization: org as Organization, error: null };
+  return { organization: row as Organization, error: null };
 }
