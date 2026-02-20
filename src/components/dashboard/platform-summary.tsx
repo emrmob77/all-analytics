@@ -2,6 +2,7 @@
 
 import { PLATFORMS, DEMO_CAMPAIGNS } from '@/types';
 import { PlatformIcon } from '@/components/ui/platform-icons';
+import { formatCurrency, formatNumber } from '@/lib/format';
 import type { AdPlatform } from '@/types';
 
 export function PlatformSummary() {
@@ -53,8 +54,8 @@ export function PlatformSummary() {
               {/* Metrics Grid */}
               <div className="mb-3 grid grid-cols-2 gap-2">
                 {[
-                  ['Spend', `$${p.spend.toLocaleString()}`],
-                  ['Conv.', p.conversions],
+                  ['Spend', formatCurrency(p.spend)],
+                  ['Conv.', formatNumber(p.conversions)],
                   ['Impr.', `${(p.impressions / 1000).toFixed(0)}K`],
                   ['ROAS', p.roas === '—' ? '—' : `${p.roas}x`],
                 ].map(([label, value]) => (

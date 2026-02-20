@@ -42,7 +42,7 @@ function AnimNum({ to, prefix = '', suffix = '', decimals = 0 }: { to: number; p
     raf.current = requestAnimationFrame(tick);
     return () => { if (raf.current) cancelAnimationFrame(raf.current); };
   }, [inView, to, decimals]);
-  return <span ref={ref}>{prefix}{decimals > 0 ? v.toFixed(decimals) : v.toLocaleString()}{suffix}</span>;
+  return <span ref={ref}>{prefix}{decimals > 0 ? v.toFixed(decimals) : v.toLocaleString('en-US')}{suffix}</span>;
 }
 
 /* ── Fade ── */

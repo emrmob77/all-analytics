@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { PLATFORMS, DEMO_CAMPAIGNS, STATUS_STYLES } from '@/types';
 import { PlatformIcon } from '@/components/ui/platform-icons';
+import { formatInteger, formatCurrency } from '@/lib/format';
 import type { AdPlatform, Campaign } from '@/types';
 
 interface CampaignTableProps {
@@ -143,7 +144,7 @@ export function CampaignTable({ activePlatform }: CampaignTableProps) {
 
                   {/* Clicks */}
                   <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
-                    {row.clicks > 0 ? row.clicks.toLocaleString() : '—'}
+                    {row.clicks > 0 ? formatInteger(row.clicks) : '—'}
                   </td>
 
                   {/* CTR */}
@@ -156,8 +157,8 @@ export function CampaignTable({ activePlatform }: CampaignTableProps) {
                     {row.spend > 0 ? (
                       <>
                         <div className="mb-1 flex justify-between text-[11.5px]">
-                          <span className="font-medium text-[#202124]">${row.spend.toLocaleString()}</span>
-                          <span className="text-[#9AA0A6]">/ ${row.budget.toLocaleString()}</span>
+                          <span className="font-medium text-[#202124]">{formatCurrency(row.spend)}</span>
+                          <span className="text-[#9AA0A6]">/ {formatCurrency(row.budget)}</span>
                         </div>
                         <div className="h-1 rounded-sm bg-[#F1F3F4]">
                           <div

@@ -39,7 +39,7 @@ function AnimNum({ value, prefix = '', suffix = '', decimals = 0, duration = 100
   return (
     <>
       {prefix}
-      {decimals > 0 ? displayValue.toFixed(decimals) : displayValue.toLocaleString()}
+      {decimals > 0 ? displayValue.toFixed(decimals) : displayValue.toLocaleString('en-US')}
       {suffix}
     </>
   );
