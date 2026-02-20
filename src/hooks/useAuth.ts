@@ -19,7 +19,7 @@ export interface UseAuthReturn {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null; emailConfirmationRequired?: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -75,10 +75,10 @@ export function useAuth(): UseAuthReturn {
     email: string,
     password: string,
     fullName: string
-  ): Promise<{ error: string | null }> => {
+  ): Promise<{ error: string | null; emailConfirmationRequired?: boolean }> => {
     setActionLoading(true);
     const supabase = getSupabase();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
@@ -86,6 +86,12 @@ export function useAuth(): UseAuthReturn {
     setActionLoading(false);
 
     if (error) return { error: error.message };
+
+    // Email confirmation enabled: session is null until user confirms
+    if (!data.session) {
+      return { error: null, emailConfirmationRequired: true };
+    }
+
     router.push('/dashboard');
     return { error: null };
   };
