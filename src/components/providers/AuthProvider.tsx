@@ -27,12 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
+    // onAuthStateChange fires INITIAL_SESSION on mount, making a separate
+    // getSession() call redundant and prone to race conditions if a token
+    // refresh occurs between the two calls.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
