@@ -436,7 +436,10 @@ async function writeResults(
       .select('id')
       .single();
 
-    if (campErr || !dbCampaign) continue;
+    if (campErr || !dbCampaign) {
+      console.error(`[writeResults] campaign upsert failed for ${campaign.external_campaign_id}:`, campErr?.message ?? 'no data returned');
+      continue;
+    }
 
     const campaignId = dbCampaign.id as string;
     const extId = campaign.external_campaign_id;

@@ -123,7 +123,12 @@ export async function triggerManualSync(
 
     clearTimeout(timeoutId);
 
-    const body = await res.json() as { sync_log_id?: string; error?: string };
+    let body: { sync_log_id?: string; error?: string };
+    try {
+      body = await res.json();
+    } catch {
+      return { syncLogId: null, error: `Sync service returned non-JSON response (HTTP ${res.status})` };
+    }
     if (!res.ok) {
       return { syncLogId: body.sync_log_id ?? null, error: body.error ?? 'Sync failed' };
     }
