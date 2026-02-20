@@ -52,6 +52,10 @@ export class MetaAdsOAuthService implements AdPlatformOAuthService {
     const data: MetaTokenResponse = await res.json();
     return {
       accessToken: data.access_token,
+      // Meta has no separate refresh token; the access token itself is passed to
+      // the fb_exchange_token grant to obtain a new long-lived token. Store it in
+      // refreshToken so that refreshAdAccountToken can reach Meta's refresh path.
+      refreshToken: data.access_token,
       expiresAt: data.expires_in
         ? new Date(Date.now() + data.expires_in * 1000)
         : undefined,
