@@ -91,17 +91,6 @@ export function DateRangePicker({
     setActivePreset(defaultPreset);
   }, [defaultPreset]);
 
-  // Close on any mousedown that wasn't stopped by the panel itself.
-  // The panel calls e.stopPropagation() on its onMouseDown, so clicks inside
-  // never bubble to the document — only true outside clicks reach here.
-  useEffect(() => {
-    if (!open) return;
-    function handleMouseDown() {
-      setOpen(false);
-    }
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [open]);
 
   function openPanel() {
     if (triggerRef.current) {
@@ -171,13 +160,17 @@ export function DateRangePicker({
       </Button>
 
       {open && (
-        <div
-          // stopPropagation ensures mousedown inside the panel never bubbles to
-          // the document listener above, so the panel stays open during selection.
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: panelPos.top, right: panelPos.right, zIndex: 9999 }}
-          className="rounded-md border border-[#E3E8EF] bg-white shadow-md"
-        >
+        <>
+          {/* Backdrop: covers the entire viewport behind the panel.
+              Clicking anywhere outside the panel triggers close. */}
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={() => setOpen(false)}
+          />
+          <div
+            style={{ position: 'fixed', top: panelPos.top, right: panelPos.right, zIndex: 9999 }}
+            className="rounded-md border border-[#E3E8EF] bg-white shadow-md"
+          >
           <div className="flex">
             {/* Preset list */}
             <div className="flex flex-col border-r border-[#E3E8EF] py-2">
@@ -223,6 +216,7 @@ export function DateRangePicker({
             </div>
           </div>
         </div>
+        </>
       )}
     </>
   );
