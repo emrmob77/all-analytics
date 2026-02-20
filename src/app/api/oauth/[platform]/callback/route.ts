@@ -14,6 +14,27 @@ function isAdPlatform(value: string): value is AdPlatform {
 
 const SETTINGS_URL = '/settings?tab=ad-accounts';
 
+/**
+ * Builds a redirect response and explicitly sets a cookie-deletion header on
+ * it so the state cookie is cleared even if Next.js middleware caches the
+ * response before the cookieStore mutation propagates.
+ */
+function redirectWithCookieDeletion(
+  url: URL,
+  cookieName: string,
+  secure: boolean
+): NextResponse {
+  const response = NextResponse.redirect(url);
+  response.cookies.set(cookieName, '', {
+    httpOnly: true,
+    secure,
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  });
+  return response;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ platform: string }> }
@@ -27,6 +48,8 @@ export async function GET(
     );
   }
   const platform = rawPlatform;
+  const cookieName = `oauth_state_${platform}`;
+  const isSecure = process.env.NODE_ENV === 'production';
 
   const { searchParams } = request.nextUrl;
   const code = searchParams.get('code');
@@ -48,16 +71,13 @@ export async function GET(
 
   // 3. CSRF: validate state cookie
   const cookieStore = await cookies();
-  const stateCookie = cookieStore.get(`oauth_state_${platform}`)?.value;
+  const stateCookie = cookieStore.get(cookieName)?.value;
 
   if (!stateCookie || stateCookie !== stateParam) {
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
     );
   }
-
-  // Clear the state cookie immediately
-  cookieStore.delete(`oauth_state_${platform}`);
 
   // 4. Auth + org check
   const supabase = await createClient();
@@ -66,15 +86,19 @@ export async function GET(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(
-      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      cookieName,
+      isSecure
     );
   }
 
   const membership = await getUserOrganization();
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    return NextResponse.redirect(
-      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      cookieName,
+      isSecure
     );
   }
 
@@ -107,8 +131,10 @@ export async function GET(
       .single();
 
     if (upsertError || !adAccount) {
-      return NextResponse.redirect(
-        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
+      return redirectWithCookieDeletion(
+        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+        cookieName,
+        isSecure
       );
     }
 
@@ -131,17 +157,23 @@ export async function GET(
       );
 
     if (tokenError) {
-      return NextResponse.redirect(
-        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
+      return redirectWithCookieDeletion(
+        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+        cookieName,
+        isSecure
       );
     }
 
-    return NextResponse.redirect(
-      new URL(`${SETTINGS_URL}&connected=true`, request.url)
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&connected=true`, request.url),
+      cookieName,
+      isSecure
     );
   } catch {
-    return NextResponse.redirect(
-      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      cookieName,
+      isSecure
     );
   }
 }

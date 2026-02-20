@@ -108,8 +108,14 @@ export class TikTokAdsOAuthService implements AdPlatformOAuthService {
   }
 
   async getAccountInfo(accessToken: string): Promise<{ externalId: string; name: string }> {
+    // TikTok Marketing API requires app_id and secret as query params in addition
+    // to the Access-Token header for the advertiser list endpoint.
+    const params = new URLSearchParams({
+      app_id: this.appId,
+      secret: this.appSecret,
+    });
     const res = await fetch(
-      'https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/',
+      `https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/?${params.toString()}`,
       {
         method: 'GET',
         headers: {
