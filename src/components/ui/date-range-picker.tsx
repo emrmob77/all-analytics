@@ -85,11 +85,25 @@ export function DateRangePicker({
   const [panelPos, setPanelPos] = useState({ top: 0, right: 0 });
 
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Keep activePreset in sync when the parent changes defaultPreset (e.g. quick-range buttons)
   useEffect(() => {
     setActivePreset(defaultPreset);
   }, [defaultPreset]);
+
+  // Click-outside: close only when the click target is outside the panel.
+  // Uses DOM containment check — immune to z-index and React event delegation quirks.
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [open]);
 
 
   function openPanel() {
@@ -161,13 +175,8 @@ export function DateRangePicker({
 
       {open && (
         <>
-          {/* Backdrop: covers the entire viewport behind the panel.
-              Clicking anywhere outside the panel triggers close. */}
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
-            onClick={() => setOpen(false)}
-          />
-          <div
+            ref={panelRef}
             style={{ position: 'fixed', top: panelPos.top, right: panelPos.right, zIndex: 9999 }}
             className="rounded-md border border-[#E3E8EF] bg-white shadow-md"
           >
@@ -205,7 +214,7 @@ export function DateRangePicker({
             <div className="p-2">
               <Calendar
                 mode="range"
-                selected={activePreset === 'custom' ? customRange : displayRange}
+                selected={customRange}
                 onSelect={handleCustomSelect}
                 numberOfMonths={2}
                 disabled={{ after: new Date() }}
