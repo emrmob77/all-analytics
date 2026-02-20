@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -92,18 +92,28 @@ export function DateRangePicker({
     setActivePreset(defaultPreset);
   }, [defaultPreset]);
 
+  const closePanel = useCallback(() => {
+    // Discard invalid draft selection so trigger label always reflects applied range.
+    if (rangeError) {
+      setCustomRange(value);
+      setActivePreset(defaultPreset);
+      setRangeError(null);
+    }
+    setOpen(false);
+  }, [defaultPreset, rangeError, value]);
+
   // Click-outside: close only when the click target is outside the panel.
   // Uses DOM containment check — immune to z-index and React event delegation quirks.
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        closePanel();
       }
     }
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, [open]);
+  }, [closePanel, open]);
 
 
   function openPanel() {
@@ -126,11 +136,16 @@ export function DateRangePicker({
   }
 
   function handleCustomSelect(range: DateRange | undefined) {
-    setCustomRange(range);
     setRangeError(null);
-    setActivePreset('custom');
 
-    if (!range?.from || !range?.to) return;
+    if (!range?.from || !range?.to) {
+      setCustomRange(range);
+      setActivePreset('custom');
+      return;
+    }
+
+    setCustomRange(range);
+    setActivePreset('custom');
 
     const daysDiff = Math.round(
       (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)
@@ -167,7 +182,7 @@ export function DateRangePicker({
         variant="outline"
         size="sm"
         disabled={disabled}
-        onClick={() => open ? setOpen(false) : openPanel()}
+        onClick={() => open ? closePanel() : openPanel()}
         className="h-[30px] gap-1.5 border-[#E3E8EF] bg-white px-3.5 text-xs font-medium text-[#5F6368] hover:bg-gray-50"
       >
         <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
