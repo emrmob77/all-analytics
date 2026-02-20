@@ -16,11 +16,17 @@ export interface UseAuthReturn {
   user: ReturnType<typeof useAuthContext>['user'];
   session: ReturnType<typeof useAuthContext>['session'];
   loading: boolean;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: (redirectTo?: string) => Promise<{ error: string | null }>;
+  signInWithEmail: (email: string, password: string, redirectTo?: string) => Promise<{ error: string | null }>;
+  signInWithMagicLink: (email: string, redirectTo?: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null; emailConfirmationRequired?: boolean }>;
   signOut: () => Promise<void>;
+}
+
+/** Validate a post-login redirect path to prevent open redirects. */
+function safeRedirect(raw: string | null | undefined): string {
+  if (!raw) return '/dashboard';
+  return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
 }
 
 export function useAuth(): UseAuthReturn {
@@ -30,13 +36,16 @@ export function useAuth(): UseAuthReturn {
 
   const loading = authLoading || actionLoading;
 
-  const signInWithGoogle = async (): Promise<{ error: string | null }> => {
+  const signInWithGoogle = async (redirectTo?: string): Promise<{ error: string | null }> => {
     setActionLoading(true);
     const supabase = getSupabase();
+    const next = safeRedirect(redirectTo);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Thread `next` through the callback so the user lands on the right
+        // page after OAuth completes (e.g. /invitations/accept?token=…).
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
 
@@ -52,7 +61,8 @@ export function useAuth(): UseAuthReturn {
 
   const signInWithEmail = async (
     email: string,
-    password: string
+    password: string,
+    redirectTo?: string
   ): Promise<{ error: string | null }> => {
     setActionLoading(true);
     const supabase = getSupabase();
@@ -60,18 +70,22 @@ export function useAuth(): UseAuthReturn {
     setActionLoading(false);
 
     if (error) return { error: error.message };
-    router.push('/dashboard');
+    router.push(safeRedirect(redirectTo));
     return { error: null };
   };
 
   const signInWithMagicLink = async (
-    email: string
+    email: string,
+    redirectTo?: string
   ): Promise<{ error: string | null }> => {
     setActionLoading(true);
     const supabase = getSupabase();
+    const next = safeRedirect(redirectTo);
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     setActionLoading(false);
 

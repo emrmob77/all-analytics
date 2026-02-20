@@ -38,7 +38,8 @@ export async function inviteOrgMember(
   }
 
   // Enforce role hierarchy: a caller may only assign roles strictly below
-  // their own. Owners can assign any role; admins cannot create owners.
+  // their own. Owners cannot invite other owners; admins cannot invite
+  // admins or owners. Ownership transfer requires a dedicated flow.
   const ROLE_RANK: Record<OrgRole, number> = {
     owner: 3,
     admin: 2,

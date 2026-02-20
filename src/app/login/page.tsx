@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const Logo = () => (
@@ -24,6 +25,11 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawNext = searchParams.get('next');
+  // Validate to prevent open redirects: must be a relative path, not protocol-relative
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : undefined;
+
   const { signInWithGoogle, signInWithEmail, signInWithMagicLink } = useAuth();
 
   const [tab, setTab] = useState<'password' | 'magic'>('password');
@@ -39,7 +45,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await signInWithEmail(email, password);
+    const { error } = await signInWithEmail(email, password, next);
     setLoading(false);
     if (error) setError(error);
   };
@@ -48,7 +54,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await signInWithMagicLink(email);
+    const { error } = await signInWithMagicLink(email, next);
     setLoading(false);
     if (error) { setError(error); return; }
     setMagicSent(true);
@@ -57,7 +63,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError('');
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle(next);
     if (error) {
       setGoogleLoading(false);
       setError(error);
