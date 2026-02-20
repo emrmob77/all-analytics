@@ -104,7 +104,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Invitation token generation ve validation
     - _Requirements: 2.3, 13.1, 13.2, 13.3, 13.4, 20.3_
   
-  - [ ] 5.3 Member management UI
+  - [x] 5.3 Member management UI
     - Settings page - Members tab
     - Member list with roles
     - Invite member dialog
@@ -119,13 +119,13 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - _Requirements: 2.1, 2.2, 2.3, 2.6, 13.1, 13.2, 13.3, 13.4_
 
 - [ ] 6. Role-based access control (RBAC)
-  - [ ] 6.1 RBAC utility functions ve hooks
+  - [x] 6.1 RBAC utility functions ve hooks
     - useRole hook (current user role)
     - hasPermission utility function
     - Role hierarchy definition
     - _Requirements: 2.4, 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7_
   
-  - [ ] 6.2 RoleGuard component
+  - [x] 6.2 RoleGuard component
     - Client component for conditional rendering
     - Permission check logic
     - Fallback UI for unauthorized access
