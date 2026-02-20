@@ -6,7 +6,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // ---------------------------------------------------------------------------
 
 type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest';
-type CampaignStatus = 'active' | 'paused' | 'stopped' | 'archived';
+type CampaignStatus = 'active' | 'paused' | 'draft' | 'archived';
 
 interface SyncPayload {
   ad_account_id: string;
@@ -514,6 +514,17 @@ Deno.serve(async (req: Request) => {
   if (!supabaseUrl || !serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Supabase env not configured' }), {
       status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Only the service-role key is authorised to invoke this function directly.
+  // Both triggerManualSync (src/lib/actions/sync.ts) and scheduled-sync pass it
+  // as the Bearer token, so legitimate callers are unaffected.
+  const bearerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (bearerToken !== serviceRoleKey) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
   }

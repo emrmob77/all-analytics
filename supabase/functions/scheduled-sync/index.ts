@@ -51,6 +51,15 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Verify caller is using the service role key — prevents anon-key abuse.
+  const bearerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (bearerToken !== serviceRoleKey) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   // Fetch all active ad accounts that have a token stored
@@ -87,8 +96,12 @@ Deno.serve(async (req: Request) => {
   const syncFnUrl = `${supabaseUrl}${SYNC_FUNCTION_URL_SUFFIX}`;
   const results: Array<{ ad_account_id: string; status: string; sync_log_id?: string }> = [];
 
-  for (const account of accountsToSync) {
+  for (let i = 0; i < accountsToSync.length; i++) {
+    const account = accountsToSync[i];
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30_000); // 30 s per account
+
       const res = await fetch(syncFnUrl, {
         method: 'POST',
         headers: {
@@ -99,7 +112,10 @@ Deno.serve(async (req: Request) => {
           ad_account_id: account.id,
           triggered_by: 'scheduled',
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       const body = await res.json() as { sync_log_id?: string; error?: string };
       results.push({
@@ -110,13 +126,13 @@ Deno.serve(async (req: Request) => {
     } catch (err) {
       results.push({
         ad_account_id: account.id as string,
-        status: 'error',
+        status: err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'error',
       });
       console.error(`Sync failed for account ${account.id}:`, err);
     }
 
     // Rate-limit: pause between accounts
-    if (accountsToSync.indexOf(account) < accountsToSync.length - 1) {
+    if (i < accountsToSync.length - 1) {
       await delay(RATE_LIMIT_DELAY_MS);
     }
   }

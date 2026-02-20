@@ -18,10 +18,10 @@ SELECT cron.schedule(
   '*/15 * * * *',
   $$
     SELECT net.http_post(
-      url     := current_setting('app.supabase_url') || '/functions/v1/scheduled-sync',
+      url     := NULLIF(current_setting('app.supabase_url', true), '') || '/functions/v1/scheduled-sync',
       headers := jsonb_build_object(
         'Content-Type',  'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.service_role_key')
+        'Authorization', 'Bearer ' || NULLIF(current_setting('app.service_role_key', true), '')
       ),
       body    := '{}'::jsonb
     ) AS request_id;

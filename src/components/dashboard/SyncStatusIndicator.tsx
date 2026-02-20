@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { getRecentSyncLogs, triggerManualSync, type SyncLog } from '@/lib/actions/sync';
 
@@ -49,23 +50,19 @@ export function SyncStatusIndicator({
   adAccountId,
   pollIntervalMs = 30_000,
 }: SyncStatusIndicatorProps) {
-  const [logs, setLogs] = useState<SyncLog[]>([]);
+  const queryClient = useQueryClient();
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  async function fetchLogs() {
-    const { logs: data, error } = await getRecentSyncLogs();
-    if (!error) setLogs(data);
-  }
-
-  // Initial load + polling
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { fetchLogs(); }, []);
-
-  useEffect(() => {
-    const id = setInterval(fetchLogs, pollIntervalMs);
-    return () => clearInterval(id);
-  }, [pollIntervalMs]);
+  const { data: logs = [] } = useQuery<SyncLog[]>({
+    queryKey: ['sync-logs'],
+    queryFn: async () => {
+      const { logs: data, error } = await getRecentSyncLogs();
+      if (error) throw new Error(error);
+      return data;
+    },
+    refetchInterval: pollIntervalMs,
+  });
 
   function handleSync() {
     setSyncError(null);
@@ -74,8 +71,8 @@ export function SyncStatusIndicator({
       if (error) {
         setSyncError(error);
       } else {
-        // Refetch logs after a short delay so the new log appears
-        setTimeout(fetchLogs, 1500);
+        // Invalidate after short delay so the new sync log appears
+        setTimeout(() => queryClient.invalidateQueries({ queryKey: ['sync-logs'] }), 1500);
       }
     });
   }
