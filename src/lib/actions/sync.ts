@@ -63,7 +63,10 @@ export async function triggerManualSync(
     return { syncLogId: null, error: 'Only admins can trigger manual sync' };
   }
 
-  // If no specific account given, pick the first active account for the org
+  // If no specific account given, pick the first active account for the org.
+  // If an account ID is provided, verify it belongs to the caller's organization
+  // before passing it to the Edge Function (which uses a service-role client
+  // that bypasses RLS).
   let targetAccountId = adAccountId;
   if (!targetAccountId) {
     const { data: accounts } = await supabase
@@ -74,6 +77,17 @@ export async function triggerManualSync(
       .limit(1)
       .maybeSingle();
     targetAccountId = accounts?.id ?? undefined;
+  } else {
+    const { data: ownedAccount } = await supabase
+      .from('ad_accounts')
+      .select('id')
+      .eq('id', targetAccountId)
+      .eq('organization_id', membership.organization.id)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (!ownedAccount) {
+      return { syncLogId: null, error: 'Ad account not found or not owned by your organization' };
+    }
   }
 
   if (!targetAccountId) {

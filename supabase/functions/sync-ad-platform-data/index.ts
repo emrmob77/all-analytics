@@ -443,7 +443,12 @@ async function writeResults(
         conversions: m.conversions,
         revenue: m.revenue,
       }));
-      await supabase.from('campaign_metrics').upsert(rows, { onConflict: 'campaign_id,date' });
+      const { error: dailyErr } = await supabase
+        .from('campaign_metrics')
+        .upsert(rows, { onConflict: 'campaign_id,date' });
+      if (dailyErr) {
+        console.error(`[writeResults] campaign_metrics upsert failed for campaign ${campaignId}:`, dailyErr.message);
+      }
     }
 
     // Upsert hourly metrics (only last 7 days)
@@ -460,7 +465,12 @@ async function writeResults(
           conversions: m.conversions,
         }));
       if (rows.length > 0) {
-        await supabase.from('hourly_metrics').upsert(rows, { onConflict: 'campaign_id,hour' });
+        const { error: hourlyErr } = await supabase
+          .from('hourly_metrics')
+          .upsert(rows, { onConflict: 'campaign_id,hour' });
+        if (hourlyErr) {
+          console.error(`[writeResults] hourly_metrics upsert failed for campaign ${campaignId}:`, hourlyErr.message);
+        }
       }
     }
   }
