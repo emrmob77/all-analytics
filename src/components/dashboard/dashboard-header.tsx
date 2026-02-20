@@ -1,8 +1,10 @@
 'use client';
 
-import { PLATFORMS } from '@/types';
-import { PlatformIcon } from '@/components/ui/platform-icons';
 import type { AdPlatform } from '@/types';
+import { PlatformFilter } from '@/components/ui/platform-filter';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import type { DateRangePickerProps } from '@/components/ui/date-range-picker';
+import type { DateRange } from 'react-day-picker';
 
 interface DashboardHeaderProps {
   dateRange: string;
@@ -11,12 +13,26 @@ interface DashboardHeaderProps {
   setActivePlatform: (platform: AdPlatform | 'all') => void;
 }
 
+const QUICK_RANGES = ['7d', '30d', '90d'] as const;
+
 export function DashboardHeader({
   dateRange,
   setDateRange,
   activePlatform,
-  setActivePlatform
+  setActivePlatform,
 }: DashboardHeaderProps) {
+  const handleDateRangeChange: DateRangePickerProps['onChange'] = (_range: DateRange, preset) => {
+    const presetMap: Record<string, string> = {
+      last7days: '7d',
+      last30days: '30d',
+      last90days: '90d',
+    };
+    if (preset in presetMap) setDateRange(presetMap[preset]);
+    else setDateRange('custom');
+  };
+
+  const defaultPreset = dateRange === '7d' ? 'last7days' : dateRange === '90d' ? 'last90days' : 'last30days';
+
   return (
     <div className="space-y-5">
       {/* Header Row */}
@@ -27,9 +43,9 @@ export function DashboardHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Date Range Buttons */}
+          {/* Quick range buttons */}
           <div className="flex overflow-hidden rounded-lg border border-[#E3E8EF] bg-white">
-            {['7d', '30d', '90d'].map((d, i) => (
+            {QUICK_RANGES.map((d, i) => (
               <button
                 key={d}
                 onClick={() => setDateRange(d)}
@@ -46,14 +62,11 @@ export function DashboardHeader({
             ))}
           </div>
 
-          {/* Calendar Button */}
-          <button className="flex items-center gap-1.5 rounded-lg border border-[#E3E8EF] bg-white px-3.5 py-[7px] text-xs font-medium text-[#5F6368] transition-colors hover:bg-gray-50">
-            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <rect x="1" y="2" width="11" height="10" rx="1.5"/>
-              <path d="M1 5h11M4 1v2M8 1v2"/>
-            </svg>
-            <span className="hidden sm:inline">Jun 1 – Jun 30</span>
-          </button>
+          {/* Calendar / custom range picker */}
+          <DateRangePicker
+            onChange={handleDateRangeChange}
+            defaultPreset={defaultPreset as DateRangePickerProps['defaultPreset']}
+          />
 
           {/* New Campaign Button */}
           <button className="flex items-center gap-1.5 rounded-lg bg-[#1A73E8] px-4 py-[7px] text-xs font-semibold text-white transition-colors hover:bg-[#1557B0]">
@@ -62,32 +75,8 @@ export function DashboardHeader({
         </div>
       </div>
 
-      {/* Platform Tabs */}
-      <div className="flex flex-wrap gap-1.5">
-        {PLATFORMS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setActivePlatform(p.id)}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-              activePlatform === p.id
-                ? `border-[1.5px] font-semibold`
-                : 'border-[1.5px] border-[#E3E8EF] bg-white text-[#5F6368] hover:bg-gray-50'
-            }`}
-            style={
-              activePlatform === p.id
-                ? {
-                    borderColor: p.color,
-                    backgroundColor: p.bgColor,
-                    color: p.color,
-                  }
-                : undefined
-            }
-          >
-            {p.id !== 'all' && <PlatformIcon platform={p.id as AdPlatform} size={14} />}
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {/* Platform filter */}
+      <PlatformFilter value={activePlatform} onChange={setActivePlatform} />
     </div>
   );
 }
