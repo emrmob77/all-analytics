@@ -203,8 +203,8 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Rate limiting test
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
-- [ ] 10. Data retention ve cleanup
-  - [ ] 10.1 Cleanup Edge Functions
+- [x] 10. Data retention ve cleanup
+  - [x] 10.1 Cleanup Edge Functions
     - hourly_metrics cleanup (7 gün)
     - sync_logs cleanup (90 gün)
     - Scheduled execution (low-traffic hours)
