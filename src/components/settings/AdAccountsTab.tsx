@@ -20,6 +20,10 @@ export function AdAccountsTab({ isAdmin }: AdAccountsTabProps) {
   const [error, setError] = useState<string | null>(null);
 
   async function loadAccounts() {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     const { accounts: data, error: err } = await getAdAccounts();
@@ -28,8 +32,8 @@ export function AdAccountsTab({ isAdmin }: AdAccountsTabProps) {
     setLoading(false);
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadAccounts(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { loadAccounts(); }, [isAdmin]);
 
   // Show toast based on URL params after OAuth redirect
   useEffect(() => {
@@ -54,7 +58,7 @@ export function AdAccountsTab({ isAdmin }: AdAccountsTabProps) {
       url.searchParams.delete('error');
       window.history.replaceState(null, '', url.toString());
     }
-  }, [searchParams]);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
