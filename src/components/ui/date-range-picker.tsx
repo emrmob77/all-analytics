@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
 // ---------------------------------------------------------------------------
@@ -84,10 +83,29 @@ export function DateRangePicker({
   const [customRange, setCustomRange] = useState<DateRange | undefined>(value);
   const [rangeError, setRangeError] = useState<string | null>(null);
 
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
   // Keep activePreset in sync when the parent changes defaultPreset (e.g. quick-range buttons)
   useEffect(() => {
     setActivePreset(defaultPreset);
   }, [defaultPreset]);
+
+  // Click-outside detection — close the panel when the user clicks outside both
+  // the trigger button and the floating panel.
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        panelRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) return;
+      setOpen(false);
+    }
+    document.addEventListener('mousedown', handleMouseDown, true);
+    return () => document.removeEventListener('mousedown', handleMouseDown, true);
+  }, [open]);
 
   function handlePreset(preset: typeof PRESETS[number]) {
     const range = preset.range();
@@ -115,7 +133,6 @@ export function DateRangePicker({
       return;
     }
 
-    setActivePreset('custom');
     onChange(range, 'custom');
     setOpen(false);
   }
@@ -131,73 +148,74 @@ export function DateRangePicker({
     : 'Select date range';
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled}
-          className="h-[30px] gap-1.5 border-[#E3E8EF] bg-white px-3.5 text-xs font-medium text-[#5F6368] hover:bg-gray-50"
-        >
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <rect x="1" y="2" width="11" height="10" rx="1.5" />
-            <path d="M1 5h11M4 1v2M8 1v2" />
-          </svg>
-          <span className="hidden sm:inline">{triggerLabel}</span>
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent
-        className="w-auto p-0"
-        align="end"
-        onInteractOutside={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(prev => !prev)}
+        className="h-[30px] gap-1.5 border-[#E3E8EF] bg-white px-3.5 text-xs font-medium text-[#5F6368] hover:bg-gray-50"
       >
-        <div className="flex">
-          {/* Preset list */}
-          <div className="flex flex-col border-r border-[#E3E8EF] py-2">
-            {PRESETS.map(preset => (
+        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <rect x="1" y="2" width="11" height="10" rx="1.5" />
+          <path d="M1 5h11M4 1v2M8 1v2" />
+        </svg>
+        <span className="hidden sm:inline">{triggerLabel}</span>
+      </Button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          className="absolute right-0 z-50 mt-1 rounded-md border border-[#E3E8EF] bg-white shadow-md"
+        >
+          <div className="flex">
+            {/* Preset list */}
+            <div className="flex flex-col border-r border-[#E3E8EF] py-2">
+              {PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handlePreset(preset)}
+                  className={`px-4 py-1.5 text-left text-xs font-medium transition-colors ${
+                    activePreset === preset.id
+                      ? 'bg-[#E8F0FE] text-[#1A73E8]'
+                      : 'text-[#5F6368] hover:bg-gray-50'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
               <button
-                key={preset.id}
                 type="button"
-                onClick={() => handlePreset(preset)}
+                onClick={() => setActivePreset('custom')}
                 className={`px-4 py-1.5 text-left text-xs font-medium transition-colors ${
-                  activePreset === preset.id
+                  activePreset === 'custom'
                     ? 'bg-[#E8F0FE] text-[#1A73E8]'
                     : 'text-[#5F6368] hover:bg-gray-50'
                 }`}
               >
-                {preset.label}
+                Custom range
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setActivePreset('custom')}
-              className={`px-4 py-1.5 text-left text-xs font-medium transition-colors ${
-                activePreset === 'custom'
-                  ? 'bg-[#E8F0FE] text-[#1A73E8]'
-                  : 'text-[#5F6368] hover:bg-gray-50'
-              }`}
-            >
-              Custom range
-            </button>
-          </div>
+            </div>
 
-          {/* Calendar for custom range */}
-          <div className="p-2">
-            <Calendar
-              mode="range"
-              selected={activePreset === 'custom' ? customRange : displayRange}
-              onSelect={handleCustomSelect}
-              numberOfMonths={2}
-              disabled={{ after: new Date() }}
-            />
-            {rangeError && (
-              <p className="mt-1 px-2 text-xs text-red-500">{rangeError}</p>
-            )}
+            {/* Calendar for custom range */}
+            <div className="p-2">
+              <Calendar
+                mode="range"
+                selected={activePreset === 'custom' ? customRange : displayRange}
+                onSelect={handleCustomSelect}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+              {rangeError && (
+                <p className="mt-1 px-2 text-xs text-red-500">{rangeError}</p>
+              )}
+            </div>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }
