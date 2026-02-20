@@ -100,6 +100,9 @@ export function DateRangePicker({
   function handleCustomSelect(range: DateRange | undefined) {
     setCustomRange(range);
     setRangeError(null);
+    // Switch to 'custom' immediately so the calendar reflects the first click
+    // even before the user has picked both from and to dates.
+    setActivePreset('custom');
 
     if (!range?.from || !range?.to) return;
 

@@ -76,12 +76,14 @@ export function MetricCard({
   loading = false,
   delay = 0,
 }: MetricCardProps) {
-  const [visible, setVisible] = useState(false);
+  // Skeletons appear immediately; stagger delay only applies to real data.
+  const [visible, setVisible] = useState(loading);
 
   useEffect(() => {
+    if (loading) { setVisible(true); return; }
     const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
-  }, [delay]);
+  }, [delay, loading]);
 
   const isPositive = change !== undefined ? (positiveIsUp ? change >= 0 : change <= 0) : true;
   const changeAbs = change !== undefined ? Math.abs(change).toFixed(1) : null;
