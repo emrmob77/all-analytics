@@ -21,6 +21,11 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
+  -- Serialize concurrent calls from the same user at the DB level.
+  -- pg_advisory_xact_lock is transaction-scoped and released automatically
+  -- on commit/rollback, preventing duplicate org creation under race conditions.
+  PERFORM pg_advisory_xact_lock(hashtext(v_user_id::text));
+
   -- Idempotency: return existing org if the user already has a membership
   SELECT om.organization_id INTO v_existing_org_id
   FROM org_members om

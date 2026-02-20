@@ -60,6 +60,10 @@ export function useOrganization(): UseOrganizationReturn {
 
       setOrganization(created);
       setRole('owner');
+    } catch (err) {
+      // Capture thrown exceptions (network failures, serialization errors, etc.)
+      // so they surface in error state instead of becoming unhandled rejections.
+      setError(err instanceof Error ? err.message : 'Unexpected error initializing workspace');
     } finally {
       setLoading(false);
       runningRef.current = false;
