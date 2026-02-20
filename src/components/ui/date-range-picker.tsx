@@ -151,6 +151,7 @@ export function DateRangePicker({
             {PRESETS.map(preset => (
               <button
                 key={preset.id}
+                type="button"
                 onClick={() => handlePreset(preset)}
                 className={`px-4 py-1.5 text-left text-xs font-medium transition-colors ${
                   activePreset === preset.id
@@ -162,6 +163,7 @@ export function DateRangePicker({
               </button>
             ))}
             <button
+              type="button"
               onClick={() => setActivePreset('custom')}
               className={`px-4 py-1.5 text-left text-xs font-medium transition-colors ${
                 activePreset === 'custom'

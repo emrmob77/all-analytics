@@ -33,10 +33,11 @@ export function DashboardHeader({
     else setDateRange('custom');
   };
 
-  const defaultPreset =
-    dateRange === '7d' ? 'last7days' :
-    dateRange === '90d' ? 'last90days' :
-    dateRange === '1d' ? 'today' : 'last30days';
+  const defaultPreset: DateRangePickerProps['defaultPreset'] =
+    dateRange === '7d'     ? 'last7days'  :
+    dateRange === '90d'    ? 'last90days' :
+    dateRange === '1d'     ? 'today'      :
+    dateRange === 'custom' ? 'custom'     : 'last30days';
 
   return (
     <div className="space-y-5">

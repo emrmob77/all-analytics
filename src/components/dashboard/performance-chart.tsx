@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
@@ -20,6 +21,9 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export function PerformanceChart({ activePlatform, dateRange, loading = false }: PerformanceChartProps) {
+  // useId ensures gradient IDs are unique per component instance, preventing
+  // collisions when multiple PerformanceChart instances exist in the document.
+  const uid = useId();
   const dataLength = dateRange === '7d' ? 7 : dateRange === '90d' ? 90 : 30;
   const chartData = DEMO_CHART_DATA.slice(0, dataLength);
   const activeColor = PLATFORM_COLORS[activePlatform] || '#1A73E8';
@@ -27,9 +31,10 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
   const dateRangeLabel = dateRange === '7d' ? 'Last 7 days' : dateRange === '90d' ? 'Last 90 days' : 'Last 30 days';
 
   const filterBtn = (
-    <button className="flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-[11px] py-[5px] text-[11.5px] text-[#5F6368] transition-colors hover:bg-gray-50">
+    <button type="button" className="flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-[11px] py-[5px] text-[11.5px] text-[#5F6368] transition-colors hover:bg-gray-50">
       <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M2 4h8M4 8h4M6 12h0" />
+        {/* Three-line funnel filter icon */}
+        <path d="M2 4h8M4 8h4M5.5 11h1" />
       </svg>
       Filter
     </button>
@@ -47,7 +52,7 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -15, bottom: 0 }}>
           <defs>
             {Object.entries(PLATFORM_COLORS).map(([platform, color]) => (
-              <linearGradient key={platform} id={`gr-${platform}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient key={platform} id={`gr-${platform}-${uid}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={color} stopOpacity={0.18} />
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
@@ -66,7 +71,7 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
               name={platform.charAt(0).toUpperCase() + platform.slice(1)}
               stroke={color}
               strokeWidth={2}
-              fill={`url(#gr-${platform})`}
+              fill={`url(#gr-${platform}-${uid})`}
               dot={false}
               animationDuration={700}
             />
@@ -75,7 +80,7 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
       ) : (
         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -15, bottom: 0 }}>
           <defs>
-            <linearGradient id="grActive" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`grActive-${uid}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={activeColor} stopOpacity={0.2} />
               <stop offset="95%" stopColor={activeColor} stopOpacity={0} />
             </linearGradient>
@@ -90,7 +95,7 @@ export function PerformanceChart({ activePlatform, dateRange, loading = false }:
             name={activePlatformConfig?.label}
             stroke={activeColor}
             strokeWidth={2}
-            fill="url(#grActive)"
+            fill={`url(#grActive-${uid})`}
             dot={false}
             animationDuration={700}
           />

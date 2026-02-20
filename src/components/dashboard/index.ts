@@ -4,4 +4,4 @@ export { PerformanceChart } from './performance-chart';
 export { HourlyChart } from './hourly-chart';
 export { PlatformSummary } from './platform-summary';
 export { CampaignTable } from './campaign-table';
-export { SyncStatusIndicator } from './SyncStatusIndicator';
+export { SyncStatusIndicator } from './sync-status-indicator';

@@ -113,7 +113,7 @@ export function MetricCard({
         ) : changeAbs !== null ? (
           <>
             <span className={`font-semibold ${isPositive ? 'text-[#137333]' : 'text-[#C5221F]'}`}>
-              {isPositive ? '↑' : '↓'} {changeAbs}%
+              {change !== undefined && change >= 0 ? '↑' : '↓'} {changeAbs}%
             </span>
             <span className="text-[#9AA0A6]">{comparePeriod}</span>
           </>
