@@ -37,6 +37,21 @@ export async function inviteOrgMember(
     return { invitation: null, error: 'Only owners and admins can invite members' };
   }
 
+  // Enforce role hierarchy: a caller may only assign roles strictly below
+  // their own. Owners can assign any role; admins cannot create owners.
+  const ROLE_RANK: Record<OrgRole, number> = {
+    owner: 3,
+    admin: 2,
+    member: 1,
+    viewer: 0,
+  };
+  if (ROLE_RANK[role] >= ROLE_RANK[membership.role]) {
+    return {
+      invitation: null,
+      error: `As an ${membership.role} you cannot invite someone with the '${role}' role`,
+    };
+  }
+
   // Prevent inviting someone who is already a member.
   // Uses a SECURITY DEFINER RPC because users table RLS prevents admins
   // from querying other users' email addresses directly.
