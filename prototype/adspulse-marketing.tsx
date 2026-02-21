@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 
 /* ── utils ── */
-const cn = (...args: unknown[]) => args.filter(Boolean).join(" ");
+const cn = (...args) => args.filter(Boolean).join(" ");
 
 function useInView(threshold = 0.15) {
   const ref = useRef(null);

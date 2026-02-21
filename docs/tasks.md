@@ -215,33 +215,33 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Cleanup execution test
     - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
 
-- [x] 11. Reusable UI components (prototype'dan çıkarılan)
-  - [x] 11.1 MetricCard component
+- [ ] 11. Reusable UI components (prototype'dan çıkarılan)
+  - [ ] 11.1 MetricCard component
     - Animated number display (AnimNum)
     - Change indicator (positive/negative)
     - Loading state
     - _Requirements: 5.2_
   
-  - [x] 11.2 DateRangePicker component
+  - [ ] 11.2 DateRangePicker component
     - Preset options (today, yesterday, last 7 days, last 30 days, custom)
     - Custom range selector
     - Max 365 days validation
     - _Requirements: 5.4, 5.5, 17.2_
   
-  - [x] 11.3 PlatformFilter component
+  - [ ] 11.3 PlatformFilter component
     - Multi-platform selection
     - Platform icons ve colors
     - "All Platforms" option
     - _Requirements: 5.3_
   
-  - [x] 11.4 ChartContainer component
+  - [ ] 11.4 ChartContainer component
     - Recharts wrapper (line, bar, pie, area)
     - Responsive container
     - Loading state
     - Tooltip ve legend customization
     - _Requirements: 5.6, 5.7_
   
-  - [x] 11.5 SyncStatusIndicator component
+  - [ ] 11.5 SyncStatusIndicator component
     - Last sync timestamp
     - Status badge (syncing, success, error, idle)
     - Manual sync button

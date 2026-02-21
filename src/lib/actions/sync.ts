@@ -3,8 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from '@/lib/actions/organization';
 
-// Database row shape from the `sync_logs` table (snake_case fields).
-export interface SyncLogRow {
+export interface SyncLog {
   id: string;
   organization_id: string;
   ad_account_id: string | null;
@@ -22,7 +21,7 @@ export interface SyncLogRow {
 // ---------------------------------------------------------------------------
 
 export async function getRecentSyncLogs(): Promise<{
-  logs: SyncLogRow[];
+  logs: SyncLog[];
   error: string | null;
 }> {
   const supabase = await createClient();
@@ -42,7 +41,7 @@ export async function getRecentSyncLogs(): Promise<{
     .limit(10);
 
   if (error) return { logs: [], error: error.message };
-  return { logs: (data ?? []) as SyncLogRow[], error: null };
+  return { logs: (data ?? []) as SyncLog[], error: null };
 }
 
 // ---------------------------------------------------------------------------

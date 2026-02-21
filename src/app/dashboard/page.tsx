@@ -11,7 +11,6 @@ import type { AdPlatform } from '@/types';
 
 export default function DashboardPage() {
   const [dateRange, setDateRange] = useState('30d');
-  const [customDays, setCustomDays] = useState<number>(30);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
 
   return (
@@ -21,7 +20,6 @@ export default function DashboardPage() {
         <DashboardHeader
           dateRange={dateRange}
           setDateRange={setDateRange}
-          setCustomDays={setCustomDays}
           activePlatform={activePlatform}
           setActivePlatform={setActivePlatform}
         />
@@ -33,7 +31,7 @@ export default function DashboardPage() {
 
         {/* Charts Row - Performance (2/3) + CTR by Hour (1/3) */}
         <div className="mt-5 flex flex-wrap gap-3.5">
-          <PerformanceChart activePlatform={activePlatform} dateRange={dateRange} customDays={customDays} />
+          <PerformanceChart activePlatform={activePlatform} dateRange={dateRange} />
           <HourlyChart />
         </div>
 

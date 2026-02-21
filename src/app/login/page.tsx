@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -24,7 +23,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-function LoginContent() {
+export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawNext = searchParams.get('next');
@@ -197,13 +196,5 @@ function LoginContent() {
         </div>
       </div>
     </>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginContent />
-    </Suspense>
   );
 }
