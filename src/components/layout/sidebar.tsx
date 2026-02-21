@@ -16,7 +16,8 @@ const NAV_ITEMS = [
   { id: 'audiences', label: 'Audiences', href: '/audiences' },
   { id: 'keywords', label: 'Keywords', href: '/keywords' },
   { id: 'creatives', label: 'Ads & Creatives', href: '/creatives' },
-  { id: 'budget', label: 'Budget & Billing', href: '/budget' },
+  { id: 'budget', label: 'Budget', href: '/budget' },
+  { id: 'billing', label: 'Billing', href: '/billing' },
   { id: 'reports', label: 'Reports', href: '/reports' },
   { id: 'settings', label: 'Settings', href: '/settings' },
 ];
