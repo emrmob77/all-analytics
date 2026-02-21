@@ -73,7 +73,11 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
 
   if (platform && platform !== 'all') query = query.eq('platform', platform);
   if (status && status !== 'all')     query = query.eq('status', status);
-  if (search?.trim())                  query = query.ilike('name', `%${search.trim()}%`);
+  if (search?.trim()) {
+    // Escape PostgreSQL LIKE metacharacters so they match literally
+    const escaped = search.trim().replace(/[%_\\]/g, '\\$&');
+    query = query.ilike('name', `%${escaped}%`);
+  }
 
   const { data, error } = await query.order('created_at', { ascending: false });
   if (error) return { data: [], total: 0, error: error.message };
