@@ -241,7 +241,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Tooltip ve legend customization
     - _Requirements: 5.6, 5.7_
 
-  - [ ] 11.5 SyncStatusIndicator component
+  - [x] 11.5 SyncStatusIndicator component ✅
     - Last sync timestamp
     - Status badge (syncing, success, error, idle)
     - Manual sync button
@@ -345,8 +345,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Error handling test
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 15. Checkpoint - Campaign management tamamlandı
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 15. Checkpoint - Campaign management tamamlandı ✅
 
 - [ ] 16. Campaign detail page
   - [ ] 16.1 Campaign detail layout
