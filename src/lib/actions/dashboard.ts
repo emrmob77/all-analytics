@@ -307,7 +307,7 @@ export async function getDashboardChartData(
     }
     const point = map.get(day)!;
     if (platform in point) {
-      (point as Record<string, number>)[platform] += row.impressions ?? 0;
+      (point as unknown as Record<string, number>)[platform] += row.impressions ?? 0;
     }
   }
 

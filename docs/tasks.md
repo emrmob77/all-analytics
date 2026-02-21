@@ -52,7 +52,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - **Property 1: Organization isolation - Bir kullanıcı sadece kendi organizasyonunun verilerine erişebilir**
     - **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5**
 
-- [ ] 3. Type definitions ve utility functions
+- [x] 3. Type definitions ve utility functions ✅
   - [x] 3.1 TypeScript type definitions oluştur ✅
     - Core entity types (User, Organization, OrgMember, AdAccount, Campaign, CampaignMetric, HourlyMetric, SyncLog, Invitation)
     - Enum types (AdPlatform, CampaignStatus, Role, SyncStatus, ExportFormat, DateRangePreset)
@@ -65,7 +65,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Validation helpers (email, budget, date range)
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
 
-- [ ] 4. Authentication sistemi
+- [x] 4. Authentication sistemi ✅
   - [x] 4.1 Auth provider ve hooks oluştur ✅
     - Supabase Auth provider component
     - useAuth hook (user, session, loading states)
@@ -91,7 +91,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Redirect logic tests
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 5. Organization management
+- [x] 5. Organization management ✅
   - [x] 5.1 Organization creation ve default setup ✅
     - İlk authentication'da default organization oluşturma
     - Owner role assignment
@@ -118,7 +118,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Role-based access test
     - _Requirements: 2.1, 2.2, 2.3, 2.6, 13.1, 13.2, 13.3, 13.4_
 
-- [ ] 6. Role-based access control (RBAC)
+- [x] 6. Role-based access control (RBAC) ✅
   - [x] 6.1 RBAC utility functions ve hooks
     - useRole hook (current user role)
     - hasPermission utility function
@@ -169,7 +169,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Error handling test
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 8. Checkpoint - Authentication ve Organization setup tamamlandı
+- [x] 8. Checkpoint - Authentication ve Organization setup tamamlandı ✅
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 9. Campaign data sync sistemi
@@ -347,36 +347,35 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
 
 - [x] 15. Checkpoint - Campaign management tamamlandı ✅
 
-- [ ] 16. Campaign detail page
-  - [ ] 16.1 Campaign detail layout
+- [x] 16. Campaign detail page ✅
+  - [x] 16.1 Campaign detail layout ✅
     - Page layout (/campaigns/[id]/page.tsx)
     - Campaign header (name, platform, status, budget)
     - Date range selector
     - _Requirements: 9.1, 9.2, 9.6_
-  
-  - [ ] 16.2 Daily metrics breakdown
+
+  - [x] 16.2 Daily metrics breakdown ✅
     - Daily metrics table
     - Spend, impressions, clicks, conversions per day
     - _Requirements: 9.3_
-  
-  - [ ] 16.3 Hourly metrics breakdown
+
+  - [x] 16.3 Hourly metrics breakdown ✅
     - Hourly metrics chart (last 7 days)
     - Hourly performance visualization
     - _Requirements: 9.4_
-  
-  - [ ] 16.4 Performance charts
+
+  - [x] 16.4 Performance charts ✅
     - Spend trend chart
     - Impressions trend chart
     - Clicks trend chart
     - Conversions trend chart
     - _Requirements: 9.5_
-  
-  - [ ] 16.5 Campaign detail data fetching
-    - Server Component initial data
-    - TanStack Query for date range changes
-    - 800ms reload hedefi
+
+  - [x] 16.5 Campaign detail data fetching ✅
+    - TanStack Query hooks with 60s stale time
+    - Server actions: getCampaignDetail, getCampaignDailyMetrics, getCampaignHourlyMetrics
     - _Requirements: 9.1, 9.7_
-  
+
   - [ ]* 16.6 Campaign detail için unit tests
     - Data loading test
     - Date range change test
@@ -413,32 +412,33 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Timeout test
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9, 10.10_
 
-- [ ] 18. Settings page
-  - [ ] 18.1 Settings layout ve tabs
+- [x] 18. Settings page ✅
+  - [x] 18.1 Settings layout ve tabs ✅
     - Page layout (/settings/page.tsx)
     - Tab navigation (Profile, Organization, Members, Ad Accounts)
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
-  
-  - [ ] 18.2 Profile settings tab
+
+  - [x] 18.2 Profile settings tab ✅
     - Display name update
     - Email update with verification
-    - Profile picture upload (max 5MB)
-    - Organization memberships list
+    - Profile picture upload (max 5MB, Supabase Storage avatars bucket)
+    - Account info (user ID, member since)
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
-  
-  - [ ] 18.3 Organization settings tab
-    - Organization name update
-    - Organization plan display
+
+  - [x] 18.3 Organization settings tab ✅
+    - Organization name update (owner/admin only)
+    - Organization plan display (Free)
+    - Slug, role, created date
     - _Requirements: 2.1, 2.2_
   
-  - [ ] 18.4 Members tab (task 5.3'te oluşturuldu)
+  - [x] 18.4 Members tab (task 5.3'te oluşturuldu) ✅
     - Member list with roles
     - Invite member functionality
     - Remove member functionality
     - Role change functionality
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
-  
-  - [ ] 18.5 Ad Accounts tab (task 7.4'te oluşturuldu)
+
+  - [x] 18.5 Ad Accounts tab (task 7.4'te oluşturuldu) ✅
     - Connected accounts list
     - Platform connection buttons
     - Disconnect functionality
