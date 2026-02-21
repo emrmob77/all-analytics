@@ -15,7 +15,7 @@ import { PLATFORMS, STATUS_STYLES } from '@/types';
 import { PlatformIcon } from '@/components/ui/platform-icons';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { PlatformFilter } from '@/components/ui/platform-filter';
-import { useCampaigns, useBulkUpdateStatus } from '@/hooks/useCampaigns';
+import { useCampaigns, useBulkUpdateStatus, useUpdateCampaignStatus, useUpdateCampaignBudget } from '@/hooks/useCampaigns';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform, CampaignStatus } from '@/types';
 import type { CampaignRow, SortableCampaignColumn } from '@/lib/actions/campaigns';
@@ -113,6 +113,160 @@ function BulkConfirmDialog({ count, action, onConfirm, onCancel, loading }: Bulk
 }
 
 // ---------------------------------------------------------------------------
+// Budget edit dialog
+// ---------------------------------------------------------------------------
+
+interface BudgetDialogProps {
+  campaignId: string;
+  campaignName: string;
+  currentBudget: number;
+  onClose: () => void;
+}
+
+function BudgetDialog({ campaignId, campaignName, currentBudget, onClose }: BudgetDialogProps) {
+  const [value, setValue] = useState(currentBudget.toFixed(2));
+  const [error, setError]  = useState('');
+  const { mutate, isPending } = useUpdateCampaignBudget();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const num = parseFloat(value);
+    if (!Number.isFinite(num) || num <= 0) {
+      setError('Budget must be greater than 0');
+      return;
+    }
+    mutate(
+      { id: campaignId, budget: num },
+      {
+        onSuccess: onClose,
+        onError: (err) => setError(err.message),
+      },
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div
+        className="w-[360px] rounded-xl border border-[#E3E8EF] bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-1 text-sm font-semibold text-[#202124]">Edit Budget</div>
+        <p className="mb-4 truncate text-[12.5px] text-[#9AA0A6]">{campaignName}</p>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="mb-1.5 block text-[11.5px] font-medium text-[#5F6368]">
+              Daily Budget (USD)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#9AA0A6]">$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={value}
+                onChange={(e) => { setValue(e.target.value); setError(''); }}
+                className="w-full rounded-[7px] border border-[#E3E8EF] py-2 pl-7 pr-3 text-[13px] text-[#202124] outline-none focus:border-[#1A73E8]"
+                autoFocus
+              />
+            </div>
+            {error && <p className="mt-1.5 text-[11.5px] text-[#C5221F]">{error}</p>}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="rounded-[7px] border border-[#E3E8EF] px-4 py-1.5 text-[13px] text-[#5F6368] hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="rounded-[7px] bg-[#1A73E8] px-4 py-1.5 text-[13px] font-medium text-white hover:bg-[#1669C1] disabled:opacity-50"
+            >
+              {isPending ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Status dropdown cell
+// ---------------------------------------------------------------------------
+
+interface StatusCellProps {
+  row: CampaignRow;
+}
+
+const STATUS_CHANGE_OPTIONS: { value: CampaignStatus; label: string }[] = [
+  { value: 'active',   label: 'Active'   },
+  { value: 'paused',   label: 'Paused'   },
+  { value: 'stopped',  label: 'Stopped'  },
+  { value: 'archived', label: 'Archived' },
+];
+
+function StatusCell({ row }: StatusCellProps) {
+  const [open, setOpen]         = useState(false);
+  const [optimistic, setOptimistic] = useState<CampaignStatus | null>(null);
+  const { mutate, isPending }   = useUpdateCampaignStatus();
+
+  const currentStatus = optimistic ?? row.status;
+  const s = STATUS_STYLES[currentStatus] ?? STATUS_STYLES['archived'];
+
+  function handleChange(newStatus: CampaignStatus) {
+    if (newStatus === currentStatus) { setOpen(false); return; }
+    setOptimistic(newStatus);
+    setOpen(false);
+    mutate(
+      { id: row.id, status: newStatus },
+      { onError: () => setOptimistic(null) },
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        disabled={isPending}
+        className="inline-flex items-center gap-[5px] rounded-[5px] px-[9px] py-[3px] text-[11px] font-medium capitalize transition-opacity disabled:opacity-60"
+        style={{ backgroundColor: s.bg, color: s.color }}
+      >
+        <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ backgroundColor: s.dot }} />
+        {currentStatus}
+        <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 2.5l3 3 3-3"/></svg>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full z-20 mt-1 min-w-[120px] overflow-hidden rounded-[8px] border border-[#E3E8EF] bg-white shadow-lg">
+            {STATUS_CHANGE_OPTIONS.map((opt) => {
+              const os = STATUS_STYLES[opt.value];
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => handleChange(opt.value)}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-[#F8F9FA] ${
+                    opt.value === currentStatus ? 'font-semibold' : ''
+                  }`}
+                >
+                  <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ backgroundColor: os.dot }} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -125,6 +279,7 @@ export default function CampaignsPage() {
   const [sorting, setSorting]               = useState<SortingState>([{ id: 'spend', desc: true }]);
   const [rowSelection, setRowSelection]     = useState<RowSelectionState>({});
   const [bulkAction, setBulkAction]         = useState<CampaignStatus | null>(null);
+  const [budgetDialog, setBudgetDialog]     = useState<{ id: string; name: string; budget: number } | null>(null);
 
   // Reset row selection whenever any query param (including sort) changes
   useEffect(() => {
@@ -198,22 +353,30 @@ export default function CampaignsPage() {
       }),
       colHelper.accessor('status', {
         header: 'Status',
-        cell: (info) => {
-          const s = STATUS_STYLES[info.getValue()] ?? STATUS_STYLES['archived'];
-          return (
-            <span
-              className="inline-flex items-center gap-[5px] rounded-[5px] px-[9px] py-[3px] text-[11px] font-medium capitalize"
-              style={{ backgroundColor: s.bg, color: s.color }}
-            >
-              <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ backgroundColor: s.dot }} />
-              {info.getValue()}
-            </span>
-          );
-        },
+        cell: (info) => <StatusCell row={info.row.original} />,
       }),
       colHelper.accessor('budget', {
         header: 'Budget',
-        cell: (info) => <span className="text-[#5F6368]">{info.getValue() > 0 ? formatCurrency(info.getValue()) : '—'}</span>,
+        cell: (info) => (
+          <button
+            className="group inline-flex items-center gap-1.5 text-[#5F6368] hover:text-[#1A73E8]"
+            onClick={() =>
+              setBudgetDialog({
+                id: info.row.original.id,
+                name: info.row.original.name,
+                budget: info.getValue(),
+              })
+            }
+          >
+            {info.getValue() > 0 ? formatCurrency(info.getValue()) : '—'}
+            <svg
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.6"
+            >
+              <path d="M1.5 7.5V9h1.5l4.5-4.5L6 3l-4.5 4.5zM8.5 1.5l1 1L8.5 3.5l-1-1 1-1z" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        ),
       }),
       colHelper.accessor('spend', {
         header: 'Spend',
@@ -507,6 +670,16 @@ export default function CampaignsPage() {
           onConfirm={handleBulkConfirm}
           onCancel={() => setBulkAction(null)}
           loading={bulkPending}
+        />
+      )}
+
+      {/* Budget edit dialog */}
+      {budgetDialog && (
+        <BudgetDialog
+          campaignId={budgetDialog.id}
+          campaignName={budgetDialog.name}
+          currentBudget={budgetDialog.budget}
+          onClose={() => setBudgetDialog(null)}
         />
       )}
     </div>

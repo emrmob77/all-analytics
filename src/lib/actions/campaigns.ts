@@ -152,6 +152,25 @@ export async function updateCampaignStatus(
   return { error: error?.message ?? null };
 }
 
+export async function updateCampaignBudget(
+  campaignId: string,
+  newBudget: number,
+): Promise<{ error: string | null }> {
+  if (newBudget <= 0) return { error: 'Budget must be greater than 0' };
+
+  const orgId = await getOrgId();
+  if (!orgId) return { error: 'No organization found' };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('campaigns')
+    .update({ budget_limit: newBudget, updated_at: new Date().toISOString() })
+    .eq('id', campaignId)
+    .eq('organization_id', orgId);
+
+  return { error: error?.message ?? null };
+}
+
 export async function bulkUpdateCampaignStatus(
   campaignIds: string[],
   newStatus: CampaignStatus,
