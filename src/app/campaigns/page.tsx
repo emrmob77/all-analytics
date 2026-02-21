@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
@@ -19,7 +18,7 @@ import { PlatformFilter } from '@/components/ui/platform-filter';
 import { useCampaigns, useBulkUpdateStatus } from '@/hooks/useCampaigns';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform, CampaignStatus } from '@/types';
-import type { CampaignRow } from '@/lib/actions/campaigns';
+import type { CampaignRow, SortableCampaignColumn } from '@/lib/actions/campaigns';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -51,7 +50,7 @@ const PAGE_SIZE = 50;
 const colHelper = createColumnHelper<CampaignRow>();
 
 // ---------------------------------------------------------------------------
-// Skeleton row
+// Skeleton rows
 // ---------------------------------------------------------------------------
 
 function SkeletonRows({ cols }: { cols: number }) {
@@ -118,51 +117,46 @@ function BulkConfirmDialog({ count, action, onConfirm, onCancel, loading }: Bulk
 // ---------------------------------------------------------------------------
 
 export default function CampaignsPage() {
-  const [dateRange, setDateRange]         = useState<DateRange>(defaultRange);
+  const [dateRange, setDateRange]           = useState<DateRange>(defaultRange);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
-  const [statusFilter, setStatusFilter]   = useState<CampaignStatus | 'all'>('all');
-  const [search, setSearch]               = useState('');
-  const [page, setPage]                   = useState(1);
-  const [sorting, setSorting]             = useState<SortingState>([]);
-  const [rowSelection, setRowSelection]   = useState<RowSelectionState>({});
-  const [bulkAction, setBulkAction]       = useState<CampaignStatus | null>(null);
+  const [statusFilter, setStatusFilter]     = useState<CampaignStatus | 'all'>('all');
+  const [search, setSearch]                 = useState('');
+  const [page, setPage]                     = useState(1);
+  const [sorting, setSorting]               = useState<SortingState>([{ id: 'spend', desc: true }]);
+  const [rowSelection, setRowSelection]     = useState<RowSelectionState>({});
+  const [bulkAction, setBulkAction]         = useState<CampaignStatus | null>(null);
+
+  // Reset row selection whenever any query param changes
+  useEffect(() => {
+    setRowSelection({});
+  }, [dateRange, activePlatform, statusFilter, search, page]);
+
+  const sortCol = (sorting[0]?.id ?? 'spend') as SortableCampaignColumn;
+  const sortDir = sorting[0]?.desc !== false ? 'desc' : 'asc';
 
   const { data, isLoading } = useCampaigns({
     from: toISO(dateRange.from),
     to:   toISO(dateRange.to),
-    platform: activePlatform,
-    status:   statusFilter,
-    search:   search || undefined,
+    platform:      activePlatform,
+    status:        statusFilter,
+    search:        search || undefined,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize:      PAGE_SIZE,
+    sortColumn:    sortCol,
+    sortDirection: sortDir,
   });
 
   const { mutate: bulkUpdate, isPending: bulkPending } = useBulkUpdateStatus();
 
-  const campaigns = data?.data ?? [];
-  const total     = data?.total ?? 0;
+  const campaigns  = data?.data ?? [];
+  const total      = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  // Sort client-side (server returns all, we paginate client-side)
-  const sortedCampaigns = useMemo(() => {
-    if (!sorting.length) return campaigns;
-    const { id, desc } = sorting[0];
-    return [...campaigns].sort((a, b) => {
-      const aVal = a[id as keyof CampaignRow];
-      const bVal = b[id as keyof CampaignRow];
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return desc ? bVal - aVal : aVal - bVal;
-      }
-      return desc
-        ? String(bVal).localeCompare(String(aVal))
-        : String(aVal).localeCompare(String(bVal));
-    });
-  }, [campaigns, sorting]);
 
   const columns = useMemo(
     () => [
       colHelper.display({
         id: 'select',
+        enableSorting: false,
         header: ({ table }) => (
           <input
             type="checkbox"
@@ -255,20 +249,23 @@ export default function CampaignsPage() {
   );
 
   const table = useReactTable({
-    data: sortedCampaigns,
+    data: campaigns,
     columns,
     state: { sorting, rowSelection },
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      setPage(1); // reset to first page when sort changes
+    },
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    // manualSorting: server handles sorting before pagination
+    manualSorting: true,
     enableRowSelection: true,
-    manualSorting: false,
     getRowId: (row) => row.id,
   });
 
-  const selectedIds = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-  const selectedCount = selectedIds.length;
+  const selectedIds    = Object.keys(rowSelection).filter((k) => rowSelection[k]);
+  const selectedCount  = selectedIds.length;
 
   function handleBulkConfirm() {
     if (!bulkAction) return;
@@ -288,6 +285,7 @@ export default function CampaignsPage() {
     setActivePlatform('all');
     setStatusFilter('all');
     setPage(1);
+    // rowSelection cleared by the useEffect above
   }
 
   return (

@@ -5,7 +5,7 @@ import {
   getCampaigns,
   bulkUpdateCampaignStatus,
 } from '@/lib/actions/campaigns';
-import type { GetCampaignsParams } from '@/lib/actions/campaigns';
+import type { GetCampaignsParams, SortableCampaignColumn } from '@/lib/actions/campaigns';
 import type { CampaignStatus } from '@/types';
 
 const STALE_TIME = 60_000;

@@ -19,6 +19,8 @@ export interface CampaignRow {
   createdAt: string;
 }
 
+export type SortableCampaignColumn = keyof CampaignRow;
+
 export interface GetCampaignsParams {
   from: string;
   to: string;
@@ -27,6 +29,8 @@ export interface GetCampaignsParams {
   search?: string;
   page?: number;
   pageSize?: number;
+  sortColumn?: SortableCampaignColumn;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export interface GetCampaignsResult {
@@ -44,18 +48,28 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
   const orgId = await getOrgId();
   if (!orgId) return { data: [], total: 0, error: 'No organization found' };
 
-  const { from, to, platform, status, search, page = 1, pageSize = 50 } = params;
+  const {
+    from, to, platform, status, search,
+    page = 1, pageSize = 50,
+    sortColumn = 'spend', sortDirection = 'desc',
+  } = params;
 
   const supabase = await createClient();
 
-  // Build campaigns query with optional metrics join
+  // Fetch campaigns with date-filtered metrics in a single query.
+  // Nested date filters on campaign_metrics reduce payload without excluding
+  // campaigns that have no metrics in the range (left-join semantics).
+  // .limit(10_000) guards against the PostgREST default 1 000-row cap.
   let query = supabase
     .from('campaigns')
     .select(`
       id, name, platform, status, budget_limit, created_at,
       campaign_metrics(spend, impressions, clicks, conversions, revenue, date)
     `)
-    .eq('organization_id', orgId);
+    .eq('organization_id', orgId)
+    .gte('campaign_metrics.date', from)
+    .lte('campaign_metrics.date', to)
+    .limit(10_000);
 
   if (platform && platform !== 'all') query = query.eq('platform', platform);
   if (status && status !== 'all')     query = query.eq('status', status);
@@ -70,11 +84,9 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
     campaign_metrics: { spend: number; impressions: number; clicks: number; conversions: number; revenue: number; date: string }[];
   };
 
-  // Aggregate metrics within the selected date range
+  // Aggregate pre-filtered metrics per campaign
   const rows: CampaignRow[] = ((data ?? []) as unknown as RawRow[]).map((row) => {
-    const metrics = (row.campaign_metrics ?? []).filter(
-      (m) => m.date >= from && m.date <= to,
-    );
+    const metrics = row.campaign_metrics ?? [];
     const spend       = metrics.reduce((s, m) => s + (m.spend       ?? 0), 0);
     const impressions = metrics.reduce((s, m) => s + (m.impressions  ?? 0), 0);
     const clicks      = metrics.reduce((s, m) => s + (m.clicks       ?? 0), 0);
@@ -99,7 +111,18 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
     };
   });
 
-  // Client-side pagination (Supabase range() can't be combined with nested select easily)
+  // Server-side sort before pagination
+  rows.sort((a, b) => {
+    const aVal = a[sortColumn];
+    const bVal = b[sortColumn];
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
+    }
+    return sortDirection === 'desc'
+      ? String(bVal).localeCompare(String(aVal))
+      : String(aVal).localeCompare(String(bVal));
+  });
+
   const total = rows.length;
   const start = (page - 1) * pageSize;
   const paged = rows.slice(start, start + pageSize);
