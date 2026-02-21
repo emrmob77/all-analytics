@@ -102,14 +102,19 @@ export function NotificationPreferencesTab() {
   }, []);
 
   function handleChange(key: keyof NotificationPreferences, value: boolean) {
-    const updated = { ...prefs, [key]: value };
+    const previous = { ...prefs };
+    const updated  = { ...prefs, [key]: value };
     setPrefs(updated);
     setSaveError(null);
     setSaved(false);
 
     startTransition(async () => {
       const { error } = await updateNotificationPreferences(updated);
-      if (error) { setSaveError(error); return; }
+      if (error) {
+        setPrefs(previous); // revert optimistic update on failure
+        setSaveError(error);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
