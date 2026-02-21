@@ -28,14 +28,12 @@ export interface DateRangePickerProps {
 
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  // tempRange: in-progress range selection — from is set, to is still pending
+  // tempRange: in-progress calendar selection — from picked, to still pending
   const [tempRange, setTempRange] = useState<DayPickerRange | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   function closePanel() {
     setOpen(false);
-    setShowCalendar(false);
     setTempRange(undefined);
     setError(null);
   }
@@ -55,16 +53,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
     closePanel();
   }
 
-  function handleCustomClick() {
-    const next = !showCalendar;
-    setShowCalendar(next);
-    if (next) setTempRange({ from: value.from, to: value.to });
-    setError(null);
-  }
-
   function handleCalendarSelect(range: DayPickerRange | undefined) {
     // react-day-picker v9 range mode:
-    //   1st click → { from: date, to: undefined }  — keep panel open
+    //   1st click → { from: date, to: undefined }  — keep panel open, show selection
     //   2nd click → { from: date1, to: date2 }     — validate & commit
     setTempRange(range);
     setError(null);
@@ -76,8 +67,8 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
     const days = dateRangeDays({ from, to });
 
     if (days > MAX_DATE_RANGE_DAYS) {
-      setError(`Max ${MAX_DATE_RANGE_DAYS} days. Choose a shorter range.`);
-      setTempRange({ from: range.from, to: undefined }); // reset to only first date
+      setError(`Max ${MAX_DATE_RANGE_DAYS} days allowed.`);
+      setTempRange({ from: range.from, to: undefined });
       return;
     }
 
@@ -86,6 +77,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   }
 
   const activePreset = PRESETS.find((p) => isSameDateRange(value, getPresetRange(p.value)));
+
+  // Calendar shows tempRange while selecting, falls back to committed value
+  const calendarSelected: DayPickerRange = tempRange ?? { from: value.from, to: value.to };
 
   return (
     <div className="relative">
@@ -111,23 +105,39 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       {open && (
         <>
           {/*
-           * Backdrop — sits behind the panel (z-40).
-           * Clicking anywhere outside the panel hits this div → closePanel().
-           * Clicking inside the panel (z-50) never reaches the backdrop because
-           * the panel is rendered on top in the stacking context.
-           *
-           * This is intentionally NOT a document mousedown listener because
-           * react-day-picker v9 re-renders the calendar on every date click,
-           * which removes the clicked DOM node before the listener runs —
-           * causing `containerRef.contains(target)` to return false and
-           * incorrectly closing the panel after the first date selection.
+           * Backdrop — z-40, covers entire viewport.
+           * Clicking outside the panel closes it.
+           * react-day-picker v9 re-renders the calendar DOM on every date click,
+           * removing the clicked node before a document mousedown listener fires.
+           * The backdrop approach avoids that race condition entirely.
            */}
           <div className="fixed inset-0 z-40" onClick={closePanel} />
 
-          {/* Dropdown panel — above the backdrop */}
-          <div className="absolute right-0 top-full z-50 mt-1.5 rounded-xl border border-[#E3E8EF] bg-white shadow-lg">
-            {/* Preset list */}
-            <div className="min-w-[180px] p-2">
+          {/* Dropdown panel — z-50, above backdrop */}
+          <div className="absolute right-0 top-full z-50 mt-1.5 flex rounded-xl border border-[#E3E8EF] bg-white shadow-lg">
+
+            {/* LEFT: Calendar */}
+            <div className="p-3">
+              {error && (
+                <p className="mb-1 px-1 text-[11px] text-red-500">{error}</p>
+              )}
+              <Calendar
+                mode="range"
+                selected={calendarSelected}
+                onSelect={handleCalendarSelect}
+                disabled={{ after: new Date() }}
+                numberOfMonths={1}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="w-px bg-[#E3E8EF]" />
+
+            {/* RIGHT: Presets */}
+            <div className="flex w-[148px] flex-col gap-0.5 p-2">
+              <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-[#9AA0A6]">
+                Quick select
+              </p>
               {PRESETS.map((p) => (
                 <button
                   key={p.value}
@@ -141,34 +151,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                   {p.label}
                 </button>
               ))}
-
-              <button
-                onClick={handleCustomClick}
-                className={`w-full rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
-                  showCalendar
-                    ? 'bg-[#E8F0FE] text-[#1A73E8]'
-                    : 'text-[#5F6368] hover:bg-gray-50'
-                }`}
-              >
-                Custom range
-              </button>
             </div>
-
-            {/* Calendar — shown only after "Custom range" is clicked */}
-            {showCalendar && (
-              <div className="border-t border-[#E3E8EF] p-2">
-                {error && (
-                  <p className="mb-1 px-1 text-[11px] text-red-500">{error}</p>
-                )}
-                <Calendar
-                  mode="range"
-                  selected={tempRange ?? { from: value.from, to: value.to }}
-                  onSelect={handleCalendarSelect}
-                  disabled={{ after: new Date() }}
-                  numberOfMonths={1}
-                />
-              </div>
-            )}
           </div>
         </>
       )}
