@@ -138,7 +138,7 @@ export function CampaignTable({ activePlatform, data = [], loading = false }: Ca
                         {row.clicks > 0 ? formatInteger(row.clicks) : '—'}
                       </td>
                       <td className="border-b border-[#F1F3F4] px-3.5 py-[11px] text-[#5F6368]">
-                        {row.ctr > 0 ? `${row.ctr}%` : '—'}
+                        {row.ctr > 0 ? `${row.ctr.toFixed(2)}%` : '—'}
                       </td>
                       <td className="min-w-[140px] border-b border-[#F1F3F4] px-3.5 py-[11px]">
                         {row.spend > 0 ? (
