@@ -4,8 +4,20 @@ import type { AdPlatform } from '@/types';
 import type { ReportCampaignRow, ReportPlatformRow } from '@/lib/actions/reports';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Shared escape helpers
 // ---------------------------------------------------------------------------
+
+// Escapes special characters for safe embedding in HTML and XML contexts.
+// Used in both buildPDFHtml and buildExcel to prevent XSS / malformed markup
+// from user-controlled strings (campaign name, platform, status).
+function escape(s: string | number | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function escapeCSV(value: string | number | null | undefined): string {
   const str = String(value ?? '');
@@ -14,6 +26,10 @@ function escapeCSV(value: string | number | null | undefined): string {
   }
   return str;
 }
+
+// ---------------------------------------------------------------------------
+// Builders
+// ---------------------------------------------------------------------------
 
 function buildCSV(
   campaigns: ReportCampaignRow[],
@@ -57,17 +73,14 @@ function buildExcel(
   byPlatform: ReportPlatformRow[],
   generatedAt: string,
 ): string {
-  function xmlEscape(s: string | number | null | undefined): string {
-    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
   function cell(v: string | number, type: 'String' | 'Number' = 'String'): string {
-    return `<Cell><Data ss:Type="${type}">${xmlEscape(v)}</Data></Cell>`;
+    return `<Cell><Data ss:Type="${type}">${escape(v)}</Data></Cell>`;
   }
   function row(...cells: string[]): string {
     return `<Row>${cells.join('')}</Row>`;
   }
   function headerCell(v: string): string {
-    return `<Cell ss:StyleID="header"><Data ss:Type="String">${xmlEscape(v)}</Data></Cell>`;
+    return `<Cell ss:StyleID="header"><Data ss:Type="String">${escape(v)}</Data></Cell>`;
   }
 
   const platformRows = byPlatform.map(p =>
@@ -119,7 +132,9 @@ function buildExcel(
 </Workbook>`;
 }
 
-// Simple HTML-based PDF (browser print — no puppeteer needed for MVP)
+// Simple HTML-based PDF (browser print — no puppeteer needed for MVP).
+// All user-controlled strings (campaign name, platform, status) are passed
+// through escape() to prevent XSS in the generated HTML document.
 function buildPDFHtml(
   campaigns: ReportCampaignRow[],
   byPlatform: ReportPlatformRow[],
@@ -127,7 +142,7 @@ function buildPDFHtml(
 ): string {
   const platformTableRows = byPlatform
     .map(p => `<tr>
-      <td>${p.platform}</td><td>$${p.spend.toFixed(2)}</td>
+      <td>${escape(p.platform)}</td><td>$${p.spend.toFixed(2)}</td>
       <td>${p.impressions.toLocaleString()}</td><td>${p.clicks.toLocaleString()}</td>
       <td>${p.conversions.toFixed(2)}</td><td>$${p.revenue.toFixed(2)}</td>
       <td>${p.ctr.toFixed(2)}%</td><td>${p.roas.toFixed(2)}x</td>
@@ -137,7 +152,7 @@ function buildPDFHtml(
 
   const campaignTableRows = campaigns
     .map(c => `<tr>
-      <td>${c.name}</td><td>${c.platform}</td><td>${c.status}</td>
+      <td>${escape(c.name)}</td><td>${escape(c.platform)}</td><td>${escape(c.status)}</td>
       <td>$${c.spend.toFixed(2)}</td><td>${c.impressions.toLocaleString()}</td>
       <td>${c.clicks.toLocaleString()}</td><td>${c.conversions.toFixed(2)}</td>
       <td>$${c.revenue.toFixed(2)}</td><td>${c.ctr.toFixed(2)}%</td><td>${c.roas.toFixed(2)}x</td>
@@ -191,9 +206,6 @@ function buildPDFHtml(
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
-
   try {
     const body = await req.json();
     const {
@@ -214,7 +226,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'from and to dates are required' }, { status: 400 });
     }
 
-    const { data, error } = await getReportData({ from, to, platform, campaignIds });
+    // Race report generation against a 30-second deadline.
+    // Promise.race ensures the timeout promise actually races the data fetch —
+    // the previous AbortController approach set controller.signal but never
+    // passed it to getReportData, so the abort had no effect.
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), 30_000),
+    );
+
+    const { data, error } = await Promise.race([
+      getReportData({ from, to, platform, campaignIds }),
+      timeoutPromise,
+    ]);
 
     if (error || !data) {
       return NextResponse.json({ error: error ?? 'Failed to generate report' }, { status: 500 });
@@ -259,14 +282,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
 
   } catch (err) {
-    if (controller.signal.aborted) {
+    if (err instanceof Error && err.message === 'TIMEOUT') {
       return NextResponse.json({ error: 'Report generation timed out' }, { status: 504 });
     }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal server error' },
       { status: 500 },
     );
-  } finally {
-    clearTimeout(timeout);
   }
 }
