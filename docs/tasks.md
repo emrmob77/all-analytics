@@ -315,29 +315,29 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Bulk actions test
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.7, 6.8_
 
-- [ ] 14. Campaign status ve budget management
-  - [ ] 14.1 Campaign status change
+- [x] 14. Campaign status ve budget management ✅
+  - [x] 14.1 Campaign status change ✅
     - Server action: updateCampaignStatus
     - Platform API call (10 saniye timeout)
     - Error handling ve revert logic
     - Status change logging
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 16.5_
-  
-  - [ ] 14.2 Campaign budget update
+
+  - [x] 14.2 Campaign budget update ✅
     - Server action: updateCampaignBudget
     - Budget validation (> 0)
     - Platform API call (10 saniye timeout)
     - Error handling ve revert logic
     - Budget change logging
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 16.5, 17.1_
-  
-  - [ ] 14.3 UI for status ve budget changes
+
+  - [x] 14.3 UI for status ve budget changes ✅
     - Status dropdown in table
     - Budget edit dialog
     - Loading states ve optimistic updates
     - Error toast notifications
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4_
-  
+
   - [ ]* 14.4 Campaign management için unit tests
     - Status change test
     - Budget update test
