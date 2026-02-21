@@ -9,7 +9,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', href: '/dashboard' },
-  { id: 'campaigns', label: 'Campaigns', href: '/campaigns', badge: 8 },
+  { id: 'campaigns', label: 'Campaigns', href: '/campaigns' },
   { id: 'adgroups', label: 'Ad Groups', href: '/adgroups' },
   { id: 'audiences', label: 'Audiences', href: '/audiences' },
   { id: 'keywords', label: 'Keywords', href: '/keywords' },
