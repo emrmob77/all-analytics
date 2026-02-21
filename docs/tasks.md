@@ -284,32 +284,30 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Data loading test
     - _Requirements: 5.1, 5.9, 5.10, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 13. Campaign list page
-  - [ ] 13.1 Campaign list layout ve filters
+- [x] 13. Campaign list page ✅
+  - [x] 13.1 Campaign list layout ve filters ✅
     - Page layout (/campaigns/page.tsx)
-    - Platform filter, status filter, search
-    - Date range filter
+    - Platform filter, status filter, search, date range filter
     - _Requirements: 6.2, 6.3_
-  
-  - [ ] 13.2 TanStack Table implementation
-    - CampaignTable component
-    - Pagination (50 items per page)
-    - Sorting by columns
-    - Column definitions
+
+  - [x] 13.2 TanStack Table implementation ✅
+    - TanStack Table v8 with getCoreRowModel + getSortedRowModel
+    - Pagination (50 items per page) with page number controls
+    - Client-side sorting by any column
     - _Requirements: 6.1, 6.4, 6.5_
-  
-  - [ ] 13.3 Bulk selection ve actions
-    - Row selection (checkbox)
-    - Bulk action buttons (pause, activate, archive)
-    - Bulk operation confirmation dialog
+
+  - [x] 13.3 Bulk selection ve actions ✅
+    - Row selection via checkbox column
+    - Bulk action bar (Activate, Pause, Archive)
+    - Confirmation dialog before applying
     - _Requirements: 6.7, 6.8_
-  
-  - [ ] 13.4 Campaign list data fetching
-    - Server Component initial data
-    - TanStack Query for pagination ve filtering
-    - Optimistic updates
+
+  - [x] 13.4 Campaign list data fetching ✅
+    - getCampaigns server action with date range metrics aggregation
+    - TanStack Query hook with placeholderData for smooth pagination
+    - bulkUpdateCampaignStatus server action + useBulkUpdateStatus mutation
     - _Requirements: 6.1, 6.6_
-  
+
   - [ ]* 13.5 Campaign list için unit tests
     - Pagination test
     - Filtering test
