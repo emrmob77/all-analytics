@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { acceptInvitation, getInvitationByToken } from '@/lib/actions/invitation';
 import { useAuthContext } from '@/components/providers/AuthProvider';
@@ -14,6 +14,21 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
+          <p style={{ fontSize: 14, color: '#5F6368' }}>Loading invitation…</p>
+        </div>
+      </div>
+    }>
+      <AcceptInvitationContent />
+    </Suspense>
+  );
+}
+
+function AcceptInvitationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuthContext();
