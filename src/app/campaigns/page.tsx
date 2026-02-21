@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -210,12 +210,22 @@ const STATUS_CHANGE_OPTIONS: { value: CampaignStatus; label: string }[] = [
 ];
 
 function StatusCell({ row }: StatusCellProps) {
-  const [open, setOpen]         = useState(false);
+  const [open, setOpen]             = useState(false);
   const [optimistic, setOptimistic] = useState<CampaignStatus | null>(null);
-  const { mutate, isPending }   = useUpdateCampaignStatus();
+  const [pos, setPos]               = useState({ top: 0, left: 0 });
+  const btnRef                      = useRef<HTMLButtonElement>(null);
+  const { mutate, isPending }       = useUpdateCampaignStatus();
 
   const currentStatus = optimistic ?? row.status;
   const s = STATUS_STYLES[currentStatus] ?? STATUS_STYLES['archived'];
+
+  function handleOpen() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left });
+    }
+    setOpen((v) => !v);
+  }
 
   function handleChange(newStatus: CampaignStatus) {
     if (newStatus === currentStatus) { setOpen(false); return; }
@@ -228,9 +238,10 @@ function StatusCell({ row }: StatusCellProps) {
   }
 
   return (
-    <div className="relative">
+    <div>
       <button
-        onClick={() => setOpen((v) => !v)}
+        ref={btnRef}
+        onClick={handleOpen}
         disabled={isPending}
         className="inline-flex items-center gap-[5px] rounded-[5px] px-[9px] py-[3px] text-[11px] font-medium capitalize transition-opacity disabled:opacity-60"
         style={{ backgroundColor: s.bg, color: s.color }}
@@ -242,8 +253,11 @@ function StatusCell({ row }: StatusCellProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full z-20 mt-1 min-w-[120px] overflow-hidden rounded-[8px] border border-[#E3E8EF] bg-white shadow-lg">
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-40 min-w-[120px] overflow-hidden rounded-[8px] border border-[#E3E8EF] bg-white shadow-lg"
+            style={{ top: pos.top, left: pos.left }}
+          >
             {STATUS_CHANGE_OPTIONS.map((opt) => {
               const os = STATUS_STYLES[opt.value];
               return (
