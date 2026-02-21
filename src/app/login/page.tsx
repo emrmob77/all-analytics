@@ -143,8 +143,8 @@ function LoginContent() {
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required
                       style={{ width: '100%', padding: '10px 40px 10px 12px', borderRadius: 8, border: '1.5px solid #E3E8EF', fontSize: 14, color: '#202124', background: '#fff', transition: 'border-color .15s', boxSizing: 'border-box', fontFamily: 'inherit' }}
                       onFocus={e => { e.currentTarget.style.borderColor = '#1A73E8'; }} onBlur={e => { e.currentTarget.style.borderColor = '#E3E8EF'; }} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 4, color: '#9AA0A6', cursor: 'pointer' }}>
-                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d={showPassword ? 'M3 3l10 10M6.5 6.5A2 2 0 0110 10M1 8s3-5 7-5 7 5 7 5-3 5-7 5c-1.3 0-2.5-.4-3.5-1' : 'M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z M10 8a2 2 0 11-4 0 2 2 0 014 0z'}/></svg>
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 4, color: '#9AA0A6', cursor: 'pointer' }}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d={showPassword ? 'M3 3l10 10M6.5 6.5A2 2 0 0110 10M1 8s3-5 7-5 7 5 7 5-3 5-7 5c-1.3 0-2.5-.4-3.5-1' : 'M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z M10 8a2 2 0 11-4 0 2 2 0 014 0z'}/></svg>
                     </button>
                   </div>
                 </div>

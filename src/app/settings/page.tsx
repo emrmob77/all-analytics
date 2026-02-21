@@ -1,14 +1,29 @@
 'use client';
 
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MembersTab } from '@/components/settings/MembersTab';
-import { AdAccountsTab } from '@/components/settings/AdAccountsTab';
-import { ProfileTab } from '@/components/settings/ProfileTab';
 import { OrgTab } from '@/components/settings/OrgTab';
-import { NotificationPreferencesTab } from '@/components/settings/NotificationPreferencesTab';
 import { useOrganization } from '@/hooks/useOrganization';
+
+// Lazy-load heavy tab components to keep the initial JS bundle small
+const ProfileTab = dynamic(
+  () => import('@/components/settings/ProfileTab').then((m) => m.ProfileTab),
+  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading profile…</div> },
+);
+const MembersTab = dynamic(
+  () => import('@/components/settings/MembersTab').then((m) => m.MembersTab),
+  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading members…</div> },
+);
+const AdAccountsTab = dynamic(
+  () => import('@/components/settings/AdAccountsTab').then((m) => m.AdAccountsTab),
+  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading ad accounts…</div> },
+);
+const NotificationPreferencesTab = dynamic(
+  () => import('@/components/settings/NotificationPreferencesTab').then((m) => m.NotificationPreferencesTab),
+  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading…</div> },
+);
 
 const VALID_TABS = ['profile', 'organization', 'members', 'ad-accounts', 'notifications'] as const;
 type TabValue = typeof VALID_TABS[number];
@@ -45,11 +60,7 @@ function SettingsContent() {
       </TabsList>
 
       <TabsContent value="profile">
-        <Suspense fallback={
-          <div className="text-sm text-gray-400 py-8 text-center">Loading profile…</div>
-        }>
-          <ProfileTab />
-        </Suspense>
+        <ProfileTab />
       </TabsContent>
 
       <TabsContent value="organization">
@@ -57,19 +68,11 @@ function SettingsContent() {
       </TabsContent>
 
       <TabsContent value="members">
-        <Suspense fallback={
-          <div className="text-sm text-gray-400 py-8 text-center">Loading members…</div>
-        }>
-          <MembersTab callerRole={callerRole as 'owner' | 'admin' | 'member' | 'viewer'} />
-        </Suspense>
+        <MembersTab callerRole={callerRole as 'owner' | 'admin' | 'member' | 'viewer'} />
       </TabsContent>
 
       <TabsContent value="ad-accounts">
-        <Suspense fallback={
-          <div className="text-sm text-gray-400 py-8 text-center">Loading ad accounts…</div>
-        }>
-          <AdAccountsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
-        </Suspense>
+        <AdAccountsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
       </TabsContent>
 
       <TabsContent value="notifications">
