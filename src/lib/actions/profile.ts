@@ -76,12 +76,43 @@ export async function updateDisplayName(
 }
 
 // ---------------------------------------------------------------------------
-// updateAvatarUrl — persists the public storage URL into public.users
+// rollbackDisplayName — internal rollback; accepts null/empty to restore a
+// previously-null name without triggering the public validation rules.
+// ---------------------------------------------------------------------------
+
+export async function rollbackDisplayName(
+  previousName: string | null,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { error } = await supabase
+    .from('users')
+    .update({ full_name: previousName ?? null, updated_at: new Date().toISOString() })
+    .eq('id', user.id);
+
+  return { error: error?.message ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// updateAvatarUrl — persists the public storage URL into public.users.
+// Only URLs that originate from this project's Supabase Storage avatars
+// bucket are accepted, preventing arbitrary URL injection.
 // ---------------------------------------------------------------------------
 
 export async function updateAvatarUrl(
   url: string,
 ): Promise<{ error: string | null }> {
+  const expectedPrefix =
+    process.env.NEXT_PUBLIC_SUPABASE_URL + '/storage/v1/object/public/avatars/';
+
+  if (!url.startsWith(expectedPrefix)) {
+    return { error: 'Invalid avatar URL' };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

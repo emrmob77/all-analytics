@@ -9,6 +9,7 @@ import { useAuthContext } from '@/components/providers/AuthProvider';
 import {
   getUserProfile,
   updateDisplayName,
+  rollbackDisplayName,
   updateAvatarUrl,
   type UserProfile,
 } from '@/lib/actions/profile';
@@ -115,7 +116,12 @@ export function ProfileTab() {
       });
       if (authError) {
         // Rollback the DB change to keep both stores in sync.
-        await updateDisplayName(profile?.fullName ?? '');
+        // rollbackDisplayName accepts null/empty so a previously-null name
+        // can be restored without triggering the public validation rules.
+        const rollbackResult = await rollbackDisplayName(profile?.fullName ?? null);
+        if (rollbackResult.error) {
+          console.error('Rollback failed:', rollbackResult.error);
+        }
         setNameError(authError.message);
         return;
       }
