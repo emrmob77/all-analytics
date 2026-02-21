@@ -205,3 +205,17 @@ export async function bulkUpdateCampaignStatus(
 
   return { error: error?.message ?? null };
 }
+
+export async function getCampaignCount(): Promise<number> {
+  const orgId = await getOrgId();
+  if (!orgId) return 0;
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('campaigns')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .neq('status', 'archived');
+
+  return count ?? 0;
+}
