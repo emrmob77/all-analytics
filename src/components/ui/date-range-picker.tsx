@@ -176,14 +176,15 @@ export function DateRangePicker({ value, onChange, maxDays = 365 }: DateRangePic
 
   // Navigate months — left calendar shows month1, right shows month1+1
   const now = new Date();
-  const [navYear, setNavYear] = useState(now.getFullYear());
+  const [navYear, setNavYear] = useState(() => {
+    return now.getMonth() - 1 < 0 ? now.getFullYear() - 1 : now.getFullYear();
+  });
   const [navMonth, setNavMonth] = useState(now.getMonth() - 1 < 0 ? 11 : now.getMonth() - 1);
 
   const ref = useRef<HTMLDivElement>(null);
 
-  // Adjust navYear if navMonth went to december of prev year
-  const month1Year  = navMonth === 11 && navMonth < 0 ? navYear - 1 : navYear;
-  const month1Month = navMonth < 0 ? 11 : navMonth;
+  const month1Year  = navYear;
+  const month1Month = navMonth;
   const month2Month = (month1Month + 1) % 12;
   const month2Year  = month1Month === 11 ? month1Year + 1 : month1Year;
 

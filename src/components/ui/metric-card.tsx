@@ -50,6 +50,10 @@ export interface MetricCardProps {
   value: number;
   change?: number; // percentage change, positive = up, negative = down
   format?: 'currency' | 'number' | 'percentage';
+  /** Override decimals derived from format */
+  decimals?: number;
+  /** Override suffix derived from format */
+  suffix?: string;
   loading?: boolean;
   /** Animation stagger delay in ms */
   delay?: number;
@@ -61,6 +65,8 @@ export function MetricCard({
   value,
   change,
   format = 'number',
+  decimals: decimalsOverride,
+  suffix: suffixOverride,
   loading = false,
   delay = 0,
   sub = 'vs last period',
@@ -73,8 +79,8 @@ export function MetricCard({
   }, [delay]);
 
   const prefix = format === 'currency' ? '$' : '';
-  const suffix = format === 'percentage' ? '%' : '';
-  const decimals = format === 'percentage' ? 2 : format === 'currency' ? 0 : 0;
+  const suffix = suffixOverride !== undefined ? suffixOverride : format === 'percentage' ? '%' : '';
+  const decimals = decimalsOverride !== undefined ? decimalsOverride : format === 'percentage' ? 2 : 0;
 
   const positive = change === undefined ? true : change >= 0;
   const changeAbs = change !== undefined ? Math.abs(change) : undefined;
