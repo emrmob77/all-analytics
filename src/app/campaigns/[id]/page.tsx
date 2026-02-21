@@ -117,8 +117,8 @@ function TrendChart({ title, data, color, formatter, loading }: TrendChartProps)
               width={52}
             />
             <Tooltip
-              formatter={(v: number) => [formatter(v), title]}
-              labelFormatter={fmtDate}
+              formatter={(v: number | undefined) => [formatter(v ?? 0), title]}
+              labelFormatter={(label) => fmtDate(String(label))}
               contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E3E8EF' }}
             />
             <Area
@@ -172,7 +172,7 @@ function HourlyChart({ data, loading }: HourlyChartProps) {
               width={40}
             />
             <Tooltip
-              formatter={(v: number) => [formatInteger(v), 'Clicks']}
+              formatter={(v: number | undefined) => [formatInteger(v ?? 0), 'Clicks']}
               labelFormatter={(h) => `${h}:00`}
               contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E3E8EF' }}
             />
