@@ -156,7 +156,7 @@ export async function updateCampaignBudget(
   campaignId: string,
   newBudget: number,
 ): Promise<{ error: string | null }> {
-  if (newBudget <= 0) return { error: 'Budget must be greater than 0' };
+  if (!Number.isFinite(newBudget) || newBudget <= 0) return { error: 'Budget must be greater than 0' };
 
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
