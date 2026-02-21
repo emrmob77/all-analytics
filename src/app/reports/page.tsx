@@ -223,11 +223,13 @@ export default function ReportsPage() {
   }, [platform]);
 
   // Report data (only fetched when user clicks "Generate")
+  // campaignIds mirrors the server-side convention:
+  //   undefined → all campaigns, [] → none selected, [...] → specific ids
   const [reportParams, setReportParams] = useState<{
     from: string;
     to: string;
     platform: AdPlatform | 'all';
-    campaignIds: string[];
+    campaignIds: string[] | undefined;
   } | null>(null);
 
   const {
@@ -248,13 +250,16 @@ export default function ReportsPage() {
   });
 
   const handleGenerate = useCallback(() => {
-    setReportParams({
-      from,
-      to,
-      platform,
-      // null means "all" → pass empty array so server fetches all campaigns
-      campaignIds: selectedCampaigns !== null ? Array.from(selectedCampaigns) : [],
-    });
+    // Translate client null/Set to server-side undefined/[]/[...] convention:
+    //   null (all)       → undefined  (server fetches everything)
+    //   empty Set (none) → []         (server returns empty result immediately)
+    //   non-empty Set    → Array.from (server filters to those IDs)
+    const campaignIds =
+      selectedCampaigns === null
+        ? undefined
+        : Array.from(selectedCampaigns);
+
+    setReportParams({ from, to, platform, campaignIds });
     setHasGenerated(true);
   }, [from, to, platform, selectedCampaigns]);
 
@@ -284,17 +289,21 @@ export default function ReportsPage() {
   }, []);
 
   const handleExport = useCallback(async (format: 'csv' | 'excel' | 'pdf') => {
+    if (!reportParams) return;
     setExporting(format);
     try {
+      // Use reportParams (the snapshot captured at Generate time) so the export
+      // always matches the visible preview, even if the user changed filters
+      // after generating.
       const res = await fetch('/api/reports/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from,
-          to,
+          from: reportParams.from,
+          to: reportParams.to,
           format,
-          platform,
-          campaignIds: selectedCampaigns !== null ? Array.from(selectedCampaigns) : [],
+          platform: reportParams.platform,
+          campaignIds: reportParams.campaignIds,
         }),
         signal: AbortSignal.timeout(31_000),
       });
@@ -317,7 +326,7 @@ export default function ReportsPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `adspulse-report-${from}_${to}.${ext}`;
+        a.download = `adspulse-report-${reportParams.from}_${reportParams.to}.${ext}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -330,7 +339,7 @@ export default function ReportsPage() {
     } finally {
       setExporting(null);
     }
-  }, [from, to, platform, selectedCampaigns]);
+  }, [reportParams]);
 
   return (
     <div className="flex h-full flex-col">
@@ -418,24 +427,30 @@ export default function ReportsPage() {
             />
           </div>
 
-          {/* Generate button */}
-          <button
-            onClick={handleGenerate}
-            disabled={reportLoading}
-            className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-[#1A73E8] py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {reportLoading ? (
-              <>
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle cx="7" cy="7" r="5" stroke="rgba(255,255,255,0.4)" strokeWidth="2" />
-                  <path d="M7 2a5 5 0 015 5" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Generating…
-              </>
-            ) : (
-              'Generate Report'
-            )}
-          </button>
+          {/* Generate button — disabled when no campaigns are selected */}
+          {selectedCampaigns !== null && selectedCampaigns.size === 0 ? (
+            <div className="mt-auto rounded-lg border border-[#E3E8EF] bg-[#F8F9FA] px-4 py-2.5 text-center text-[12px] text-[#9AA0A6]">
+              Select at least one campaign
+            </div>
+          ) : (
+            <button
+              onClick={handleGenerate}
+              disabled={reportLoading}
+              className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-[#1A73E8] py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {reportLoading ? (
+                <>
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="5" stroke="rgba(255,255,255,0.4)" strokeWidth="2" />
+                    <path d="M7 2a5 5 0 015 5" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Generating…
+                </>
+              ) : (
+                'Generate Report'
+              )}
+            </button>
+          )}
         </aside>
 
         {/* ── Right panel: Report preview ── */}

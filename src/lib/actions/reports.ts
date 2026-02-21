@@ -125,7 +125,27 @@ export async function getReportData(params: {
 
   const supabase = await createClient();
 
-  // Validate campaign IDs if provided
+  // campaignIds semantics (mirrors client-side null/Set distinction):
+  //   undefined → fetch all campaigns (no filter)
+  //   []        → caller explicitly selected none → return empty report immediately
+  //   [id, …]   → fetch only these campaigns (validated as UUIDs)
+  if (campaignIds !== undefined && campaignIds.length === 0) {
+    const empty: ReportData = {
+      metrics: {
+        totalSpend: 0, totalImpressions: 0, totalClicks: 0,
+        totalConversions: 0, totalRevenue: 0, avgCtr: 0, avgRoas: 0,
+        generatedAt: new Date().toISOString(),
+      },
+      byPlatform: (['google', 'meta', 'tiktok', 'pinterest'] as AdPlatform[]).map(p => ({
+        platform: p, spend: 0, impressions: 0, clicks: 0,
+        conversions: 0, revenue: 0, ctr: 0, roas: 0, budgetShare: 0,
+      })),
+      campaigns: [],
+      generatedAt: new Date().toISOString(),
+    };
+    return { data: empty, error: null };
+  }
+
   const validCampaignIds = (campaignIds ?? []).filter(isValidUUID);
 
   // ─── Fetch campaigns with their metrics ───────────────────────────────────
@@ -144,7 +164,8 @@ export async function getReportData(params: {
     query = query.eq('platform', platform);
   }
 
-  if (validCampaignIds.length > 0) {
+  // Only apply the IN filter when campaignIds was explicitly provided (not undefined)
+  if (campaignIds !== undefined && validCampaignIds.length > 0) {
     query = query.in('id', validCampaignIds);
   }
 
