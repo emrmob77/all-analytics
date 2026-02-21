@@ -498,10 +498,12 @@ export default function CampaignsPage() {
         <div className="mb-4 flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA0A6]" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+            <label htmlFor="campaign-search" className="sr-only">Search campaigns</label>
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA0A6]" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
               <circle cx="5.5" cy="5.5" r="4.5"/><path d="M10 10l2.5 2.5"/>
             </svg>
             <input
+              id="campaign-search"
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -646,9 +648,10 @@ export default function CampaignsPage() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
+                  aria-label="Previous page"
                   className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#E3E8EF] text-[#5F6368] disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M7 1L3 5l4 4"/></svg>
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M7 1L3 5l4 4"/></svg>
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
@@ -677,9 +680,10 @@ export default function CampaignsPage() {
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
+                  aria-label="Next page"
                   className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#E3E8EF] text-[#5F6368] disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 1l4 4-4 4"/></svg>
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 1l4 4-4 4"/></svg>
                 </button>
               </div>
             </div>
