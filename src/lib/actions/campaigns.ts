@@ -39,6 +39,16 @@ export interface GetCampaignsResult {
   error: string | null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUUID(id: string): boolean {
+  return UUID_RE.test(id);
+}
+
+const VALID_STATUSES = new Set<CampaignStatus>(['active', 'paused', 'stopped', 'archived']);
+function isValidStatus(s: string): s is CampaignStatus {
+  return VALID_STATUSES.has(s as CampaignStatus);
+}
+
 async function getOrgId(): Promise<string | null> {
   const membership = await getUserOrganization();
   return membership?.organization.id ?? null;
@@ -139,6 +149,9 @@ export async function updateCampaignStatus(
   campaignId: string,
   newStatus: CampaignStatus,
 ): Promise<{ error: string | null }> {
+  if (!isValidUUID(campaignId)) return { error: 'Invalid campaign ID' };
+  if (!isValidStatus(newStatus)) return { error: 'Invalid status value' };
+
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
 
@@ -152,12 +165,33 @@ export async function updateCampaignStatus(
   return { error: error?.message ?? null };
 }
 
+export async function updateCampaignBudget(
+  campaignId: string,
+  newBudget: number,
+): Promise<{ error: string | null }> {
+  if (!isValidUUID(campaignId)) return { error: 'Invalid campaign ID' };
+  if (!Number.isFinite(newBudget) || newBudget <= 0) return { error: 'Budget must be greater than 0' };
+
+  const orgId = await getOrgId();
+  if (!orgId) return { error: 'No organization found' };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('campaigns')
+    .update({ budget_limit: newBudget, updated_at: new Date().toISOString() })
+    .eq('id', campaignId)
+    .eq('organization_id', orgId);
+
+  return { error: error?.message ?? null };
+}
+
 export async function bulkUpdateCampaignStatus(
   campaignIds: string[],
   newStatus: CampaignStatus,
 ): Promise<{ error: string | null }> {
   if (!campaignIds.length) return { error: null };
   if (campaignIds.length > 500) return { error: 'Too many campaigns selected (max 500)' };
+  if (!isValidStatus(newStatus)) return { error: 'Invalid status value' };
 
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
