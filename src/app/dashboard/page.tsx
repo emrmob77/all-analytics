@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
         <div className="mt-5">
           <MetricCards
-            data={metricsQ.data?.data}
+            data={metricsQ.data}
             loading={metricsQ.isLoading}
           />
         </div>
@@ -55,18 +55,18 @@ export default function DashboardPage() {
           <PerformanceChart
             activePlatform={activePlatform}
             dateRange={dateRange}
-            data={chartQ.data?.data}
+            data={chartQ.data}
             loading={chartQ.isLoading}
           />
           <HourlyChart
-            data={hourlyQ.data?.data}
+            data={hourlyQ.data}
             loading={hourlyQ.isLoading}
           />
         </div>
 
         <div className="mt-5">
           <PlatformSummary
-            data={platformQ.data?.data}
+            data={platformQ.data}
             loading={platformQ.isLoading}
           />
         </div>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
         <div className="mt-5">
           <CampaignTable
             activePlatform={activePlatform}
-            data={campaignsQ.data?.data}
+            data={campaignsQ.data}
             loading={campaignsQ.isLoading}
           />
         </div>
