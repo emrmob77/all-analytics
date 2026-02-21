@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
@@ -78,7 +78,9 @@ function UserIdentifier() {
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   return (
     <PHProvider client={posthog}>
-      <PageTracker />
+      <Suspense fallback={null}>
+        <PageTracker />
+      </Suspense>
       <UserIdentifier />
       {children}
     </PHProvider>
