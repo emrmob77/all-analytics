@@ -145,7 +145,7 @@ function BudgetDialog({ campaignId, campaignName, currentBudget, onClose }: Budg
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={isPending ? undefined : onClose}>
       <div
         className="w-[360px] rounded-xl border border-[#E3E8EF] bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -233,7 +233,10 @@ function StatusCell({ row }: StatusCellProps) {
     setOpen(false);
     mutate(
       { id: row.id, status: newStatus },
-      { onError: () => setOptimistic(null) },
+      {
+        onSuccess: () => setOptimistic(null),
+        onError:   () => setOptimistic(null),
+      },
     );
   }
 
