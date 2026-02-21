@@ -100,20 +100,21 @@ function CampaignSelector({
   onSelectAll,
 }: {
   campaigns: ReportCampaignOption[];
-  selected: Set<string>;
+  selected: Set<string> | null; // null = all included
   onToggle: (id: string) => void;
   onSelectAll: () => void;
 }) {
-  const allSelected = selected.size === 0; // empty = all
+  const allSelected = selected === null;
+  const selectedCount = selected !== null ? selected.size : null;
 
   return (
     <div className="rounded-xl border border-[#E3E8EF] bg-white">
       <div className="flex items-center justify-between border-b border-[#F1F3F4] px-4 py-3">
         <span className="text-[12px] font-semibold text-[#202124]">
           Campaigns
-          {selected.size > 0 && (
+          {selectedCount !== null && (
             <span className="ml-1.5 rounded-full bg-[#E8F0FE] px-2 py-0.5 text-[10px] font-bold text-[#1A73E8]">
-              {selected.size} selected
+              {selectedCount} selected
             </span>
           )}
         </span>
@@ -129,7 +130,7 @@ function CampaignSelector({
           <div className="py-4 text-center text-[12px] text-[#9AA0A6]">No campaigns found</div>
         ) : (
           campaigns.map((c) => {
-            const isSelected = selected.size === 0 || selected.has(c.id);
+            const isSelected = selected === null || selected.has(c.id);
             return (
               <label
                 key={c.id}
@@ -137,7 +138,7 @@ function CampaignSelector({
               >
                 <input
                   type="checkbox"
-                  checked={selected.size === 0 || selected.has(c.id)}
+                  checked={isSelected}
                   onChange={() => onToggle(c.id)}
                   className="h-3.5 w-3.5 rounded border-[#D0D3D6] accent-[#1A73E8]"
                 />
@@ -194,7 +195,11 @@ function ExportButton({
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange>(defaultRange);
   const [platform, setPlatform] = useState<AdPlatform | 'all'>('all');
-  const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
+  // null  = all campaigns included (default)
+  // Set   = explicit selection; empty Set is valid and means "none selected"
+  // This avoids the previous ambiguity where empty Set meant both "all" and
+  // "none", which caused unchecking the last campaign to snap back to "all".
+  const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string> | null>(null);
   const [exporting, setExporting] = useState<'csv' | 'excel' | 'pdf' | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
 
@@ -212,9 +217,9 @@ export default function ReportsPage() {
     staleTime: 60_000,
   });
 
-  // Reset campaign selection when platform changes
+  // Reset to "all included" when platform changes
   useEffect(() => {
-    setSelectedCampaigns(new Set());
+    setSelectedCampaigns(null);
   }, [platform]);
 
   // Report data (only fetched when user clicks "Generate")
@@ -247,35 +252,35 @@ export default function ReportsPage() {
       from,
       to,
       platform,
-      campaignIds: selectedCampaigns.size > 0 ? Array.from(selectedCampaigns) : [],
+      // null means "all" → pass empty array so server fetches all campaigns
+      campaignIds: selectedCampaigns !== null ? Array.from(selectedCampaigns) : [],
     });
     setHasGenerated(true);
   }, [from, to, platform, selectedCampaigns]);
 
   const handleToggleCampaign = useCallback((id: string) => {
     setSelectedCampaigns((prev) => {
-      const next = new Set(prev);
-      if (prev.size === 0) {
-        // None selected = all included; clicking one = exclude all others
-        campaignOptions.forEach((c) => {
-          if (c.id !== id) next.add(c.id);
-        });
-      } else if (next.has(id)) {
+      if (prev === null) {
+        // Currently "all included" → clicking one excludes it (select all others)
+        const next = new Set(campaignOptions.map(c => c.id));
         next.delete(id);
-        if (next.size === campaignOptions.length) {
-          // All individually selected = same as "all" — normalize
-          return new Set();
-        }
+        // If only one campaign exists and it gets excluded → empty Set (none selected)
+        return next;
+      }
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
         next.add(id);
-        if (next.size === campaignOptions.length) return new Set();
+        // All campaigns individually ticked → normalize to null ("all")
+        if (next.size === campaignOptions.length) return null;
       }
       return next;
     });
   }, [campaignOptions]);
 
   const handleSelectAll = useCallback(() => {
-    setSelectedCampaigns(new Set());
+    setSelectedCampaigns(null); // null = all included
   }, []);
 
   const handleExport = useCallback(async (format: 'csv' | 'excel' | 'pdf') => {
@@ -289,7 +294,7 @@ export default function ReportsPage() {
           to,
           format,
           platform,
-          campaignIds: selectedCampaigns.size > 0 ? Array.from(selectedCampaigns) : [],
+          campaignIds: selectedCampaigns !== null ? Array.from(selectedCampaigns) : [],
         }),
         signal: AbortSignal.timeout(31_000),
       });
