@@ -148,6 +148,26 @@ export async function getReportData(params: {
 
   const validCampaignIds = (campaignIds ?? []).filter(isValidUUID);
 
+  // If the caller provided IDs but none passed UUID validation, treat it the
+  // same as an explicitly empty selection — return an empty report rather than
+  // silently dropping the filter and returning all campaigns.
+  if (campaignIds !== undefined && validCampaignIds.length === 0) {
+    const empty: ReportData = {
+      metrics: {
+        totalSpend: 0, totalImpressions: 0, totalClicks: 0,
+        totalConversions: 0, totalRevenue: 0, avgCtr: 0, avgRoas: 0,
+        generatedAt: new Date().toISOString(),
+      },
+      byPlatform: (['google', 'meta', 'tiktok', 'pinterest'] as AdPlatform[]).map(p => ({
+        platform: p, spend: 0, impressions: 0, clicks: 0,
+        conversions: 0, revenue: 0, ctr: 0, roas: 0, budgetShare: 0,
+      })),
+      campaigns: [],
+      generatedAt: new Date().toISOString(),
+    };
+    return { data: empty, error: null };
+  }
+
   // ─── Fetch campaigns with their metrics ───────────────────────────────────
   let query = supabase
     .from('campaigns')
@@ -164,8 +184,10 @@ export async function getReportData(params: {
     query = query.eq('platform', platform);
   }
 
-  // Only apply the IN filter when campaignIds was explicitly provided (not undefined)
-  if (campaignIds !== undefined && validCampaignIds.length > 0) {
+  // validCampaignIds.length > 0 is guaranteed by the early-return above when
+  // campaignIds is defined, so this condition correctly applies the filter only
+  // for explicit (non-undefined) non-empty ID lists.
+  if (campaignIds !== undefined) {
     query = query.in('id', validCampaignIds);
   }
 
