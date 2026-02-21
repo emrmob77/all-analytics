@@ -39,6 +39,11 @@ export interface GetCampaignsResult {
   error: string | null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUUID(id: string): boolean {
+  return UUID_RE.test(id);
+}
+
 async function getOrgId(): Promise<string | null> {
   const membership = await getUserOrganization();
   return membership?.organization.id ?? null;
@@ -139,6 +144,8 @@ export async function updateCampaignStatus(
   campaignId: string,
   newStatus: CampaignStatus,
 ): Promise<{ error: string | null }> {
+  if (!isValidUUID(campaignId)) return { error: 'Invalid campaign ID' };
+
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
 
@@ -156,6 +163,7 @@ export async function updateCampaignBudget(
   campaignId: string,
   newBudget: number,
 ): Promise<{ error: string | null }> {
+  if (!isValidUUID(campaignId)) return { error: 'Invalid campaign ID' };
   if (!Number.isFinite(newBudget) || newBudget <= 0) return { error: 'Budget must be greater than 0' };
 
   const orgId = await getOrgId();
