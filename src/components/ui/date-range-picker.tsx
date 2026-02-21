@@ -134,10 +134,24 @@ function MiniCalendar({ year, month, selected, hovered, onDayClick, onDayHover }
             rounded = 'rounded-none';
           }
 
+          // Outer cell background: creates the continuous range band.
+          // - inRange: full width #E8F0FE
+          // - isStart only: right half #E8F0FE (band continues to the right)
+          // - isEnd only: left half #E8F0FE (band continues from the left)
+          // - isStart && isEnd (single day): no band
+          const outerBg =
+            inRange
+              ? 'bg-[#E8F0FE]'
+              : isStart && !isEnd
+              ? '[background:linear-gradient(to_right,transparent_50%,#E8F0FE_50%)]'
+              : isEnd && !isStart
+              ? '[background:linear-gradient(to_left,transparent_50%,#E8F0FE_50%)]'
+              : '';
+
           return (
             <div
               key={i}
-              className={`flex h-8 items-center justify-center ${inRange ? 'bg-[#E8F0FE]' : ''}`}
+              className={`flex h-8 items-center justify-center ${outerBg}`}
             >
               <button
                 disabled={isDisabled}
@@ -245,7 +259,13 @@ export function DateRangePicker({ value, onChange, maxDays = 365 }: DateRangePic
       }
     : value;
 
+  // Minimum navigable month: maxDays before today (lower bound guard)
+  const minNavDate = addDays(today(), -maxDays);
+  const minNavYear  = minNavDate.getFullYear();
+  const minNavMonth = minNavDate.getMonth();
+
   function prevMonth() {
+    if (navYear < minNavYear || (navYear === minNavYear && navMonth <= minNavMonth)) return;
     if (navMonth === 0) { setNavMonth(11); setNavYear(y => y - 1); }
     else setNavMonth(m => m - 1);
   }
