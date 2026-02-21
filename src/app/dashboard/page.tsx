@@ -8,6 +8,13 @@ import { PerformanceChart } from '@/components/dashboard/performance-chart';
 import { HourlyChart } from '@/components/dashboard/hourly-chart';
 import { PlatformSummary } from '@/components/dashboard/platform-summary';
 import { CampaignTable } from '@/components/dashboard/campaign-table';
+import {
+  useDashboardMetrics,
+  useDashboardCampaigns,
+  useDashboardChartData,
+  useDashboardHourlyData,
+  useDashboardPlatformSummary,
+} from '@/hooks/useDashboard';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform } from '@/types';
 
@@ -18,13 +25,18 @@ function defaultRange(): DateRange {
 }
 
 export default function DashboardPage() {
-  const [dateRange, setDateRange] = useState<DateRange>(defaultRange);
+  const [dateRange, setDateRange]       = useState<DateRange>(defaultRange);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
+
+  const metricsQ  = useDashboardMetrics(dateRange, activePlatform);
+  const campaignsQ = useDashboardCampaigns(dateRange, activePlatform);
+  const chartQ    = useDashboardChartData(dateRange);
+  const hourlyQ   = useDashboardHourlyData();
+  const platformQ = useDashboardPlatformSummary(dateRange);
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8F9FA]">
       <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8">
-        {/* Header with DateRangePicker and PlatformFilter */}
         <DashboardHeader
           dateRange={dateRange}
           setDateRange={setDateRange}
@@ -32,25 +44,39 @@ export default function DashboardPage() {
           setActivePlatform={setActivePlatform}
         />
 
-        {/* Metric Cards */}
         <div className="mt-5">
-          <MetricCards />
+          <MetricCards
+            data={metricsQ.data}
+            loading={metricsQ.isLoading}
+          />
         </div>
 
-        {/* Charts Row */}
         <div className="mt-5 flex flex-wrap gap-3.5">
-          <PerformanceChart activePlatform={activePlatform} dateRange={dateRange} />
-          <HourlyChart />
+          <PerformanceChart
+            activePlatform={activePlatform}
+            dateRange={dateRange}
+            data={chartQ.data}
+            loading={chartQ.isLoading}
+          />
+          <HourlyChart
+            data={hourlyQ.data}
+            loading={hourlyQ.isLoading}
+          />
         </div>
 
-        {/* Platform Summary */}
         <div className="mt-5">
-          <PlatformSummary />
+          <PlatformSummary
+            data={platformQ.data}
+            loading={platformQ.isLoading}
+          />
         </div>
 
-        {/* Campaigns Table */}
         <div className="mt-5">
-          <CampaignTable activePlatform={activePlatform} />
+          <CampaignTable
+            activePlatform={activePlatform}
+            data={campaignsQ.data}
+            loading={campaignsQ.isLoading}
+          />
         </div>
       </div>
     </div>
