@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MembersTab } from '@/components/settings/MembersTab';
 import { AdAccountsTab } from '@/components/settings/AdAccountsTab';
+import { ProfileTab } from '@/components/settings/ProfileTab';
+import { OrgTab } from '@/components/settings/OrgTab';
 import { useOrganization } from '@/hooks/useOrganization';
 
 const VALID_TABS = ['profile', 'organization', 'members', 'ad-accounts'] as const;
@@ -41,15 +43,15 @@ function SettingsContent() {
       </TabsList>
 
       <TabsContent value="profile">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-          Profile settings — coming soon (Task 18.2)
-        </div>
+        <Suspense fallback={
+          <div className="text-sm text-gray-400 py-8 text-center">Loading profile…</div>
+        }>
+          <ProfileTab />
+        </Suspense>
       </TabsContent>
 
       <TabsContent value="organization">
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-          Organization settings — coming soon (Task 18.3)
-        </div>
+        <OrgTab />
       </TabsContent>
 
       <TabsContent value="members">
