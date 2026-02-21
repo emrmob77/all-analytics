@@ -10,11 +10,12 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { DEMO_CHART_DATA, PLATFORMS, type AdPlatform } from '@/types';
+import { DEMO_CHART_DATA, PLATFORMS, type AdPlatform, type DateRange } from '@/types';
+import { dateRangeDays } from '@/lib/date';
 
 interface PerformanceChartProps {
   activePlatform: AdPlatform | 'all';
-  dateRange: string;
+  dateRange: DateRange;
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -25,12 +26,12 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export function PerformanceChart({ activePlatform, dateRange }: PerformanceChartProps) {
-  const dataLength = dateRange === '7d' ? 7 : dateRange === '90d' ? 90 : 30;
-  const chartData = DEMO_CHART_DATA.slice(0, dataLength);
+  const days = Math.min(dateRangeDays(dateRange), 90);
+  const chartData = DEMO_CHART_DATA.slice(0, days);
   const activeColor = PLATFORM_COLORS[activePlatform] || '#1A73E8';
   const activePlatformConfig = PLATFORMS.find(p => p.id === activePlatform);
 
-  const dateRangeLabel = dateRange === '7d' ? 'Last 7 days' : dateRange === '90d' ? 'Last 90 days' : 'Last 30 days';
+  const dateRangeLabel = `Last ${days} day${days === 1 ? '' : 's'}`;
 
   return (
     <div className="flex-[2_1_380px] min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px]">
