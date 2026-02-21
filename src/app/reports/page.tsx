@@ -24,8 +24,14 @@ import { cn } from '@/lib/utils';
 // Helpers
 // ---------------------------------------------------------------------------
 
+// Uses local year/month/date (not UTC) to avoid off-by-one for users
+// east of UTC — toISOString() converts to UTC first so midnight local time
+// in UTC+5 would yield the previous day's date string.
 function toDateString(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function defaultRange(): DateRange {
