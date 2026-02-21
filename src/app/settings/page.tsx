@@ -7,9 +7,10 @@ import { MembersTab } from '@/components/settings/MembersTab';
 import { AdAccountsTab } from '@/components/settings/AdAccountsTab';
 import { ProfileTab } from '@/components/settings/ProfileTab';
 import { OrgTab } from '@/components/settings/OrgTab';
+import { NotificationPreferencesTab } from '@/components/settings/NotificationPreferencesTab';
 import { useOrganization } from '@/hooks/useOrganization';
 
-const VALID_TABS = ['profile', 'organization', 'members', 'ad-accounts'] as const;
+const VALID_TABS = ['profile', 'organization', 'members', 'ad-accounts', 'notifications'] as const;
 type TabValue = typeof VALID_TABS[number];
 
 function isValidTab(value: string | null): value is TabValue {
@@ -40,6 +41,7 @@ function SettingsContent() {
         <TabsTrigger value="organization">Organization</TabsTrigger>
         <TabsTrigger value="members">Members</TabsTrigger>
         <TabsTrigger value="ad-accounts">Ad Accounts</TabsTrigger>
+        <TabsTrigger value="notifications">Notifications</TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile">
@@ -68,6 +70,10 @@ function SettingsContent() {
         }>
           <AdAccountsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
         </Suspense>
+      </TabsContent>
+
+      <TabsContent value="notifications">
+        <NotificationPreferencesTab />
       </TabsContent>
     </Tabs>
   );

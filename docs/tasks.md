@@ -450,25 +450,26 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Picture upload test
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
-- [ ] 19. Notification system
-  - [ ] 19.1 Email notification service
-    - NotificationService implementation
-    - Email templates (invitation, token refresh failure, budget alert, sync failure)
-    - Email sending logic (60 saniye timeout)
+- [x] 19. Notification system ✅
+  - [x] 19.1 Email notification service ✅
+    - send-notification-email Edge Function (Resend, 60s timeout)
+    - Templates: budget_alert, sync_failure, token_refresh_failure
     - _Requirements: 2.3, 3.7, 20.1, 20.2, 20.3, 20.4_
-  
-  - [ ] 19.2 Notification triggers
-    - OAuth token refresh failure trigger
-    - Campaign budget alert trigger (90% threshold)
-    - Sync failure trigger (3 consecutive failures)
+
+  - [x] 19.2 Notification triggers ✅
+    - check-notifications Edge Function (cron: saatte bir)
+    - Budget alert: campaigns >= 90% of daily budget (24h dedup)
+    - Sync failure: 3 consecutive failures per account (4h dedup)
+    - Token refresh failure: error pattern detection in sync_logs (24h dedup)
     - _Requirements: 20.1, 20.2, 20.4_
-  
-  - [ ] 19.3 Notification preferences
-    - User notification preferences table
-    - Preferences UI in settings
-    - Preference check before sending
+
+  - [x] 19.3 Notification preferences ✅
+    - notification_preferences + notification_logs DB tables + RLS
+    - getNotificationPreferences / updateNotificationPreferences server actions
+    - NotificationPreferencesTab UI (toggle switches, auto-save)
+    - Settings page Notifications tab eklendi
     - _Requirements: 20.5, 20.6_
-  
+
   - [ ]* 19.4 Notification system için unit tests
     - Email sending test
     - Trigger logic test
