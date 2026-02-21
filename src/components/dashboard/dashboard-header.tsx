@@ -2,6 +2,8 @@
 
 import { DateRangePicker, type DateRange } from '@/components/ui/date-range-picker';
 import { PlatformFilter } from '@/components/ui/platform-filter';
+import { SyncStatusIndicator } from '@/components/dashboard/SyncStatusIndicator';
+import { useRole } from '@/hooks/useRole';
 import { addDays } from '@/lib/date';
 import type { AdPlatform } from '@/types';
 
@@ -38,6 +40,7 @@ export function DashboardHeader({
   setActivePlatform,
 }: DashboardHeaderProps) {
   const activePreset = detectQuickPreset(dateRange);
+  const { isAdmin } = useRole();
 
   return (
     <div className="space-y-5">
@@ -45,7 +48,9 @@ export function DashboardHeader({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.3px] text-[#202124]">Campaign Overview</h1>
-          <p className="mt-0.5 text-xs text-[#9AA0A6]">All platforms · Updated just now</p>
+          <div className="mt-1">
+            <SyncStatusIndicator isAdmin={isAdmin} />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
