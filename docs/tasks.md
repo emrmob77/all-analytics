@@ -476,23 +476,24 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Preference check test
     - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5, 20.6_
 
-- [ ] 20. Error handling ve logging
-  - [ ] 20.1 Sentry integration
-    - Sentry SDK kurulumu
-    - Error boundary components
-    - API error tracking
+- [x] 20. Error handling ve logging ✅
+  - [x] 20.1 Sentry integration ✅
+    - @sentry/nextjs kuruldu
+    - sentry.client/server/edge.config.ts oluşturuldu
+    - next.config.ts withSentryConfig wrapper ile güncellendi (tunnel, source maps)
+    - global-error.tsx + error.tsx + segment error sayfaları (dashboard, campaigns, reports, settings)
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
-  
-  - [ ] 20.2 Logging utilities
-    - Structured logging functions
-    - Log levels (error, warn, info, debug)
-    - Log retention (90 gün)
+
+  - [x] 20.2 Logging utilities ✅
+    - src/lib/logger.ts: debug/info/warn/error seviyeleri
+    - Production'da warn/error → Sentry.captureException/captureMessage
+    - Development'da console-only (no PII sent)
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
-  
-  - [ ] 20.3 User-friendly error messages
-    - Error message mapping
-    - Toast notifications for errors
-    - Fallback UI for critical errors
+
+  - [x] 20.3 User-friendly error messages ✅
+    - src/lib/error-messages.ts: getUserFriendlyError() ile hata eşleme
+    - Sonner <Toaster> root layout'a eklendi (bottom-right, richColors)
+    - Fallback UI: global-error.tsx + segment error.tsx sayfaları
     - _Requirements: 16.3, 17.4_
 
 - [ ] 21. Analytics ve monitoring
