@@ -1,21 +1,27 @@
 'use client';
 
 import { MetricCard } from '@/components/ui/metric-card';
+import type { DashboardMetrics } from '@/lib/actions/dashboard';
 
-const STATS: React.ComponentProps<typeof MetricCard>[] = [
-  { title: 'Total Impressions', value: 5962000,  change: 12.4,  format: 'number',     delay: 0   },
-  { title: 'Total Clicks',      value: 105300,   change: 8.7,   format: 'number',     delay: 70  },
-  { title: 'Total Spend',       value: 10471,    change: 5.2,   format: 'currency',   delay: 140 },
-  { title: 'Avg. CTR',          value: 1.77,     change: 0.3,   format: 'percentage', delay: 210 },
-  { title: 'Conversions',       value: 1722,     change: 18.1,  format: 'number',     delay: 280 },
-  { title: 'Avg. ROAS',         value: 4.58,     change: 2.1,   format: 'number',     decimals: 2, suffix: 'x', delay: 350 },
-];
+interface MetricCardsProps {
+  data?: DashboardMetrics | null;
+  loading?: boolean;
+}
 
-export function MetricCards({ loading = false }: { loading?: boolean }) {
+export function MetricCards({ data, loading = false }: MetricCardsProps) {
+  const cards = [
+    { title: 'Total Impressions', value: data?.totalImpressions ?? 0, change: data?.impressionsChange ?? undefined, format: 'number'     as const, delay: 0   },
+    { title: 'Total Clicks',      value: data?.totalClicks      ?? 0, change: data?.clicksChange      ?? undefined, format: 'number'     as const, delay: 70  },
+    { title: 'Total Spend',       value: data?.totalSpend       ?? 0, change: data?.spendChange       ?? undefined, format: 'currency'   as const, delay: 140 },
+    { title: 'Avg. CTR',          value: data?.avgCtr           ?? 0, change: data?.ctrChange         ?? undefined, format: 'percentage' as const, delay: 210 },
+    { title: 'Conversions',       value: data?.totalConversions ?? 0, change: data?.conversionsChange ?? undefined, format: 'number'     as const, delay: 280 },
+    { title: 'Avg. ROAS',         value: data?.avgRoas          ?? 0, change: data?.roasChange        ?? undefined, format: 'number'     as const, decimals: 2, suffix: 'x', delay: 350 },
+  ];
+
   return (
     <div className="flex flex-wrap gap-3">
-      {STATS.map((stat) => (
-        <MetricCard key={stat.title} {...stat} loading={loading} />
+      {cards.map((card) => (
+        <MetricCard key={card.title} {...card} loading={loading} />
       ))}
     </div>
   );
