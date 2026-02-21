@@ -103,14 +103,23 @@ export function ProfileTab() {
     setNameSaved(false);
     startNameTransition(async () => {
       const supabase = getBrowserSupabase();
-      // Update auth metadata in parallel with public.users
-      const [authResult, dbResult] = await Promise.all([
-        supabase.auth.updateUser({ data: { full_name: nameValue.trim() } }),
-        updateDisplayName(nameValue),
-      ]);
+      const trimmed = nameValue.trim();
 
-      if (authResult.error) { setNameError(authResult.error.message); return; }
-      if (dbResult.error)   { setNameError(dbResult.error); return; }
+      // Step 1: Update public.users first — if this fails, auth is untouched.
+      const dbResult = await updateDisplayName(trimmed);
+      if (dbResult.error) { setNameError(dbResult.error); return; }
+
+      // Step 2: Update auth metadata only after DB succeeds.
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { full_name: trimmed },
+      });
+      if (authError) {
+        // Rollback the DB change to keep both stores in sync.
+        await updateDisplayName(profile?.fullName ?? '');
+        setNameError(authError.message);
+        return;
+      }
+
       setNameSaved(true);
       setTimeout(() => setNameSaved(false), 3000);
     });
