@@ -73,10 +73,16 @@ export function MetricCard({
 }: MetricCardProps) {
   const [visible, setVisible] = useState(false);
 
+  // Reset and re-trigger the fade-in animation whenever loading transitions
+  // from true → false, so the staggered entrance always plays after data loads.
   useEffect(() => {
+    if (loading) {
+      setVisible(false);
+      return;
+    }
     const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
-  }, [delay]);
+  }, [loading, delay]);
 
   const prefix = format === 'currency' ? '$' : '';
   const suffix = suffixOverride !== undefined ? suffixOverride : format === 'percentage' ? '%' : '';

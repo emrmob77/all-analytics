@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import {
   AreaChart, Area,
   BarChart, Bar,
@@ -64,6 +65,8 @@ export function ChartContainer({
   showLegend = false,
   showGrid = true,
 }: ChartContainerProps) {
+  const instanceId = useId();
+
   if (loading) return <ChartSkeleton height={height} />;
 
   const commonAxis = {
@@ -153,7 +156,7 @@ export function ChartContainer({
       <AreaChart data={data} margin={{ top: 4, right: 4, left: -15, bottom: 0 }}>
         <defs>
           {yKeys.map((key, i) => (
-            <linearGradient key={key} id={`grad-${key}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient key={key} id={`grad-${instanceId}-${key}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.18} />
               <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0} />
             </linearGradient>
@@ -171,7 +174,7 @@ export function ChartContainer({
             dataKey={key}
             stroke={colors[i % colors.length]}
             strokeWidth={2}
-            fill={`url(#grad-${key})`}
+            fill={`url(#grad-${instanceId}-${key})`}
             dot={false}
             animationDuration={700}
           />
