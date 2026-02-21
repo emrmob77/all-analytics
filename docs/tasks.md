@@ -496,17 +496,19 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Fallback UI: global-error.tsx + segment error.tsx sayfaları
     - _Requirements: 16.3, 17.4_
 
-- [ ] 21. Analytics ve monitoring
-  - [ ] 21.1 Posthog integration
-    - Posthog SDK kurulumu
-    - Event tracking (page views, button clicks, form submissions)
-    - User identification
+- [x] 21. Analytics ve monitoring ✅
+  - [x] 21.1 Posthog integration ✅
+    - posthog-js kuruldu
+    - PostHogProvider: pageview otomatik takip, session recording (masked)
+    - User identification: auth user → posthog.identify(); logout → posthog.reset()
+    - src/lib/analytics.ts: typed track() helper, event catalogue
+    - Dev modda opt_out_capturing() ile veri gönderilmez
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
-  
-  - [ ] 21.2 Performance monitoring
-    - Web Vitals tracking (LCP, FID, INP, CLS)
-    - Custom performance metrics
-    - Performance alerts
+
+  - [x] 21.2 Performance monitoring ✅
+    - WebVitalsReporter: useReportWebVitals → PostHog 'web_vital' event
+    - Budget kontrolü: LCP < 2.5s, INP < 200ms, CLS < 0.1, FCP < 1.8s, TTFB < 800ms
+    - Budget aşımı → console.warn (production) + exceeds_budget: true property
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
 
 - [ ] 22. Final integration ve testing
