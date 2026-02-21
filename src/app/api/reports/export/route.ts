@@ -227,17 +227,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Race report generation against a 30-second deadline.
-    // Promise.race ensures the timeout promise actually races the data fetch —
-    // the previous AbortController approach set controller.signal but never
-    // passed it to getReportData, so the abort had no effect.
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 30_000),
-    );
+    // clearTimeout is called after the race so the losing timeout promise never
+    // fires — without it, a successful export would produce an unhandled
+    // rejection 30 s later when the setTimeout finally ran and rejected a
+    // promise nobody was listening to anymore.
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 30_000);
+    });
 
-    const { data, error } = await Promise.race([
-      getReportData({ from, to, platform, campaignIds }),
-      timeoutPromise,
-    ]);
+    let result: Awaited<ReturnType<typeof getReportData>>;
+    try {
+      result = await Promise.race([
+        getReportData({ from, to, platform, campaignIds }),
+        timeoutPromise,
+      ]);
+    } finally {
+      clearTimeout(timeoutId!);
+    }
+
+    const { data, error } = result!;
 
     if (error || !data) {
       return NextResponse.json({ error: error ?? 'Failed to generate report' }, { status: 500 });
