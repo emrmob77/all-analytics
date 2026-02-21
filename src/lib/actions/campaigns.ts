@@ -151,6 +151,8 @@ export async function bulkUpdateCampaignStatus(
   campaignIds: string[],
   newStatus: CampaignStatus,
 ): Promise<{ error: string | null }> {
+  if (!campaignIds.length) return { error: null };
+
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
 

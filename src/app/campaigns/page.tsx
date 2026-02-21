@@ -276,6 +276,9 @@ export default function CampaignsPage() {
           setRowSelection({});
           setBulkAction(null);
         },
+        onError: () => {
+          setBulkAction(null);
+        },
       },
     );
   }
