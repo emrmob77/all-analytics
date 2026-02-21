@@ -126,10 +126,10 @@ export default function CampaignsPage() {
   const [rowSelection, setRowSelection]     = useState<RowSelectionState>({});
   const [bulkAction, setBulkAction]         = useState<CampaignStatus | null>(null);
 
-  // Reset row selection whenever any query param changes
+  // Reset row selection whenever any query param (including sort) changes
   useEffect(() => {
     setRowSelection({});
-  }, [dateRange, activePlatform, statusFilter, search, page]);
+  }, [dateRange, activePlatform, statusFilter, search, page, sorting]);
 
   const sortCol = (sorting[0]?.id ?? 'spend') as SortableCampaignColumn;
   const sortDir = sorting[0]?.desc !== false ? 'desc' : 'asc';

@@ -79,7 +79,8 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
     query = query.ilike('name', `%${escaped}%`);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  // No .order() here — JS-side sort below handles ordering before pagination
+  const { data, error } = await query;
   if (error) return { data: [], total: 0, error: error.message };
 
   type RawRow = {
@@ -156,6 +157,7 @@ export async function bulkUpdateCampaignStatus(
   newStatus: CampaignStatus,
 ): Promise<{ error: string | null }> {
   if (!campaignIds.length) return { error: null };
+  if (campaignIds.length > 500) return { error: 'Too many campaigns selected (max 500)' };
 
   const orgId = await getOrgId();
   if (!orgId) return { error: 'No organization found' };
