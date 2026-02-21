@@ -383,30 +383,30 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
     - Chart rendering test
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 17. Reports page ve export functionality
-  - [ ] 17.1 Reports page layout
+- [x] 17. Reports page ve export functionality ✅
+  - [x] 17.1 Reports page layout ✅
     - Page layout (/reports/page.tsx)
     - Report builder UI
     - Date range selector
     - Platform filter
     - Campaign selector
     - _Requirements: 10.1, 10.2, 10.3_
-  
-  - [ ] 17.2 Report preview
+
+  - [x] 17.2 Report preview ✅
     - Aggregated metrics display
     - Platform comparison data
     - Report generation timestamp
     - _Requirements: 10.4, 10.5, 10.10_
-  
-  - [ ] 17.3 Export functionality
+
+  - [x] 17.3 Export functionality ✅
     - API route: /api/reports/export
     - CSV export
     - Excel export
-    - PDF export
+    - PDF export (HTML print-to-PDF)
     - 30 saniye generation timeout
-    - Signed URL for download
+    - Download via blob URL
     - _Requirements: 10.6, 10.7, 10.8, 10.9_
-  
+
   - [ ]* 17.4 Reports için unit tests
     - Report generation test
     - Export format test

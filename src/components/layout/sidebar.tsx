@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { GoogleIcon, MetaIcon, TikTokIcon, PinterestIcon } from '@/components/ui/platform-icons';
 import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
+import { getCampaignCount } from '@/lib/actions/campaigns';
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', href: '/dashboard' },
@@ -38,6 +40,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const user = useUser();
   const { organization, role } = useOrganization();
+
+  const { data: campaignCount } = useQuery<number>({
+    queryKey: ['campaign-count'],
+    queryFn: () => getCampaignCount(),
+    staleTime: 60_000,
+  });
 
   return (
     <aside className="flex h-full w-[220px] flex-col border-r border-[#E3E8EF] bg-[#FAFAFA]">
@@ -75,6 +83,7 @@ export function Sidebar() {
         <nav className="space-y-[1px]">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+            const badge = item.id === 'campaigns' && campaignCount ? campaignCount : null;
 
             return (
               <Link
@@ -88,14 +97,14 @@ export function Sidebar() {
                 )}
               >
                 <span className="flex-1">{item.label}</span>
-                {item.badge && (
+                {badge && (
                   <span
                     className={cn(
                       'rounded px-1.5 py-[1px] text-[10px] font-bold',
                       isActive ? 'bg-[#1A73E8] text-white' : 'bg-[#E3E8EF] text-[#5F6368]'
                     )}
                   >
-                    {item.badge}
+                    {badge}
                   </span>
                 )}
               </Link>
