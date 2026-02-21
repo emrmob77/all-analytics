@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
 
   // Tree-shake large packages at build time
   experimental: {
-    optimizePackageImports: ['recharts', 'lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['recharts', 'lucide-react', 'radix-ui'],
   },
 
   // Cache headers
