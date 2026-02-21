@@ -9,6 +9,7 @@ import {
   type SortingState,
   type RowSelectionState,
 } from '@tanstack/react-table';
+import Link from 'next/link';
 import { addDays } from '@/lib/date';
 import { formatCurrency, formatNumber, formatInteger } from '@/lib/format';
 import { PLATFORMS, STATUS_STYLES } from '@/types';
@@ -351,7 +352,13 @@ export default function CampaignsPage() {
       colHelper.accessor('name', {
         header: 'Campaign',
         cell: (info) => (
-          <span className="font-medium text-[#202124]">{info.getValue()}</span>
+          <Link
+            href={`/campaigns/${info.row.original.id}`}
+            className="font-medium text-[#202124] hover:text-[#1A73E8] hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {info.getValue()}
+          </Link>
         ),
       }),
       colHelper.accessor('platform', {
