@@ -34,9 +34,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Public folder assets — cache 24 hours
+        // Public folder image assets — cache 24 hours
+        // Use 'image/.*' so only actual image requests (Accept: image/avif,…)
+        // match — not HTML navigations which also contain 'image' in Accept.
         source: '/:path((?!_next).*)',
-        has: [{ type: 'header', key: 'accept', value: '.*image.*' }],
+        has: [{ type: 'header', key: 'accept', value: 'image/.*' }],
         headers: [
           {
             key: 'Cache-Control',
