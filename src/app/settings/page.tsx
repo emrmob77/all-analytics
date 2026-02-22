@@ -76,7 +76,7 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <div className="px-6 py-6 lg:px-8 max-w-3xl">
+    <div className="mx-auto max-w-3xl px-6 py-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Manage your organization and team</p>

@@ -53,7 +53,7 @@ export default function AdGroupsPage() {
   }, [search, platformFilter]);
 
   return (
-    <div className="px-6 py-6 lg:px-8 max-w-[1280px]">
+    <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-[#202124] tracking-tight">Ad Groups</h1>
