@@ -16,16 +16,16 @@ const MembersTab = dynamic(
   () => import('@/components/settings/MembersTab').then((m) => m.MembersTab),
   { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading members…</div> },
 );
-const AdAccountsTab = dynamic(
-  () => import('@/components/settings/AdAccountsTab').then((m) => m.AdAccountsTab),
-  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading ad accounts…</div> },
+const ConnectionsTab = dynamic(
+  () => import('@/components/settings/ConnectionsTab').then((m) => m.ConnectionsTab),
+  { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading connections…</div> },
 );
 const NotificationPreferencesTab = dynamic(
   () => import('@/components/settings/NotificationPreferencesTab').then((m) => m.NotificationPreferencesTab),
   { loading: () => <div className="text-sm text-gray-400 py-8 text-center">Loading…</div> },
 );
 
-const VALID_TABS = ['profile', 'organization', 'members', 'ad-accounts', 'notifications'] as const;
+const VALID_TABS = ['profile', 'organization', 'members', 'connections', 'notifications'] as const;
 type TabValue = typeof VALID_TABS[number];
 
 function isValidTab(value: string | null): value is TabValue {
@@ -47,7 +47,7 @@ function SettingsContent() {
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="organization">Organization</TabsTrigger>
         <TabsTrigger value="members">Members</TabsTrigger>
-        <TabsTrigger value="ad-accounts">Ad Accounts</TabsTrigger>
+        <TabsTrigger value="connections">Connections</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
       </TabsList>
 
@@ -63,8 +63,8 @@ function SettingsContent() {
         <MembersTab callerRole={callerRole as 'owner' | 'admin' | 'member' | 'viewer'} />
       </TabsContent>
 
-      <TabsContent value="ad-accounts">
-        <AdAccountsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
+      <TabsContent value="connections">
+        <ConnectionsTab isAdmin={callerRole === 'owner' || callerRole === 'admin'} />
       </TabsContent>
 
       <TabsContent value="notifications">
