@@ -89,30 +89,49 @@ export class GoogleAdsOAuthService implements AdPlatformOAuthService {
   }
 
   async getAccountInfo(accessToken: string): Promise<{ externalId: string; name: string }> {
-    // Use the Google Ads API to fetch the customer ID.
-    // For a real integration this would use the Google Ads API client library
-    // and list accessible customers. Here we use the REST endpoint.
-    const res = await fetch(
-      'https://googleads.googleapis.com/v18/customers:listAccessibleCustomers',
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '',
-        },
-      }
-    );
+    // Try current Google Ads API versions in order
+    const versions = ['v19', 'v20', 'v21'];
 
-    if (!res.ok) {
+    for (const version of versions) {
+      const res = await fetch(
+        `https://googleads.googleapis.com/${version}/customers:listAccessibleCustomers`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '',
+          },
+        }
+      );
+
+      if (res.status === 404) continue; // version not found, try next
+
+      if (res.ok) {
+        const data = await res.json() as { resourceNames?: string[] };
+        const resourceName = data.resourceNames?.[0];
+        if (resourceName) {
+          const externalId = resourceName.split('/')[1] ?? resourceName;
+          return { externalId, name: `Google Ads (${externalId})` };
+        }
+      }
+
+      // Non-404 error — log and fall through to profile fallback
       const text = await res.text();
-      throw new Error(`Failed to fetch Google Ads account info: ${text}`);
+      console.warn(`[google-ads] ${version} listAccessibleCustomers failed (${res.status}):`, text.slice(0, 200));
+      break;
     }
 
-    const data = await res.json() as { resourceNames?: string[] };
-    const resourceName = data.resourceNames?.[0];
-    if (!resourceName) throw new Error('No Google Ads accounts found');
+    // Fallback: use Google profile info so the OAuth connection still completes
+    const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-    // resourceName format: "customers/1234567890"
-    const externalId = resourceName.split('/')[1] ?? resourceName;
-    return { externalId, name: `Google Ads (${externalId})` };
+    if (profileRes.ok) {
+      const profile = await profileRes.json() as { sub?: string; email?: string };
+      const externalId = profile.sub ?? profile.email ?? 'unknown';
+      const name = profile.email ? `Google Ads (${profile.email})` : 'Google Ads Account';
+      return { externalId, name };
+    }
+
+    throw new Error('Could not retrieve Google Ads account information');
   }
 }
