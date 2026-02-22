@@ -8,6 +8,8 @@ const ERROR_MAP: Record<string, string> = {
   'Invalid login credentials':         'Incorrect email or password.',
   'Email not confirmed':               'Please verify your email before signing in.',
   'User already registered':           'An account with this email already exists.',
+  'email rate limit exceeded':         'Too many sign-up attempts. Please try again in a few minutes.',
+  'over_email_send_rate_limit':        'Too many sign-up attempts. Please try again in a few minutes.',
   'Password should be at least 6 characters': 'Password must be at least 6 characters.',
   'Token has expired or is invalid':   'Your session has expired. Please sign in again.',
   'JWT expired':                       'Your session has expired. Please sign in again.',
