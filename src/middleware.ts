@@ -19,5 +19,6 @@ export const config = {
     '/billing/:path*',
     '/login',
     '/register',
+    '/invitations/:path*',
   ],
 }
