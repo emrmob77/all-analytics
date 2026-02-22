@@ -43,6 +43,12 @@ export async function updateSession(request: NextRequest) {
     '/creatives',
     '/budget',
     '/billing',
+    '/google-ads',
+    '/meta-ads',
+    '/tiktok-ads',
+    '/pinterest-ads',
+    '/google-analytics',
+    '/search-console',
   ]
   const isProtectedPath = protectedPaths.some((path) =>
     pathname.startsWith(path)

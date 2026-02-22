@@ -6,7 +6,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useRef, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { cn } from '@/lib/utils';
-import { GoogleIcon, MetaIcon, TikTokIcon, PinterestIcon } from '@/components/ui/platform-icons';
+import {
+  GoogleIcon,
+  MetaIcon,
+  TikTokIcon,
+  PinterestIcon,
+  GA4Icon,
+  SearchConsoleIcon,
+} from '@/components/ui/platform-icons';
 import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
@@ -22,6 +29,97 @@ const NAV_ITEMS = [
   { id: 'billing', label: 'Billing', href: '/billing' },
   { id: 'reports', label: 'Reports', href: '/reports' },
   { id: 'settings', label: 'Settings', href: '/settings' },
+];
+
+interface PlatformGroup {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  basePath: string;
+  items: { label: string; href: string }[];
+}
+
+const PLATFORM_GROUPS: PlatformGroup[] = [
+  {
+    id: 'google-ads',
+    label: 'Google Ads',
+    icon: GoogleIcon,
+    basePath: '/google-ads',
+    items: [
+      { label: 'Overview', href: '/google-ads' },
+      { label: 'Search', href: '/google-ads/search' },
+      { label: 'Display', href: '/google-ads/display' },
+      { label: 'Demand Gen', href: '/google-ads/demand-gen' },
+      { label: 'Shopping', href: '/google-ads/shopping' },
+      { label: 'Performance Max', href: '/google-ads/performance-max' },
+      { label: 'Video', href: '/google-ads/video' },
+      { label: 'App', href: '/google-ads/app' },
+    ],
+  },
+  {
+    id: 'meta-ads',
+    label: 'Meta Ads',
+    icon: MetaIcon,
+    basePath: '/meta-ads',
+    items: [
+      { label: 'Overview', href: '/meta-ads' },
+      { label: 'Campaign Type', href: '/meta-ads/campaign-type' },
+      { label: 'Creative Performance', href: '/meta-ads/creative-performance' },
+      { label: 'Catalog Sets', href: '/meta-ads/catalog-sets' },
+      { label: 'Audiences', href: '/meta-ads/audiences' },
+    ],
+  },
+  {
+    id: 'tiktok-ads',
+    label: 'TikTok Ads',
+    icon: TikTokIcon,
+    basePath: '/tiktok-ads',
+    items: [
+      { label: 'Overview', href: '/tiktok-ads' },
+      { label: 'Campaigns', href: '/tiktok-ads/campaigns' },
+      { label: 'Ad Groups', href: '/tiktok-ads/ad-groups' },
+      { label: 'Creatives', href: '/tiktok-ads/creatives' },
+      { label: 'Audiences', href: '/tiktok-ads/audiences' },
+    ],
+  },
+  {
+    id: 'pinterest-ads',
+    label: 'Pinterest Ads',
+    icon: PinterestIcon,
+    basePath: '/pinterest-ads',
+    items: [
+      { label: 'Overview', href: '/pinterest-ads' },
+      { label: 'Campaigns', href: '/pinterest-ads/campaigns' },
+      { label: 'Ad Groups', href: '/pinterest-ads/ad-groups' },
+      { label: 'Pins', href: '/pinterest-ads/pins' },
+      { label: 'Audiences', href: '/pinterest-ads/audiences' },
+    ],
+  },
+  {
+    id: 'google-analytics',
+    label: 'Google Analytics 4',
+    icon: GA4Icon,
+    basePath: '/google-analytics',
+    items: [
+      { label: 'Overview', href: '/google-analytics' },
+      { label: 'Acquisition', href: '/google-analytics/acquisition' },
+      { label: 'Engagement', href: '/google-analytics/engagement' },
+      { label: 'Monetization', href: '/google-analytics/monetization' },
+      { label: 'Reports', href: '/google-analytics/reports' },
+    ],
+  },
+  {
+    id: 'search-console',
+    label: 'Search Console',
+    icon: SearchConsoleIcon,
+    basePath: '/search-console',
+    items: [
+      { label: 'Overview', href: '/search-console' },
+      { label: 'Performance', href: '/search-console/performance' },
+      { label: 'Coverage', href: '/search-console/coverage' },
+      { label: 'Sitemaps', href: '/search-console/sitemaps' },
+    ],
+  },
 ];
 
 const CONNECTED_PLATFORMS = [
@@ -45,7 +143,18 @@ export function Sidebar() {
   const user = useUser();
   const { organization, role } = useOrganization();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-expand the platform group that matches the current path
+  useEffect(() => {
+    const active = PLATFORM_GROUPS.find(
+      (g) => pathname === g.basePath || pathname?.startsWith(g.basePath + '/')
+    );
+    if (active) {
+      setOpenPlatforms((prev) => ({ ...prev, [active.id]: true }));
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -64,6 +173,10 @@ export function Sidebar() {
     );
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const togglePlatform = (id: string) => {
+    setOpenPlatforms((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const { data: campaignCount } = useQuery<number>({
@@ -102,6 +215,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-[10px]">
+        {/* Main Menu */}
         <div className="mb-2 px-2 text-[9.5px] font-semibold uppercase tracking-[1px] text-[#9AA0A6]">
           Menu
         </div>
@@ -133,6 +247,73 @@ export function Sidebar() {
                   </span>
                 )}
               </Link>
+            );
+          })}
+        </nav>
+
+        {/* Platforms Section */}
+        <div className="mt-4 mb-2 px-2 text-[9.5px] font-semibold uppercase tracking-[1px] text-[#9AA0A6]">
+          Platforms
+        </div>
+        <nav className="space-y-[1px]">
+          {PLATFORM_GROUPS.map((group) => {
+            const Icon = group.icon;
+            const isOpen = !!openPlatforms[group.id];
+            const isGroupActive =
+              pathname === group.basePath || pathname?.startsWith(group.basePath + '/');
+
+            return (
+              <div key={group.id}>
+                {/* Group header button */}
+                <button
+                  onClick={() => togglePlatform(group.id)}
+                  className={cn(
+                    'flex w-full items-center gap-[9px] rounded-lg px-[10px] py-[7px] text-[13px] transition-all duration-150',
+                    isGroupActive && !isOpen
+                      ? 'border border-[#D2E3FC] bg-[#E8F0FE] font-semibold text-[#1A73E8]'
+                      : 'border border-transparent text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]'
+                  )}
+                >
+                  <Icon size={13} />
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <svg
+                    width="10"
+                    height="10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    className={cn('shrink-0 transition-transform duration-200', isOpen && 'rotate-180')}
+                  >
+                    <path d="M1.5 3l3.5 3.5L8.5 3" />
+                  </svg>
+                </button>
+
+                {/* Sub-items */}
+                {isOpen && (
+                  <div className="ml-[10px] mt-[1px] space-y-[1px] border-l border-[#E3E8EF] pl-[10px]">
+                    {group.items.map((item) => {
+                      const isActive =
+                        pathname === item.href ||
+                        (item.href !== group.basePath && pathname?.startsWith(item.href + '/'));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            'flex items-center rounded-md px-[8px] py-[5px] text-[12px] transition-all duration-150',
+                            isActive
+                              ? 'bg-[#E8F0FE] font-semibold text-[#1A73E8]'
+                              : 'text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]'
+                          )}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>

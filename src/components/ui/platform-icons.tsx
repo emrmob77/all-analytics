@@ -45,6 +45,26 @@ export function PinterestIcon({ size = 14, ...rest }: IconProps) {
   );
 }
 
+export function GA4Icon({ size = 14, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} {...rest}>
+      <rect x="2" y="11" width="3.5" height="7" rx="1" fill="#E37400"/>
+      <rect x="8.25" y="6" width="3.5" height="12" rx="1" fill="#FBBC04"/>
+      <rect x="14.5" y="2" width="3.5" height="16" rx="1" fill="#34A853"/>
+    </svg>
+  );
+}
+
+export function SearchConsoleIcon({ size = 14, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} {...rest}>
+      <circle cx="8.5" cy="8.5" r="5.5" stroke="#4285F4" strokeWidth="2" fill="none"/>
+      <path d="M12.5 12.5L17 17" stroke="#34A853" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M6 8.5h5M8.5 6v5" stroke="#4285F4" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export function PlatformIcon({ platform, size = 14, className }: PlatformIconProps) {
   switch (platform) {
     case 'google':
