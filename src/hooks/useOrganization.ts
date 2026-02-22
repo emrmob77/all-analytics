@@ -1,8 +1,10 @@
 'use client';
 
-// Re-export types so existing imports stay unchanged
+import { useOrganizationContext } from '@/components/providers/OrganizationProvider';
+
 export type { Organization, OrgMembership } from '@/lib/actions/organization';
 
-// Delegate to the shared OrganizationProvider — org data is fetched once
-// at AppShell level and shared across Sidebar, page content, and tab components.
-export { useOrganizationContext as useOrganization } from '@/components/providers/OrganizationProvider';
+// Thin wrapper so existing call-sites don't need to change import paths.
+export function useOrganization() {
+  return useOrganizationContext();
+}
