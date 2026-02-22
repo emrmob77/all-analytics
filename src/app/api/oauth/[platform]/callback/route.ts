@@ -106,11 +106,16 @@ export async function GET(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const redirectUri = `${appUrl}/api/oauth/${platform}/callback`;
 
+  console.log(`[oauth/${platform}] redirectUri:`, redirectUri);
+
   try {
     const service = getAdPlatformService(platform);
 
     const tokens = await service.exchangeCodeForToken(code, redirectUri);
+    console.log(`[oauth/${platform}] token exchange OK`);
+
     const accountInfo = await service.getAccountInfo(tokens.accessToken);
+    console.log(`[oauth/${platform}] accountInfo:`, accountInfo);
 
     // 6. Upsert ad_account
     const { data: adAccount, error: upsertError } = await supabase
@@ -131,6 +136,7 @@ export async function GET(
       .single();
 
     if (upsertError || !adAccount) {
+      console.error(`[oauth/${platform}] upsert ad_account error:`, upsertError?.message);
       return redirectWithCookieDeletion(
         new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
         cookieName,
@@ -157,6 +163,7 @@ export async function GET(
       );
 
     if (tokenError) {
+      console.error(`[oauth/${platform}] upsert token error:`, tokenError.message);
       return redirectWithCookieDeletion(
         new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
         cookieName,
@@ -169,7 +176,8 @@ export async function GET(
       cookieName,
       isSecure
     );
-  } catch {
+  } catch (err) {
+    console.error(`[oauth/${platform}] unexpected error:`, err instanceof Error ? err.message : err);
     return redirectWithCookieDeletion(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
       cookieName,
