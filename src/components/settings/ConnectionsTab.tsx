@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { getAdAccounts, type AdAccount } from '@/lib/actions/ad-accounts';
+import { triggerManualSync } from '@/lib/actions/sync';
 import { OAuthConnector } from './OAuthConnector';
 import type { AdPlatform } from '@/types';
 
@@ -97,6 +98,7 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSyncing, startSync] = useTransition();
 
   async function loadAccounts() {
     if (!isAdmin) {
@@ -158,15 +160,43 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
     );
   }
 
+  const hasConnectedAccount = accounts.some(a => a.is_active);
+
+  function handleSyncNow() {
+    startSync(async () => {
+      const { error: syncErr } = await triggerManualSync();
+      if (syncErr) {
+        toast.error(syncErr);
+      } else {
+        toast.success('Sync started — data will appear shortly.');
+      }
+    });
+  }
+
   return (
     <div className="flex flex-col gap-8">
       {/* Ad Platforms */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-[13.5px] font-semibold text-[#202124]">Ad Platforms</h2>
-          <p className="text-[12.5px] text-[#5F6368] mt-0.5">
-            Connect your advertising accounts to sync campaign data automatically.
-          </p>
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-[13.5px] font-semibold text-[#202124]">Ad Platforms</h2>
+            <p className="text-[12.5px] text-[#5F6368] mt-0.5">
+              Connect your advertising accounts to sync campaign data automatically.
+            </p>
+          </div>
+          {isAdmin && hasConnectedAccount && (
+            <button
+              onClick={handleSyncNow}
+              disabled={isSyncing}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[#E3E8EF] bg-white px-3 py-1.5 text-xs font-medium text-[#202124] hover:bg-[#F8F9FA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} viewBox="0 0 16 16" fill="none">
+                <path d="M13.5 8A5.5 5.5 0 112.5 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                <path d="M13.5 4v4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {isSyncing ? 'Syncing…' : 'Sync Now'}
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-2.5">
           {AD_PLATFORMS.map(platform => {
