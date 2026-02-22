@@ -40,9 +40,11 @@ export async function GET(
   { params }: { params: Promise<{ platform: string }> }
 ) {
   const { platform: rawPlatform } = await params;
+  console.log(`[oauth/callback] hit — platform: ${rawPlatform}, url: ${request.url}`);
 
   // 1. Validate platform
   if (!isAdPlatform(rawPlatform)) {
+    console.error(`[oauth/callback] invalid platform: ${rawPlatform}`);
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=invalid_platform`, request.url)
     );
@@ -56,6 +58,8 @@ export async function GET(
   const stateParam = searchParams.get('state');
   const oauthError = searchParams.get('error');
 
+  console.log(`[oauth/${platform}] code: ${code ? 'present' : 'missing'}, state: ${stateParam ? 'present' : 'missing'}, oauthError: ${oauthError}`);
+
   // 2. Handle user-denied flow
   if (oauthError) {
     return NextResponse.redirect(
@@ -64,6 +68,7 @@ export async function GET(
   }
 
   if (!code || !stateParam) {
+    console.error(`[oauth/${platform}] missing code or state`);
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
     );
@@ -72,8 +77,10 @@ export async function GET(
   // 3. CSRF: validate state cookie
   const cookieStore = await cookies();
   const stateCookie = cookieStore.get(cookieName)?.value;
+  console.log(`[oauth/${platform}] stateCookie: ${stateCookie ? 'present' : 'MISSING'}, match: ${stateCookie === stateParam}`);
 
   if (!stateCookie || stateCookie !== stateParam) {
+    console.error(`[oauth/${platform}] state mismatch — cookie: ${stateCookie}, param: ${stateParam}`);
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
     );
