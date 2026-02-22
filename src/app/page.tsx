@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@supabase/ssr';
+import { useAuthContext } from '@/components/providers/AuthProvider';
 
 /* ── utils ── */
 function useInView(threshold = 0.15): [React.RefObject<HTMLDivElement | null>, boolean] {
@@ -74,18 +76,51 @@ const Logo = () => (
 /* ══════════════════════════════════════
    NAVBAR
 ══════════════════════════════════════ */
+function navInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase() || '?';
+}
+
 function Navbar({ page, setPage }: { page: string; setPage: (p: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const w = useWindowWidth();
   const isMobile = w < 768;
   const router = useRouter();
+  const { user } = useAuthContext();
+
+  const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email?.split('@')[0] ?? '';
+  const avatarUrl: string | null = user?.user_metadata?.avatar_url ?? null;
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  // close user menu on outside click
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const navLinks = [
     { id: 'home', label: 'Product' },
@@ -122,19 +157,64 @@ function Navbar({ page, setPage }: { page: string; setPage: (p: string) => void 
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {!isMobile && (
-            <button onClick={() => router.push('/login')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5F6368', fontFamily: 'inherit', padding: '6px 14px' }}>
-              Sign in
-            </button>
+          {user ? (
+            /* ── Logged-in user menu ── */
+            <div ref={userMenuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setUserMenuOpen(o => !o)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: '1px solid #E3E8EF', cursor: 'pointer', borderRadius: 8, padding: '5px 10px 5px 6px', fontFamily: 'inherit' }}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1A73E8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+                    {navInitials(displayName)}
+                  </div>
+                )}
+                {!isMobile && <span style={{ fontSize: 13.5, fontWeight: 500, color: '#202124', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>}
+                <svg width="12" height="12" fill="none" stroke="#9AA0A6" strokeWidth="1.8" strokeLinecap="round"><path d="M2 4l4 4 4-4"/></svg>
+              </button>
+
+              {userMenuOpen && (
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid #E3E8EF', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: '6px 0', minWidth: 180, zIndex: 200 }}>
+                  <div style={{ padding: '8px 14px 10px', borderBottom: '1px solid #F1F3F4' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#202124', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+                    <div style={{ fontSize: 11.5, color: '#9AA0A6', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+                  </div>
+                  <button onClick={() => { router.push('/dashboard'); setUserMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px', fontSize: 13.5, fontWeight: 500, color: '#202124', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="8" y="2" width="5" height="5" rx="1"/><rect x="2" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+                    Dashboard
+                  </button>
+                  <button onClick={() => { router.push('/settings'); setUserMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px', fontSize: 13.5, fontWeight: 500, color: '#202124', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="2.5"/><path d="M7.5 1v1.5M7.5 12v1.5M1 7.5h1.5M12 7.5h1.5M2.9 2.9l1 1M10.1 10.1l1 1M2.9 12.1l1-1M10.1 4.9l1-1"/></svg>
+                    Settings
+                  </button>
+                  <div style={{ borderTop: '1px solid #F1F3F4', margin: '4px 0' }} />
+                  <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '9px 14px', fontSize: 13.5, fontWeight: 500, color: '#C5221F', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2H4a1 1 0 00-1 1v9a1 1 0 001 1h5M11 10l3-3-3-3M14 7H6"/></svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── Guest buttons ── */
+            <>
+              {!isMobile && (
+                <button onClick={() => router.push('/login')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#5F6368', fontFamily: 'inherit', padding: '6px 14px' }}>
+                  Sign in
+                </button>
+              )}
+              <button onClick={() => router.push('/register')} style={{
+                background: '#1A73E8', border: 'none', cursor: 'pointer',
+                color: '#fff', fontSize: 13.5, fontWeight: 600,
+                padding: '8px 18px', borderRadius: 8, fontFamily: 'inherit',
+                transition: 'background 0.15s',
+              }}>
+                Get started
+              </button>
+            </>
           )}
-          <button onClick={() => router.push('/register')} style={{
-            background: '#1A73E8', border: 'none', cursor: 'pointer',
-            color: '#fff', fontSize: 13.5, fontWeight: 600,
-            padding: '8px 18px', borderRadius: 8, fontFamily: 'inherit',
-            transition: 'background 0.15s',
-          }}>
-            Get started
-          </button>
           {isMobile && (
             <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <svg width="20" height="20" fill="none" stroke="#5F6368" strokeWidth="1.8" strokeLinecap="round"><path d={menuOpen ? 'M4 4l12 12M16 4L4 16' : 'M3 5h14M3 10h14M3 15h14'}/></svg>
@@ -153,7 +233,12 @@ function Navbar({ page, setPage }: { page: string; setPage: (p: string) => void 
               borderBottom: '1px solid #F1F3F4',
             }}>{l.label}</button>
           ))}
-          <button onClick={() => router.push('/login')} style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#5F6368', fontFamily: 'inherit', padding: 0 }}>Sign in</button>
+          {!user && (
+            <button onClick={() => router.push('/login')} style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#5F6368', fontFamily: 'inherit', padding: 0 }}>Sign in</button>
+          )}
+          {user && (
+            <button onClick={handleSignOut} style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#C5221F', fontFamily: 'inherit', padding: 0 }}>Sign out</button>
+          )}
         </div>
       )}
     </nav>

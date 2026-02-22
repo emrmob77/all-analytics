@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useState, useRef, useEffect } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { cn } from '@/lib/utils';
 import { GoogleIcon, MetaIcon, TikTokIcon, PinterestIcon } from '@/components/ui/platform-icons';
 import { useUser } from '@/hooks/useUser';
@@ -39,8 +41,30 @@ function getInitials(name: string): string {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useUser();
   const { organization, role } = useOrganization();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const { data: campaignCount } = useQuery<number>({
     queryKey: ['campaign-count'],
@@ -138,24 +162,61 @@ export function Sidebar() {
       </div>
 
       {/* User */}
-      <div className="flex items-center gap-[10px] border-t border-[#E3E8EF] px-4 py-3">
-        {user?.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={user.fullName}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A73E8] text-[11px] font-bold text-white">
-            {user ? getInitials(user.fullName) : '…'}
+      <div ref={userMenuRef} className="relative border-t border-[#E3E8EF]">
+        <button
+          onClick={() => setUserMenuOpen(o => !o)}
+          className="flex w-full items-center gap-[10px] px-4 py-3 hover:bg-[#F1F3F4] transition-colors text-left"
+        >
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.fullName}
+              className="h-8 w-8 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1A73E8] text-[11px] font-bold text-white">
+              {user ? getInitials(user.fullName) : '…'}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="truncate text-[12.5px] font-semibold text-[#202124]">
+              {user?.fullName ?? 'Loading…'}
+            </div>
+            <div className="truncate text-[10.5px] text-[#9AA0A6]">{user?.email ?? ''}</div>
+          </div>
+          <svg width="12" height="12" fill="none" stroke="#9AA0A6" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
+            <path d={userMenuOpen ? 'M2 8l4-4 4 4' : 'M2 4l4 4 4-4'} />
+          </svg>
+        </button>
+
+        {userMenuOpen && (
+          <div className="absolute bottom-full left-2 right-2 mb-1 rounded-[10px] border border-[#E3E8EF] bg-white shadow-lg overflow-hidden z-50">
+            <Link
+              href="/settings?tab=profile"
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#202124] hover:bg-[#F1F3F4] transition-colors"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="5" r="2.5"/><path d="M1 13c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+              Profile
+            </Link>
+            <Link
+              href="/settings"
+              onClick={() => setUserMenuOpen(false)}
+              className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#202124] hover:bg-[#F1F3F4] transition-colors"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="2.5"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.6 2.6l1 1M9.4 9.4l1 1M2.6 11.4l1-1M9.4 4.6l1-1"/></svg>
+              Settings
+            </Link>
+            <div className="border-t border-[#F1F3F4] mx-2" />
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-[13px] text-[#C5221F] hover:bg-[#FEF3F2] transition-colors"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2H4a1 1 0 00-1 1v8a1 1 0 001 1h5M11 9l3-3-3-3M14 6H6"/></svg>
+              Sign out
+            </button>
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <div className="truncate text-[12.5px] font-semibold text-[#202124]">
-            {user?.fullName ?? 'Loading…'}
-          </div>
-          <div className="truncate text-[10.5px] text-[#9AA0A6]">{user?.email ?? ''}</div>
-        </div>
       </div>
     </aside>
   );
