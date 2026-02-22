@@ -32,7 +32,18 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Auth gerektiren rotalar
-  const protectedPaths = ['/dashboard', '/campaigns', '/reports', '/settings']
+  const protectedPaths = [
+    '/dashboard',
+    '/campaigns',
+    '/reports',
+    '/settings',
+    '/adgroups',
+    '/audiences',
+    '/keywords',
+    '/creatives',
+    '/budget',
+    '/billing',
+  ]
   const isProtectedPath = protectedPaths.some((path) =>
     pathname.startsWith(path)
   )

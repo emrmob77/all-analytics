@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
+import { OrganizationProvider } from '@/components/providers/OrganizationProvider';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <OrganizationProvider>
     <div className="flex h-screen w-full bg-gray-100">
       {/* Desktop Sidebar - CSS-based responsive (hidden on mobile) */}
       <div className="hidden lg:block">
@@ -45,5 +47,6 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
     </div>
+    </OrganizationProvider>
   );
 }

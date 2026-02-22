@@ -152,7 +152,7 @@ export default function BillingPage() {
   const isPaid   = currentPlan !== 'free';
 
   return (
-    <div className="w-full px-6 py-6 max-w-4xl mx-auto space-y-8">
+    <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8 space-y-8">
 
       {/* Header */}
       <div>

@@ -250,7 +250,11 @@ export function MembersTab({ callerRole }: MembersTabProps) {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // isAdmin is included so loadData re-runs when the role resolves from the
+  // OrganizationProvider (initial render may have callerRole='viewer' before
+  // the org fetch completes; once it upgrades to 'owner'/'admin', we need to
+  // fetch pending invitations which were skipped on the first run).
+  useEffect(() => { loadData(); }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRemoveConfirm() {
     if (!removingMember) return;
