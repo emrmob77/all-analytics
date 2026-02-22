@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { getUserOrganization } from '@/lib/actions/organization';
 
 export interface SyncLog {
@@ -94,50 +95,34 @@ export async function triggerManualSync(
     return { syncLogId: null, error: 'No active ad accounts found. Connect an ad account first.' };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!appUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey) {
     return { syncLogId: null, error: 'Sync service is not configured' };
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120_000);
-
-    const res = await fetch(
-      `${appUrl}/functions/v1/sync-ad-platform-data`,
+    // Use functions.invoke() — handles Authorization header automatically
+    const adminClient = createAdminClient(supabaseUrl, serviceKey);
+    const { data, error: fnError } = await adminClient.functions.invoke(
+      'sync-ad-platform-data',
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify({
-          ad_account_id: targetAccountId,
-          triggered_by: 'manual',
-        }),
-        signal: controller.signal,
+        body: { ad_account_id: targetAccountId, triggered_by: 'manual' },
       }
     );
 
-    clearTimeout(timeoutId);
-
-    let body: { sync_log_id?: string; error?: string };
-    try {
-      body = await res.json();
-    } catch {
-      return { syncLogId: null, error: `Sync service returned non-JSON response (HTTP ${res.status})` };
-    }
-    if (!res.ok) {
-      return { syncLogId: body.sync_log_id ?? null, error: body.error ?? 'Sync failed' };
+    if (fnError) {
+      return { syncLogId: null, error: fnError.message };
     }
 
-    return { syncLogId: body.sync_log_id ?? null, error: null };
+    const body = data as { sync_log_id?: string; error?: string } | null;
+    if (body?.error) {
+      return { syncLogId: body.sync_log_id ?? null, error: body.error };
+    }
+
+    return { syncLogId: body?.sync_log_id ?? null, error: null };
   } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      return { syncLogId: null, error: 'Sync timed out after 120 seconds' };
-    }
     return {
       syncLogId: null,
       error: err instanceof Error ? err.message : 'Unexpected sync error',
