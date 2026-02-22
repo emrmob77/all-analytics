@@ -83,7 +83,7 @@ export default function BudgetPage() {
   const currency    = budget?.currency ?? 'USD';
 
   return (
-    <div className="w-full px-6 py-6 max-w-6xl mx-auto">
+    <div className="px-6 py-6 lg:px-8 max-w-[1280px]">
 
       {/* Header */}
       <div className="mb-6">

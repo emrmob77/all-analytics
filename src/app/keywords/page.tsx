@@ -70,7 +70,7 @@ export default function KeywordsPage() {
   }, [search, matchFilter, statusFilter]);
 
   return (
-    <div className="flex-1 px-6 py-6 max-w-6xl">
+    <div className="px-6 py-6 lg:px-8 max-w-[1280px]">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[22px] font-bold text-[#202124] tracking-tight">Keywords</h1>
