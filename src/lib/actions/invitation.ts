@@ -1,7 +1,15 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { getUserOrganization } from '@/lib/actions/organization';
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export type OrgRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -89,25 +97,13 @@ export async function inviteOrgMember(
     return { invitation: null, error: insertError?.message ?? 'Failed to create invitation' };
   }
 
-  // Fire-and-forget: send invitation email via Edge Function
+  // Send invitation email via Supabase Auth admin (uses configured SMTP)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const inviteUrl = `${appUrl}/invitations/accept?token=${invitation.token}`;
-  const inviterName =
-    (user.user_metadata?.full_name as string) ??
-    (user.user_metadata?.name as string) ??
-    user.email ??
-    'A team member';
 
-  supabase.functions
-    .invoke('send-invitation-email', {
-      body: {
-        to: email,
-        orgName: membership.organization.name,
-        inviterName,
-        role,
-        inviteUrl,
-      },
-    })
+  const adminSupabase = getAdminClient();
+  adminSupabase.auth.admin
+    .inviteUserByEmail(email, { redirectTo: inviteUrl })
     .catch(() => {
       // Email delivery failure should not block the invitation creation
     });
