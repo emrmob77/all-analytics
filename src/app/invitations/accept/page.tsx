@@ -38,7 +38,8 @@ function AcceptInvitationContent() {
     });
   }, [token]);
 
-  // Redirect unauthenticated users to login, preserving the accept URL
+  // Redirect unauthenticated users to login, preserving the accept URL.
+  // New users can navigate to /register from there; existing users sign in directly.
   useEffect(() => {
     if (!authLoading && !user) {
       const next = encodeURIComponent(`/invitations/accept?token=${token}`);

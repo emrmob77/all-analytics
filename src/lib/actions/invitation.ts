@@ -101,9 +101,13 @@ export async function inviteOrgMember(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const inviteUrl = `${appUrl}/invitations/accept?token=${invitation.token}`;
 
+  // Route through /auth/callback so the session is established before the
+  // invite accept page loads. This mirrors how signInWithGoogle / magic link work.
+  const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(`/invitations/accept?token=${invitation.token}`)}`;
+
   const adminSupabase = getAdminClient();
   adminSupabase.auth.admin
-    .inviteUserByEmail(email, { redirectTo: inviteUrl })
+    .inviteUserByEmail(email, { redirectTo: callbackUrl })
     .catch(() => {
       // Email delivery failure should not block the invitation creation
     });
