@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { initiateOAuth, disconnectAdAccount } from '@/lib/actions/ad-accounts';
+import { disconnectAdAccount } from '@/lib/actions/ad-accounts';
 import type { AdPlatform } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -91,14 +91,9 @@ export function OAuthConnector({
   const meta = PLATFORM_META[platform];
 
   function handleConnect() {
-    startTransition(async () => {
-      const { authUrl, error } = await initiateOAuth(platform);
-      if (error || !authUrl) {
-        console.error('OAuth initiation error:', error);
-        return;
-      }
-      window.location.href = authUrl;
-    });
+    // Navigate to the initiate route which sets the state cookie
+    // and redirects to the platform — more reliable than a Server Action
+    window.location.href = `/api/oauth/${platform}/initiate`;
   }
 
   function handleDisconnect() {
