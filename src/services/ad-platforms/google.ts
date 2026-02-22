@@ -2,7 +2,7 @@ import type { AdPlatformOAuthService, OAuthTokens } from './types';
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const SCOPE = 'https://www.googleapis.com/auth/adwords';
+const SCOPE = 'https://www.googleapis.com/auth/adwords email openid';
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -127,11 +127,15 @@ export class GoogleAdsOAuthService implements AdPlatformOAuthService {
 
     if (profileRes.ok) {
       const profile = await profileRes.json() as { sub?: string; email?: string };
-      const externalId = profile.sub ?? profile.email ?? 'unknown';
+      const externalId = profile.sub ?? profile.email ?? `google-${Date.now()}`;
       const name = profile.email ? `Google Ads (${profile.email})` : 'Google Ads Account';
+      console.log('[google-ads] using profile fallback, externalId:', externalId);
       return { externalId, name };
     }
 
-    throw new Error('Could not retrieve Google Ads account information');
+    // Absolute last resort — never block the connection
+    const externalId = `google-${Date.now()}`;
+    console.warn('[google-ads] all account info fetches failed, using timestamp fallback');
+    return { externalId, name: 'Google Ads Account' };
   }
 }
