@@ -12,7 +12,7 @@ function isAdPlatform(value: string): value is AdPlatform {
   return VALID_PLATFORMS.includes(value as AdPlatform);
 }
 
-const SETTINGS_URL = '/settings?tab=ad-accounts';
+const SETTINGS_URL = '/settings?tab=connections';
 
 /**
  * Builds a redirect response and explicitly sets a cookie-deletion header on
