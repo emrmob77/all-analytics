@@ -18,13 +18,16 @@ function useInView(threshold = 0.15): [React.RefObject<HTMLDivElement | null>, b
 }
 
 function useWindowWidth() {
-  const [w, setW] = useState(
-    typeof window === 'undefined' ? 1200 : window.innerWidth
-  );
+  const [w, setW] = useState(1200);
   useEffect(() => {
+    const syncWindowWidth = () => setW(window.innerWidth);
     const fn = () => setW(window.innerWidth);
+    const raf = window.requestAnimationFrame(syncWindowWidth);
     window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', fn);
+    };
   }, []);
   return w;
 }

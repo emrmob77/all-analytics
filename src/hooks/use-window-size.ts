@@ -19,20 +19,21 @@ const DEFAULT_SIZE: WindowSize = {
 };
 
 export function useWindowSize(): WindowSize {
-  const [windowSize, setWindowSize] = useState<WindowSize>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SIZE;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    return {
-      width,
-      height,
-      isMobile: width < 768,
-      isTablet: width >= 768 && width < 1024,
-      isDesktop: width >= 1024,
-    };
-  });
+  const [windowSize, setWindowSize] = useState<WindowSize>(DEFAULT_SIZE);
 
   useEffect(() => {
+    const syncWindowSize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      setWindowSize({
+        width,
+        height,
+        isMobile: width < 768,
+        isTablet: width >= 768 && width < 1024,
+        isDesktop: width >= 1024,
+      });
+    };
+
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -46,8 +47,12 @@ export function useWindowSize(): WindowSize {
       });
     };
 
+    const raf = window.requestAnimationFrame(syncWindowSize);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return windowSize;

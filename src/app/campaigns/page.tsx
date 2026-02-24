@@ -374,7 +374,12 @@ export default function CampaignsPage() {
       }),
       colHelper.accessor('status', {
         header: 'Status',
-        cell: (info) => <StatusCell row={info.row.original} />,
+        cell: (info) => {
+          const campaign = info.row.original;
+          // Remount cell when server status changes so any transient optimistic
+          // local state cannot outlive authoritative row data.
+          return <StatusCell key={`${campaign.id}:${campaign.status}`} row={campaign} />;
+        },
       }),
       colHelper.accessor('budget', {
         header: 'Budget',
