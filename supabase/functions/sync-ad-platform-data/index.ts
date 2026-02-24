@@ -45,6 +45,30 @@ interface PlatformSyncResult {
   hourlyMetrics: Record<string, HourlyMetric[]>; // externalCampaignId → metrics
 }
 
+interface GoogleAdsSearchChunk {
+  results?: Array<{
+    campaign?: { id: string; name: string; status: string };
+    campaignBudget?: { amountMicros: string };
+    metrics?: {
+      costMicros: string;
+      impressions: string;
+      clicks: string;
+      conversions: string;
+      conversionsValue: string;
+    };
+    segments?: { date: string };
+  }>;
+}
+
+interface GoogleAccessibleCustomersResponse {
+  resourceNames?: string[];
+}
+
+interface GoogleAdsErrorDetail {
+  errorCode?: Record<string, string>;
+  message?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Crypto — AES-256-GCM via Web Crypto API (Deno compatible)
 // Matches the format produced by src/lib/crypto.ts: iv:authTag:ciphertext (hex)
@@ -120,32 +144,262 @@ function last7DaysHours(): string[] {
   return hours;
 }
 
+function isGoogleVersionUnsupported(errorBody: string): boolean {
+  return errorBody.includes('UNSUPPORTED_VERSION')
+    || errorBody.toLowerCase().includes('version')
+      && errorBody.toLowerCase().includes('deprecated');
+}
+
+function parseGoogleErrorMessage(errorBody: string): string {
+  try {
+    const parsed = JSON.parse(errorBody) as {
+      error?: {
+        message?: string;
+        status?: string;
+        details?: Array<{ errors?: GoogleAdsErrorDetail[] }>;
+      };
+    };
+    const topMessage = parsed.error?.message;
+    const topStatus = parsed.error?.status;
+    const firstDetail = parsed.error?.details
+      ?.flatMap(detail => detail.errors ?? [])
+      ?.find(detail => detail.message || detail.errorCode);
+
+    if (firstDetail) {
+      const errorCode = firstDetail.errorCode
+        ? Object.entries(firstDetail.errorCode)
+            .map(([key, value]) => `${key}:${value}`)
+            .join(',')
+        : '';
+      const detailMessage = firstDetail.message ?? '';
+      const suffix = [errorCode, detailMessage].filter(Boolean).join(' - ');
+      if (topMessage && suffix) return `${topMessage} (${suffix})`;
+      if (suffix) return suffix;
+    }
+
+    if (topMessage && topStatus) return `${topMessage} (${topStatus})`;
+    return topMessage ?? errorBody.slice(0, 500);
+  } catch {
+    return errorBody.slice(0, 500);
+  }
+}
+
+function isLikelyGoogleCustomerId(accountId: string): boolean {
+  return /^\d{10}$/.test(accountId.replace(/-/g, ''));
+}
+
+function pickPreferredGoogleCustomerId(
+  customerIds: string[],
+  loginCustomerId?: string
+): string | null {
+  if (!customerIds.length) return null;
+  if (!loginCustomerId) return customerIds[0];
+
+  const normalizedLoginId = loginCustomerId.replace(/-/g, '');
+  const childCustomerId = customerIds.find(id => id !== normalizedLoginId);
+  return childCustomerId ?? customerIds[0];
+}
+
+async function getGoogleTokenUserEmail(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { email?: string };
+    return data.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function hasServiceRoleCredential(
+  token: string | null,
+  supabaseUrl: string
+): Promise<boolean> {
+  if (!token) return false;
+  try {
+    // Auth admin endpoint only accepts service-role credentials.
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: token,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function googleAdsSearchStream(
+  accessToken: string,
+  externalAccountId: string,
+  query: string,
+  developerToken: string,
+  loginCustomerId?: string
+): Promise<GoogleAdsSearchChunk[]> {
+  const versions = ['v21', 'v20', 'v19'];
+  const normalizedAccountId = externalAccountId.replace(/-/g, '');
+  let lastError = 'Google Ads request failed on all supported API versions.';
+
+  for (const version of versions) {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+    };
+    if (loginCustomerId) headers['login-customer-id'] = loginCustomerId;
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/${version}/customers/${normalizedAccountId}/googleAds:searchStream`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    const bodyText = await response.text();
+    if (response.ok) {
+      try {
+        return JSON.parse(bodyText) as GoogleAdsSearchChunk[];
+      } catch {
+        throw new Error(`Google Ads ${version} returned invalid JSON`);
+      }
+    }
+
+    if (response.status === 404 || isGoogleVersionUnsupported(bodyText)) {
+      lastError = `Google Ads ${version} is unavailable for this project`;
+      continue;
+    }
+
+    if (bodyText.includes('DEVELOPER_TOKEN_INVALID')) {
+      throw new Error('Google Ads developer token is invalid. Update GOOGLE_ADS_DEVELOPER_TOKEN in Supabase secrets.');
+    }
+    if (bodyText.includes('NOT_ADS_USER')) {
+      const tokenEmail = await getGoogleTokenUserEmail(accessToken);
+      const withEmail = tokenEmail ? ` OAuth user: ${tokenEmail}.` : '';
+      throw new Error(`Connected Google user is not associated with any Google Ads account.${withEmail} Add this user to MCC/test account and accept the invitation.`);
+    }
+
+    throw new Error(`Google Ads ${version} request failed: ${parseGoogleErrorMessage(bodyText)}`);
+  }
+
+  throw new Error(lastError);
+}
+
+async function googleListAccessibleCustomers(
+  accessToken: string,
+  developerToken: string,
+  loginCustomerId?: string
+): Promise<string[]> {
+  const versions = ['v21', 'v20', 'v19'];
+  let lastError = 'Unable to fetch accessible Google Ads customers.';
+
+  for (const version of versions) {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+    };
+    if (loginCustomerId) headers['login-customer-id'] = loginCustomerId;
+
+    const response = await fetch(
+      `https://googleads.googleapis.com/${version}/customers:listAccessibleCustomers`,
+      {
+        headers,
+      }
+    );
+
+    const bodyText = await response.text();
+    if (response.ok) {
+      try {
+        const data = JSON.parse(bodyText) as GoogleAccessibleCustomersResponse;
+        return (data.resourceNames ?? [])
+          .map(name => name.split('/')[1] ?? name)
+          .filter(Boolean);
+      } catch {
+        throw new Error(`Google Ads ${version} returned invalid JSON for customer lookup`);
+      }
+    }
+
+    if (response.status === 404 || isGoogleVersionUnsupported(bodyText)) {
+      lastError = `Google Ads ${version} is unavailable for this project`;
+      continue;
+    }
+
+    if (bodyText.includes('DEVELOPER_TOKEN_INVALID')) {
+      throw new Error('Google Ads developer token is invalid. Update GOOGLE_ADS_DEVELOPER_TOKEN in Supabase secrets.');
+    }
+    if (bodyText.includes('NOT_ADS_USER')) {
+      const tokenEmail = await getGoogleTokenUserEmail(accessToken);
+      const withEmail = tokenEmail ? ` OAuth user: ${tokenEmail}.` : '';
+      throw new Error(`Connected Google user is not associated with any Google Ads account.${withEmail} Add this user to MCC/test account and accept the invitation.`);
+    }
+
+    throw new Error(`Google Ads ${version} account lookup failed: ${parseGoogleErrorMessage(bodyText)}`);
+  }
+
+  throw new Error(lastError);
+}
+
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string
 ): Promise<PlatformSyncResult> {
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
-  const baseUrl = `https://googleads.googleapis.com/v18/customers/${externalAccountId}`;
+  const loginCustomerId = (Deno.env.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID') ?? '').replace(/-/g, '');
+  if (!devToken) {
+    throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
+  }
+
+  // Some OAuth callbacks store Google user "sub" instead of Ads customer ID.
+  // If the stored value is not a plausible customer ID, discover one from Google Ads.
+  let customerId = externalAccountId;
+  if (!isLikelyGoogleCustomerId(externalAccountId)) {
+    const accessibleCustomers = await googleListAccessibleCustomers(
+      accessToken,
+      devToken,
+      loginCustomerId || undefined
+    );
+    const discoveredCustomerId = pickPreferredGoogleCustomerId(
+      accessibleCustomers,
+      loginCustomerId || undefined
+    );
+    if (!discoveredCustomerId) {
+      throw new Error('No accessible Google Ads customer found for this account.');
+    }
+    console.warn(
+      `[syncGoogle] external_account_id "${externalAccountId}" is not a customer ID; using "${discoveredCustomerId}" from accessible customers.`
+    );
+    customerId = discoveredCustomerId;
+  } else if (loginCustomerId && externalAccountId.replace(/-/g, '') === loginCustomerId) {
+    const accessibleCustomers = await googleListAccessibleCustomers(
+      accessToken,
+      devToken,
+      loginCustomerId
+    );
+    const childCustomerId = pickPreferredGoogleCustomerId(accessibleCustomers, loginCustomerId);
+    if (childCustomerId && childCustomerId !== loginCustomerId) {
+      console.warn(
+        `[syncGoogle] external_account_id "${externalAccountId}" is MCC login customer; using child customer "${childCustomerId}".`
+      );
+      customerId = childCustomerId;
+    }
+  }
 
   // Fetch campaigns via GAQL
-  const campaignRes = await fetch(`${baseUrl}/googleAds:searchStream`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'developer-token': devToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `SELECT campaign.id, campaign.name, campaign.status,
+  const campaignData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT campaign.id, campaign.name, campaign.status,
                      campaign_budget.amount_micros, metrics.cost_micros
               FROM campaign
               WHERE campaign.status != 'REMOVED'
               ORDER BY campaign.id`,
-    }),
-  });
-
-  if (!campaignRes.ok) throw new Error(`Google Ads campaigns fetch failed: ${await campaignRes.text()}`);
-  const campaignData = await campaignRes.json() as { results?: Array<{ campaign: { id: string; name: string; status: string }; campaignBudget?: { amountMicros: string }; metrics?: { costMicros: string } }> }[];
+    devToken,
+    loginCustomerId || undefined
+  );
 
   const campaigns: CampaignData[] = [];
   const allResults = campaignData.flatMap(chunk => chunk.results ?? []);
@@ -170,38 +424,34 @@ async function syncGoogle(
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
 
-  const metricsRes = await fetch(`${baseUrl}/googleAds:searchStream`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'developer-token': devToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `SELECT campaign.id, segments.date,
+  const metricsData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT campaign.id, segments.date,
                      metrics.cost_micros, metrics.impressions,
                      metrics.clicks, metrics.conversions, metrics.conversions_value
               FROM campaign
               WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
                 AND campaign.status != 'REMOVED'`,
-    }),
-  });
+    devToken,
+    loginCustomerId || undefined
+  );
 
-  if (metricsRes.ok) {
-    const metricsData = await metricsRes.json() as { results?: Array<{ campaign: { id: string }; segments: { date: string }; metrics: { costMicros: string; impressions: string; clicks: string; conversions: string; conversionsValue: string } }> }[];
-    for (const chunk of metricsData) {
-      for (const row of chunk.results ?? []) {
-        const id = row.campaign.id;
-        if (!dailyMetrics[id]) dailyMetrics[id] = [];
-        dailyMetrics[id].push({
-          date: row.segments.date,
-          spend: Number(row.metrics.costMicros) / 1_000_000,
-          impressions: Number(row.metrics.impressions),
-          clicks: Number(row.metrics.clicks),
-          conversions: Number(row.metrics.conversions),
-          revenue: Number(row.metrics.conversionsValue),
-        });
-      }
+  for (const chunk of metricsData) {
+    for (const row of chunk.results ?? []) {
+      const id = row.campaign?.id;
+      const date = row.segments?.date;
+      if (!id || !date || !row.metrics) continue;
+
+      if (!dailyMetrics[id]) dailyMetrics[id] = [];
+      dailyMetrics[id].push({
+        date,
+        spend: Number(row.metrics.costMicros) / 1_000_000,
+        impressions: Number(row.metrics.impressions),
+        clicks: Number(row.metrics.clicks),
+        conversions: Number(row.metrics.conversions),
+        revenue: Number(row.metrics.conversionsValue),
+      });
     }
   }
 
@@ -510,6 +760,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const syncSecret = Deno.env.get('OAUTH_TOKEN_SECRET');
   if (!supabaseUrl || !serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Supabase env not configured' }), {
       status: 500,
@@ -517,11 +768,22 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Only the service-role key is authorised to invoke this function directly.
-  // Both triggerManualSync (src/lib/actions/sync.ts) and scheduled-sync pass it
-  // as the Bearer token, so legitimate callers are unaffected.
+  // Authorize caller using either a valid service-role credential or the shared sync secret.
   const bearerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (bearerToken !== serviceRoleKey) {
+  const apiKey = req.headers.get('apikey');
+  const inboundSyncSecret = req.headers.get('x-sync-secret');
+  const keyCandidates = Array.from(new Set([bearerToken, apiKey].filter(Boolean) as string[]));
+  let hasValidServiceKey = false;
+  for (const token of keyCandidates) {
+    if (await hasServiceRoleCredential(token, supabaseUrl)) {
+      hasValidServiceKey = true;
+      break;
+    }
+  }
+  const authorized = hasValidServiceKey
+    || (syncSecret != null && syncSecret !== '' && inboundSyncSecret === syncSecret);
+
+  if (!authorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

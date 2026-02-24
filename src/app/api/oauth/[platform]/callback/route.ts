@@ -14,6 +14,10 @@ function isAdPlatform(value: string): value is AdPlatform {
 
 const SETTINGS_URL = '/settings?tab=connections';
 
+function isGoogleCustomerId(value: string): boolean {
+  return /^\d{10}$/.test(value.replace(/-/g, ''));
+}
+
 /**
  * Builds a redirect response and explicitly sets a cookie-deletion header on
  * it so the state cookie is cleared even if Next.js middleware caches the
@@ -122,6 +126,18 @@ export async function GET(
     console.log(`[oauth/${platform}] token exchange OK`);
 
     const accountInfo = await service.getAccountInfo(tokens.accessToken);
+
+    // Google Ads requires a 10-digit customer ID. Reject malformed values early.
+    if (platform === 'google' && !isGoogleCustomerId(accountInfo.externalId)) {
+      console.error(
+        `[oauth/${platform}] invalid customer id from provider: ${accountInfo.externalId}`
+      );
+      return redirectWithCookieDeletion(
+        new URL(`${SETTINGS_URL}&error=oauth_no_ads_access`, request.url),
+        cookieName,
+        isSecure
+      );
+    }
 
     // 6. Upsert ad_account
     const { data: adAccount, error: upsertError } = await supabase

@@ -97,6 +97,7 @@ export async function triggerManualSync(
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const syncSecret = process.env.OAUTH_TOKEN_SECRET;
 
   if (!supabaseUrl || !serviceKey) {
     return { syncLogId: null, error: 'Sync service is not configured' };
@@ -105,15 +106,51 @@ export async function triggerManualSync(
   try {
     // Use functions.invoke() — handles Authorization header automatically
     const adminClient = createAdminClient(supabaseUrl, serviceKey);
+    const invokeHeaders: Record<string, string> = {};
+    if (syncSecret) invokeHeaders['x-sync-secret'] = syncSecret;
+
     const { data, error: fnError } = await adminClient.functions.invoke(
       'sync-ad-platform-data',
       {
         body: { ad_account_id: targetAccountId, triggered_by: 'manual' },
+        headers: invokeHeaders,
       }
     );
 
     if (fnError) {
-      return { syncLogId: null, error: fnError.message };
+      let message = fnError.message;
+      const context = (fnError as { context?: Response }).context;
+      if (context) {
+        try {
+          const text = await context.text();
+          if (text) {
+            const parsed = JSON.parse(text) as { error?: string };
+            message = parsed.error ?? text;
+          }
+        } catch {
+          // Keep the default SDK error message when response parsing fails.
+        }
+      }
+
+      // SDK occasionally returns only a generic non-2xx message.
+      // In that case, fetch the latest sync log error so UI can show the real cause.
+      if (
+        message.includes('Edge Function returned a non-2xx status code')
+        && targetAccountId
+      ) {
+        const { data: latestLog } = await adminClient
+          .from('sync_logs')
+          .select('error_message')
+          .eq('organization_id', membership.organization.id)
+          .eq('ad_account_id', targetAccountId)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (latestLog?.error_message) {
+          message = latestLog.error_message;
+        }
+      }
+      return { syncLogId: null, error: message };
     }
 
     const body = data as { sync_log_id?: string; error?: string } | null;

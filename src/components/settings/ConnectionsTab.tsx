@@ -132,6 +132,8 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
         oauth_failed: 'Failed to connect ad account. Please try again.',
         oauth_denied: 'Connection was cancelled.',
         invalid_platform: 'Invalid platform specified.',
+        oauth_no_ads_access:
+          'Connected Google user has no Google Ads access. Add this user to MCC/ad account and accept the invitation.',
       };
       toast.error(messages[oauthError] ?? 'An error occurred during connection.');
       const url = new URL(window.location.href);

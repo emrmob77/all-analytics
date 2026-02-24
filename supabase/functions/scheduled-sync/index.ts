@@ -8,7 +8,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
  * ─────────────────────────────────────────
  * SELECT cron.schedule(
  *   'sync-all-ad-accounts',
- *   '*/15 * * * *',
+ *   '<every-15-minutes-cron>',
  *   $$
  *     SELECT net.http_post(
  *       url    := current_setting('app.supabase_url') || '/functions/v1/scheduled-sync',
@@ -33,6 +33,25 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function hasServiceRoleCredential(
+  token: string | null,
+  supabaseUrl: string
+): Promise<boolean> {
+  if (!token) return false;
+  try {
+    // Auth admin endpoint only accepts service-role credentials.
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: token,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   // Accept both POST (pg_net) and GET (manual trigger from dashboard)
   if (req.method !== 'POST' && req.method !== 'GET') {
@@ -44,6 +63,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const syncSecret = Deno.env.get('OAUTH_TOKEN_SECRET');
   if (!supabaseUrl || !serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Supabase env not configured' }), {
       status: 500,
@@ -51,9 +71,22 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Verify caller is using the service role key — prevents anon-key abuse.
+  // Authorize caller using either a valid service-role credential or the shared sync secret.
   const bearerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (bearerToken !== serviceRoleKey) {
+  const apiKey = req.headers.get('apikey');
+  const inboundSyncSecret = req.headers.get('x-sync-secret');
+  const keyCandidates = Array.from(new Set([bearerToken, apiKey].filter(Boolean) as string[]));
+  let hasValidServiceKey = false;
+  for (const token of keyCandidates) {
+    if (await hasServiceRoleCredential(token, supabaseUrl)) {
+      hasValidServiceKey = true;
+      break;
+    }
+  }
+  const authorized = hasValidServiceKey
+    || (syncSecret != null && syncSecret !== '' && inboundSyncSecret === syncSecret);
+
+  if (!authorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
@@ -101,13 +134,16 @@ Deno.serve(async (req: Request) => {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30_000); // 30 s per account
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      };
+      if (syncSecret) headers['x-sync-secret'] = syncSecret;
 
       const res = await fetch(syncFnUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
+        headers,
         body: JSON.stringify({
           ad_account_id: account.id,
           triggered_by: 'scheduled',
