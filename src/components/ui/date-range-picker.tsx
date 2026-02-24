@@ -121,7 +121,7 @@ function MiniCalendar({ year, month, selected, hovered, onDayClick, onDayHover }
 
           let bg = '';
           let textColor = isDisabled ? 'text-[#D0D3D6]' : 'text-[#202124]';
-          let cursor = isDisabled ? 'cursor-not-allowed' : 'cursor-pointer';
+          const cursor = isDisabled ? 'cursor-not-allowed' : 'cursor-pointer';
           let rounded = 'rounded-[4px]';
 
           if (isStart || isEnd) {
@@ -204,11 +204,6 @@ export function DateRangePicker({ value, onChange, maxDays = 365 }: DateRangePic
 
   const activePreset = pickFrom ? null : matchPreset(value);
   const label = `${fmtShort(value.from)} – ${fmtShort(value.to)}`;
-
-  // Current partial selection for highlighting
-  const currentSelection: DateRange | null = pickFrom
-    ? { from: pickFrom, to: pickFrom }
-    : value;
 
   useEffect(() => {
     if (!open) return;

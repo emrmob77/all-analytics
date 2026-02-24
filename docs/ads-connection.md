@@ -92,6 +92,10 @@ Proje şu scope'u kullanır:
 https://www.googleapis.com/auth/adwords
 ```
 
+#### 1.5 Google Ads API Versiyonu
+
+Proje Google Ads tarafında erişilebilir müşteri hesabı sorgusunda sırasıyla `v19`, `v20`, `v21` endpointlerini dener. Bu sayede tek bir sabit API versiyonuna bağlı kalmadan bağlantı akışı devam eder.
+
 ---
 
 ## 2. Meta Ads (Facebook)

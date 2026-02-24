@@ -4,7 +4,7 @@ Dijital pazarlamacilarin Google Ads, Meta Ads, TikTok Ads ve Pinterest Ads kampa
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Recharts, TanStack Table v8, TanStack Query v5, Zustand
+- **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Recharts, TanStack Table v8, TanStack Query v5, Zustand
 - **Backend:** Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
 - **Monitoring:** Sentry, Posthog
 

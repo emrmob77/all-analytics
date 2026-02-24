@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { cn } from '@/lib/utils';
 import {
@@ -145,16 +145,13 @@ export function Sidebar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
   const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // Auto-expand the platform group that matches the current path
-  useEffect(() => {
-    const active = PLATFORM_GROUPS.find(
-      (g) => pathname === g.basePath || pathname?.startsWith(g.basePath + '/')
-    );
-    if (active) {
-      setOpenPlatforms((prev) => ({ ...prev, [active.id]: true }));
-    }
-  }, [pathname]);
+  const activePlatformGroupId = useMemo(
+    () =>
+      PLATFORM_GROUPS.find(
+        (g) => pathname === g.basePath || pathname?.startsWith(g.basePath + '/')
+      )?.id,
+    [pathname]
+  );
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -176,7 +173,10 @@ export function Sidebar() {
   };
 
   const togglePlatform = (id: string) => {
-    setOpenPlatforms((prev) => ({ ...prev, [id]: !prev[id] }));
+    setOpenPlatforms((prev) => {
+      const current = prev[id] ?? id === activePlatformGroupId;
+      return { ...prev, [id]: !current };
+    });
   };
 
   const { data: campaignCount } = useQuery<number>({
@@ -258,7 +258,7 @@ export function Sidebar() {
         <nav className="space-y-[1px]">
           {PLATFORM_GROUPS.map((group) => {
             const Icon = group.icon;
-            const isOpen = !!openPlatforms[group.id];
+            const isOpen = openPlatforms[group.id] ?? group.id === activePlatformGroupId;
             const isGroupActive =
               pathname === group.basePath || pathname?.startsWith(group.basePath + '/');
 

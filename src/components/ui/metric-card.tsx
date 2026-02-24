@@ -71,19 +71,6 @@ export function MetricCard({
   delay = 0,
   sub = 'vs last period',
 }: MetricCardProps) {
-  const [visible, setVisible] = useState(false);
-
-  // Reset and re-trigger the fade-in animation whenever loading transitions
-  // from true → false, so the staggered entrance always plays after data loads.
-  useEffect(() => {
-    if (loading) {
-      setVisible(false);
-      return;
-    }
-    const t = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(t);
-  }, [loading, delay]);
-
   const prefix = format === 'currency' ? '$' : '';
   const suffix = suffixOverride !== undefined ? suffixOverride : format === 'percentage' ? '%' : '';
   const decimals = decimalsOverride !== undefined ? decimalsOverride : format === 'percentage' ? 2 : 0;
@@ -103,11 +90,10 @@ export function MetricCard({
 
   return (
     <div
-      className="flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4 transition-all duration-[450ms]"
+      className="metric-card-enter flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4"
       style={{
         minWidth: 150,
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(7px)',
+        animationDelay: `${Math.max(0, delay)}ms`,
       }}
     >
       <div className="mb-2 text-[11.5px] font-medium text-[#5F6368]">{title}</div>
