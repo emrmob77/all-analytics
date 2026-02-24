@@ -90,12 +90,10 @@ export function MetricCard({
 
   return (
     <div
-      className="flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4 transition-all duration-[450ms]"
+      className="metric-card-enter flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4"
       style={{
         minWidth: 150,
-        opacity: 1,
-        transform: 'translateY(0)',
-        transitionDelay: `${Math.max(0, delay)}ms`,
+        animationDelay: `${Math.max(0, delay)}ms`,
       }}
     >
       <div className="mb-2 text-[11.5px] font-medium text-[#5F6368]">{title}</div>
