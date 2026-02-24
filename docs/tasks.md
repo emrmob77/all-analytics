@@ -2,9 +2,9 @@
 
 ## Overview
 
-AdsPulse, Google Ads, Meta Ads, TikTok Ads ve Pinterest Ads kampanyalarını tek bir arayüzden yönetmeye olanak tanıyan SaaS tabanlı bir reklam yönetim dashboard'udur. Bu implementation plan, mevcut Adspulse.tsx prototype'ını production-ready Next.js 15 uygulamasına dönüştürmeyi ve tüm özellikleri adım adım uygulamayı içerir.
+AdsPulse, Google Ads, Meta Ads, TikTok Ads ve Pinterest Ads kampanyalarını tek bir arayüzden yönetmeye olanak tanıyan SaaS tabanlı bir reklam yönetim dashboard'udur. Bu implementation plan, mevcut Adspulse.tsx prototype'ını production-ready Next.js 16 uygulamasına dönüştürmeyi ve tüm özellikleri adım adım uygulamayı içerir.
 
-Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Recharts, TanStack Table v8, TanStack Query v5, Zustand, Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
+Tech Stack: Next.js 16 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Recharts, TanStack Table v8, TanStack Query v5, Zustand, Supabase (PostgreSQL, Auth, Realtime, Edge Functions)
 
 ## Tasks
 
@@ -17,8 +17,8 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
   - **Output: docs/component-analysis.md**
 
 - [x] 1. Proje kurulumu ve temel yapılandırma
-  - [x] 1.1 Next.js 15 projesi oluştur ve temel bağımlılıkları yükle ✅
-    - Next.js 15 (App Router), TypeScript, Tailwind CSS v4 kurulumu
+  - [x] 1.1 Next.js 16 projesi oluştur ve temel bağımlılıkları yükle ✅
+    - Next.js 16 (App Router), TypeScript, Tailwind CSS v4 kurulumu
     - shadcn/ui, Recharts, TanStack Table v8, TanStack Query v5, Zustand kurulumu
     - ESLint, Prettier yapılandırması
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
@@ -138,7 +138,7 @@ Tech Stack: Next.js 15 (App Router), TypeScript, Tailwind CSS v4, shadcn/ui, Rec
 - [x] 7. Ad platform OAuth entegrasyonu
   - [x] 7.1 OAuth service layer oluştur
     - AdPlatformService interface implementation
-    - Google Ads OAuth (API v18)
+    - Google Ads OAuth (API v19/v20/v21 fallback)
     - Meta Ads OAuth (API v21)
     - TikTok Ads OAuth (API v1.3)
     - Pinterest Ads OAuth (API v5)

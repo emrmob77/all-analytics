@@ -19,13 +19,21 @@ const DEFAULT_SIZE: WindowSize = {
 };
 
 export function useWindowSize(): WindowSize {
-  const [windowSize, setWindowSize] = useState<WindowSize>(DEFAULT_SIZE);
-  const [isClient, setIsClient] = useState(false);
+  const [windowSize, setWindowSize] = useState<WindowSize>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SIZE;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    return {
+      width,
+      height,
+      isMobile: width < 768,
+      isTablet: width >= 768 && width < 1024,
+      isDesktop: width >= 1024,
+    };
+  });
 
   useEffect(() => {
-    setIsClient(true);
-
-    function handleResize() {
+    const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
 
@@ -36,17 +44,11 @@ export function useWindowSize(): WindowSize {
         isTablet: width >= 768 && width < 1024,
         isDesktop: width >= 1024,
       });
-    }
+    };
 
-    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Return default values during SSR to avoid hydration mismatch
-  if (!isClient) {
-    return DEFAULT_SIZE;
-  }
 
   return windowSize;
 }

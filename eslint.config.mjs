@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Prototype/reference files and Supabase Edge runtime files are linted separately.
+    "prototype/**",
+    "supabase/functions/**",
   ]),
 ]);
 

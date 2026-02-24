@@ -33,7 +33,7 @@ graph TB
     end
     
     subgraph "Application Layer - Vercel"
-        NextJS[Next.js 15 App Router]
+        NextJS[Next.js 16 App Router]
         API[API Routes]
         SA[Server Actions]
         Edge[Edge Functions]
@@ -47,7 +47,7 @@ graph TB
     end
     
     subgraph "External Services"
-        Google[Google Ads API v18]
+        Google[Google Ads API v19/v20/v21]
         Meta[Meta Marketing API v21]
         TikTok[TikTok Ads API v1.3]
         Pinterest[Pinterest Ads API v5]
@@ -614,4 +614,3 @@ interface ChartData {
   [key: string]: string | number;
 }
 ```
-

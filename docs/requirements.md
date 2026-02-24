@@ -56,7 +56,7 @@ AdsPulse, dijital pazarlamacıların Google Ads, Meta Ads, TikTok Ads ve Pintere
 
 #### Acceptance Criteria
 
-1. THE AdsPulse_System SHALL support OAuth connection for Google Ads API v18
+1. THE AdsPulse_System SHALL support OAuth connection for Google Ads API v19/v20/v21 (with fallback)
 2. THE AdsPulse_System SHALL support OAuth connection for Meta Marketing API v21
 3. THE AdsPulse_System SHALL support OAuth connection for TikTok Ads API v1.3
 4. THE AdsPulse_System SHALL support OAuth connection for Pinterest Ads API v5
@@ -302,4 +302,3 @@ AdsPulse, dijital pazarlamacıların Google Ads, Meta Ads, TikTok Ads ve Pintere
 4. WHEN a Sync_Operation fails 3 consecutive times, THE AdsPulse_System SHALL send an alert email
 5. THE AdsPulse_System SHALL allow Users to configure notification preferences
 6. WHERE notification preferences disable a notification type, THE AdsPulse_System SHALL not send that notification type
-

@@ -18,9 +18,10 @@ function useInView(threshold = 0.15): [React.RefObject<HTMLDivElement | null>, b
 }
 
 function useWindowWidth() {
-  const [w, setW] = useState(1200);
+  const [w, setW] = useState(
+    typeof window === 'undefined' ? 1200 : window.innerWidth
+  );
   useEffect(() => {
-    setW(window.innerWidth);
     const fn = () => setW(window.innerWidth);
     window.addEventListener('resize', fn);
     return () => window.removeEventListener('resize', fn);

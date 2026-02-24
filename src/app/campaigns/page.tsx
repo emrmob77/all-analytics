@@ -217,10 +217,6 @@ function StatusCell({ row }: StatusCellProps) {
   const btnRef                      = useRef<HTMLButtonElement>(null);
   const { mutate, isPending }       = useUpdateCampaignStatus();
 
-  // Clear optimistic state when server data arrives with the updated status,
-  // avoiding a flicker from clearing before the refetch completes.
-  useEffect(() => { setOptimistic(null); }, [row.status]);
-
   const currentStatus = optimistic ?? row.status;
   const s = STATUS_STYLES[currentStatus] ?? STATUS_STYLES['archived'];
 

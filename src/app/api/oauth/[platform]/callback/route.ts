@@ -40,7 +40,7 @@ export async function GET(
   { params }: { params: Promise<{ platform: string }> }
 ) {
   const { platform: rawPlatform } = await params;
-  console.log(`[oauth/callback] hit — platform: ${rawPlatform}, url: ${request.url}`);
+  console.log(`[oauth/callback] hit — platform: ${rawPlatform}`);
 
   // 1. Validate platform
   if (!isAdPlatform(rawPlatform)) {
@@ -58,7 +58,9 @@ export async function GET(
   const stateParam = searchParams.get('state');
   const oauthError = searchParams.get('error');
 
-  console.log(`[oauth/${platform}] code: ${code ? 'present' : 'missing'}, state: ${stateParam ? 'present' : 'missing'}, oauthError: ${oauthError}`);
+  console.log(
+    `[oauth/${platform}] code: ${code ? 'present' : 'missing'}, state: ${stateParam ? 'present' : 'missing'}, oauthError: ${oauthError}`
+  );
 
   // 2. Handle user-denied flow
   if (oauthError) {
@@ -77,10 +79,10 @@ export async function GET(
   // 3. CSRF: validate state cookie
   const cookieStore = await cookies();
   const stateCookie = cookieStore.get(cookieName)?.value;
-  console.log(`[oauth/${platform}] stateCookie: ${stateCookie ? 'present' : 'MISSING'}, match: ${stateCookie === stateParam}`);
+  console.log(`[oauth/${platform}] state cookie present: ${Boolean(stateCookie)}`);
 
   if (!stateCookie || stateCookie !== stateParam) {
-    console.error(`[oauth/${platform}] state mismatch — cookie: ${stateCookie}, param: ${stateParam}`);
+    console.error(`[oauth/${platform}] state mismatch`);
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
     );
@@ -113,8 +115,6 @@ export async function GET(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const redirectUri = `${appUrl}/api/oauth/${platform}/callback`;
 
-  console.log(`[oauth/${platform}] redirectUri:`, redirectUri);
-
   try {
     const service = getAdPlatformService(platform);
 
@@ -122,7 +122,6 @@ export async function GET(
     console.log(`[oauth/${platform}] token exchange OK`);
 
     const accountInfo = await service.getAccountInfo(tokens.accessToken);
-    console.log(`[oauth/${platform}] accountInfo:`, accountInfo);
 
     // 6. Upsert ad_account
     const { data: adAccount, error: upsertError } = await supabase

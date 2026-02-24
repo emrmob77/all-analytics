@@ -254,7 +254,8 @@ export function MembersTab({ callerRole }: MembersTabProps) {
   // OrganizationProvider (initial render may have callerRole='viewer' before
   // the org fetch completes; once it upgrades to 'owner'/'admin', we need to
   // fetch pending invitations which were skipped on the first run).
-  useEffect(() => { loadData(); }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData(); }, [isAdmin]);
 
   function handleRemoveConfirm() {
     if (!removingMember) return;
