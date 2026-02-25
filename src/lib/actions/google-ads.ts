@@ -130,11 +130,19 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         let errMsg = 'API Error';
         try {
             const parsed = JSON.parse(text);
-            if (parsed.error && parsed.error.message) {
+            if (Array.isArray(parsed) && parsed[0]?.error?.message) {
+                errMsg = parsed[0].error.message.split('.')[0];
+            } else if (parsed.error && parsed.error.message) {
                 errMsg = parsed.error.message.split('.')[0];
+            } else if (parsed[0]?.error?.status) {
+                errMsg = parsed[0].error.status;
+            } else {
+                // If it's a small JSON, just stringify it. If too big, use status.
+                const stringified = JSON.stringify(parsed);
+                errMsg = stringified.length < 50 ? stringified : 'Status ' + response.status;
             }
         } catch {
-            errMsg = 'Status ' + response.status;
+            errMsg = text.length < 50 ? text : 'Status ' + response.status;
         }
 
         // Return fallback instead of crashing the UI
