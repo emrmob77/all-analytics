@@ -15,17 +15,7 @@ function isGoogleCustomerId(value: string): boolean {
   return /^\d{10}$/.test(value.replace(/-/g, ''));
 }
 
-function pickPreferredCustomerId(
-  customerIds: string[],
-  loginCustomerId?: string
-): string | null {
-  if (!customerIds.length) return null;
-  if (!loginCustomerId) return customerIds[0];
 
-  const normalizedLoginId = loginCustomerId.replace(/-/g, '');
-  const childCustomerId = customerIds.find(id => id !== normalizedLoginId);
-  return childCustomerId ?? customerIds[0];
-}
 
 async function getGoogleTokenUserEmail(accessToken: string): Promise<string | null> {
   try {
@@ -121,14 +111,12 @@ export class GoogleAdsOAuthService implements AdPlatformOAuthService {
     // Try current Google Ads API versions in order (newest first).
     const versions = ['v21', 'v20', 'v19'];
     let lastError = 'Unable to fetch accessible Google Ads customers.';
-    const loginCustomerId = (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID ?? '').replace(/-/g, '');
 
     for (const version of versions) {
       const headers: Record<string, string> = {
         Authorization: `Bearer ${accessToken}`,
         'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '',
       };
-      if (loginCustomerId) headers['login-customer-id'] = loginCustomerId;
 
       const res = await fetch(
         `https://googleads.googleapis.com/${version}/customers:listAccessibleCustomers`,
@@ -147,7 +135,8 @@ export class GoogleAdsOAuthService implements AdPlatformOAuthService {
         const customerIds = (data.resourceNames ?? [])
           .map(resourceName => resourceName.split('/')[1] ?? resourceName)
           .filter(isGoogleCustomerId);
-        const externalId = pickPreferredCustomerId(customerIds, loginCustomerId || undefined);
+
+        const externalId = customerIds.length > 0 ? customerIds[0] : null;
         if (externalId) {
           return { externalId, name: `Google Ads (${externalId})` };
         }

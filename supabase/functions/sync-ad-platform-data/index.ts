@@ -57,6 +57,8 @@ interface GoogleAdsSearchChunk {
       conversionsValue: string;
     };
     segments?: { date: string };
+    customer?: { manager: boolean };
+    customerClient?: { clientCustomer: string; manager: boolean; status: string };
   }>;
 }
 
@@ -147,7 +149,7 @@ function last7DaysHours(): string[] {
 function isGoogleVersionUnsupported(errorBody: string): boolean {
   return errorBody.includes('UNSUPPORTED_VERSION')
     || errorBody.toLowerCase().includes('version')
-      && errorBody.toLowerCase().includes('deprecated');
+    && errorBody.toLowerCase().includes('deprecated');
 }
 
 function parseGoogleErrorMessage(errorBody: string): string {
@@ -168,8 +170,8 @@ function parseGoogleErrorMessage(errorBody: string): string {
     if (firstDetail) {
       const errorCode = firstDetail.errorCode
         ? Object.entries(firstDetail.errorCode)
-            .map(([key, value]) => `${key}:${value}`)
-            .join(',')
+          .map(([key, value]) => `${key}:${value}`)
+          .join(',')
         : '';
       const detailMessage = firstDetail.message ?? '';
       const suffix = [errorCode, detailMessage].filter(Boolean).join(' - ');
@@ -188,17 +190,7 @@ function isLikelyGoogleCustomerId(accountId: string): boolean {
   return /^\d{10}$/.test(accountId.replace(/-/g, ''));
 }
 
-function pickPreferredGoogleCustomerId(
-  customerIds: string[],
-  loginCustomerId?: string
-): string | null {
-  if (!customerIds.length) return null;
-  if (!loginCustomerId) return customerIds[0];
 
-  const normalizedLoginId = loginCustomerId.replace(/-/g, '');
-  const childCustomerId = customerIds.find(id => id !== normalizedLoginId);
-  return childCustomerId ?? customerIds[0];
-}
 
 async function getGoogleTokenUserEmail(accessToken: string): Promise<string | null> {
   try {
@@ -348,44 +340,63 @@ async function syncGoogle(
   externalAccountId: string
 ): Promise<PlatformSyncResult> {
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
-  const loginCustomerId = (Deno.env.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID') ?? '').replace(/-/g, '');
   if (!devToken) {
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
   }
 
-  // Some OAuth callbacks store Google user "sub" instead of Ads customer ID.
+  let baseAccountId = externalAccountId;
+
   // If the stored value is not a plausible customer ID, discover one from Google Ads.
-  let customerId = externalAccountId;
   if (!isLikelyGoogleCustomerId(externalAccountId)) {
     const accessibleCustomers = await googleListAccessibleCustomers(
       accessToken,
-      devToken,
-      loginCustomerId || undefined
+      devToken
     );
-    const discoveredCustomerId = pickPreferredGoogleCustomerId(
-      accessibleCustomers,
-      loginCustomerId || undefined
-    );
+    const discoveredCustomerId = accessibleCustomers[0];
     if (!discoveredCustomerId) {
       throw new Error('No accessible Google Ads customer found for this account.');
     }
     console.warn(
       `[syncGoogle] external_account_id "${externalAccountId}" is not a customer ID; using "${discoveredCustomerId}" from accessible customers.`
     );
-    customerId = discoveredCustomerId;
-  } else if (loginCustomerId && externalAccountId.replace(/-/g, '') === loginCustomerId) {
-    const accessibleCustomers = await googleListAccessibleCustomers(
+    baseAccountId = discoveredCustomerId;
+  }
+
+  let customerId = baseAccountId;
+  let loginCustomerId: string | undefined = undefined;
+
+  // Check if baseAccountId is a manager account
+  try {
+    const res = await googleAdsSearchStream(
       accessToken,
-      devToken,
-      loginCustomerId
+      baseAccountId,
+      `SELECT customer.manager FROM customer LIMIT 1`,
+      devToken
     );
-    const childCustomerId = pickPreferredGoogleCustomerId(accessibleCustomers, loginCustomerId);
-    if (childCustomerId && childCustomerId !== loginCustomerId) {
-      console.warn(
-        `[syncGoogle] external_account_id "${externalAccountId}" is MCC login customer; using child customer "${childCustomerId}".`
+    const isManager = res[0]?.results?.[0]?.customer?.manager === true;
+
+    if (isManager) {
+      loginCustomerId = baseAccountId;
+      // It is an MCC. Let's find an active child client account.
+      const childrenRes = await googleAdsSearchStream(
+        accessToken,
+        baseAccountId,
+        `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
+        devToken,
+        loginCustomerId
       );
-      customerId = childCustomerId;
+
+      const clientCustomerName = childrenRes[0]?.results?.[0]?.customerClient?.clientCustomer;
+      if (!clientCustomerName) {
+        throw new Error('This Google Ads account is a Manager (MCC) but has no active client accounts.');
+      }
+      customerId = clientCustomerName.split('/')[1] ?? clientCustomerName;
+      console.log(`[syncGoogle] Resolved MCC ${loginCustomerId} to child account ${customerId}`);
     }
+  } catch (err) {
+    const errObj = err as Error;
+    console.warn('[syncGoogle] Manager resolution failed, proceeding as direct client:', errObj?.message ?? err);
+    // If we can't determine it's a manager or query fails, assume it's a direct client account
   }
 
   // Fetch campaigns via GAQL
@@ -398,13 +409,14 @@ async function syncGoogle(
               WHERE campaign.status != 'REMOVED'
               ORDER BY campaign.id`,
     devToken,
-    loginCustomerId || undefined
+    loginCustomerId
   );
 
   const campaigns: CampaignData[] = [];
   const allResults = campaignData.flatMap(chunk => chunk.results ?? []);
 
   for (const row of allResults) {
+    if (!row.campaign) continue;
     const statusMap: Record<string, CampaignStatus> = {
       ENABLED: 'active', PAUSED: 'paused', REMOVED: 'archived',
     };
@@ -434,7 +446,7 @@ async function syncGoogle(
               WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
                 AND campaign.status != 'REMOVED'`,
     devToken,
-    loginCustomerId || undefined
+    loginCustomerId
   );
 
   for (const chunk of metricsData) {
