@@ -266,6 +266,12 @@ async function googleAdsSearchStream(
       continue;
     }
 
+    if (bodyText.includes('DEVELOPER_TOKEN_NOT_APPROVED')) {
+      throw new Error(
+        'Google Ads developer token is in test mode (DEVELOPER_TOKEN_NOT_APPROVED). ' +
+        'Apply for Basic Access at ads.google.com → Tools & Settings → API Center.'
+      );
+    }
     if (bodyText.includes('DEVELOPER_TOKEN_INVALID')) {
       throw new Error('Google Ads developer token is invalid. Update GOOGLE_ADS_DEVELOPER_TOKEN in Supabase secrets.');
     }
@@ -320,6 +326,12 @@ async function googleListAccessibleCustomers(
       continue;
     }
 
+    if (bodyText.includes('DEVELOPER_TOKEN_NOT_APPROVED')) {
+      throw new Error(
+        'Google Ads developer token is in test mode (DEVELOPER_TOKEN_NOT_APPROVED). ' +
+        'Apply for Basic Access at ads.google.com → Tools & Settings → API Center.'
+      );
+    }
     if (bodyText.includes('DEVELOPER_TOKEN_INVALID')) {
       throw new Error('Google Ads developer token is invalid. Update GOOGLE_ADS_DEVELOPER_TOKEN in Supabase secrets.');
     }
@@ -432,13 +444,12 @@ async function syncGoogle(
   );
 
   const campaigns: CampaignData[] = [];
-  const allResults = campaignData.flatMap(chunk => chunk.results ?? []);
+  const statusMap: Record<string, CampaignStatus> = {
+    ENABLED: 'active', PAUSED: 'paused', REMOVED: 'archived',
+  };
 
-  for (const row of allResults) {
+  for (const row of campaignData.flatMap(c => c.results ?? [])) {
     if (!row.campaign) continue;
-    const statusMap: Record<string, CampaignStatus> = {
-      ENABLED: 'active', PAUSED: 'paused', REMOVED: 'archived',
-    };
     campaigns.push({
       external_campaign_id: row.campaign.id,
       name: row.campaign.name,
@@ -450,11 +461,11 @@ async function syncGoogle(
   }
 
   // Fetch daily metrics (last 30 days)
-  const dailyMetrics: Record<string, DailyMetric[]> = {};
   const dates = lastNDays(30);
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
 
+  const dailyMetrics: Record<string, DailyMetric[]> = {};
   const metricsData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -466,7 +477,10 @@ async function syncGoogle(
                 AND campaign.status != 'REMOVED'`,
     devToken,
     loginCustomerId
-  );
+  ).catch(err => {
+    console.warn('[syncGoogle] daily metrics fetch failed (non-fatal):', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
 
   for (const chunk of metricsData) {
     for (const row of chunk.results ?? []) {
@@ -889,8 +903,10 @@ Deno.serve(async (req: Request) => {
       .from('sync_logs')
       .update({ status: 'failed', error_message: message, completed_at: new Date().toISOString() })
       .eq('id', syncLogId);
-    return new Response(JSON.stringify({ error: message, sync_log_id: syncLogId }), {
-      status: 500,
+    // Return 200 so functions.invoke() passes the body to the caller instead of
+    // throwing a generic FunctionsFetchError. The caller checks body.error.
+    return new Response(JSON.stringify({ success: false, error: message, sync_log_id: syncLogId }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
