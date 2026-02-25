@@ -349,7 +349,8 @@ async function googleListAccessibleCustomers(
 
 async function syncGoogle(
   accessToken: string,
-  externalAccountId: string
+  externalAccountId: string,
+  selectedChildId?: string
 ): Promise<PlatformSyncResult> {
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
   if (!devToken) {
@@ -377,38 +378,44 @@ async function syncGoogle(
   let customerId = baseAccountId;
   let loginCustomerId: string | undefined = undefined;
 
-  // Check if baseAccountId is a manager account
-  try {
-    const res = await googleAdsSearchStream(
-      accessToken,
-      baseAccountId,
-      `SELECT customer.manager FROM customer LIMIT 1`,
-      devToken
-    );
-    const isManager = res[0]?.results?.[0]?.customer?.manager === true;
-
-    if (isManager) {
-      loginCustomerId = baseAccountId;
-      // It is an MCC. Let's find an active child client account.
-      const childrenRes = await googleAdsSearchStream(
+  if (selectedChildId) {
+    customerId = selectedChildId;
+    console.log(`[syncGoogle] Using explicitly selected child account ${customerId} for MCC ${externalAccountId}`);
+    loginCustomerId = externalAccountId; // assume MCC is the connected ad account
+  } else {
+    // Check if baseAccountId is a manager account
+    try {
+      const res = await googleAdsSearchStream(
         accessToken,
         baseAccountId,
-        `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
-        devToken,
-        loginCustomerId
+        `SELECT customer.manager FROM customer LIMIT 1`,
+        devToken
       );
+      const isManager = res[0]?.results?.[0]?.customer?.manager === true;
 
-      const clientCustomerName = childrenRes[0]?.results?.[0]?.customerClient?.clientCustomer;
-      if (!clientCustomerName) {
-        throw new Error('This Google Ads account is a Manager (MCC) but has no active client accounts.');
+      if (isManager) {
+        loginCustomerId = baseAccountId;
+        // It is an MCC. Let's find an active child client account as fallback.
+        const childrenRes = await googleAdsSearchStream(
+          accessToken,
+          baseAccountId,
+          `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
+          devToken,
+          loginCustomerId
+        );
+
+        const clientCustomerName = childrenRes[0]?.results?.[0]?.customerClient?.clientCustomer;
+        if (!clientCustomerName) {
+          throw new Error('This Google Ads account is a Manager (MCC) but has no active client accounts.');
+        }
+        customerId = clientCustomerName.split('/')[1] ?? clientCustomerName;
+        console.log(`[syncGoogle] Resolved MCC ${loginCustomerId} to first child account ${customerId}`);
       }
-      customerId = clientCustomerName.split('/')[1] ?? clientCustomerName;
-      console.log(`[syncGoogle] Resolved MCC ${loginCustomerId} to child account ${customerId}`);
+    } catch (err) {
+      const errObj = err as Error;
+      console.warn('[syncGoogle] Manager resolution failed, proceeding as direct client:', errObj?.message ?? err);
+      // If we can't determine it's a manager or query fails, assume it's a direct client account
     }
-  } catch (err) {
-    const errObj = err as Error;
-    console.warn('[syncGoogle] Manager resolution failed, proceeding as direct client:', errObj?.message ?? err);
-    // If we can't determine it's a manager or query fails, assume it's a direct client account
   }
 
   // Detect account currency dynamically instead of assuming USD
@@ -690,11 +697,11 @@ async function syncPinterest(
 }
 
 function getPlatformSyncer(platform: AdPlatform) {
-  const map: Record<AdPlatform, (token: string, accountId: string) => Promise<PlatformSyncResult>> = {
+  const map: Record<AdPlatform, (token: string, accountId: string, selectedChildId?: string) => Promise<PlatformSyncResult>> = {
     google: syncGoogle,
-    meta: syncMeta,
-    tiktok: syncTikTok,
-    pinterest: syncPinterest,
+    meta: syncMeta as any,
+    tiktok: syncTikTok as any,
+    pinterest: syncPinterest as any,
   };
   return map[platform];
 }
@@ -859,7 +866,7 @@ Deno.serve(async (req: Request) => {
   // Fetch ad account
   const { data: adAccount, error: accountErr } = await supabase
     .from('ad_accounts')
-    .select('id, organization_id, platform, external_account_id, is_active')
+    .select('id, organization_id, platform, external_account_id, is_active, selected_child_account_id')
     .eq('id', ad_account_id)
     .maybeSingle();
 
@@ -935,7 +942,7 @@ Deno.serve(async (req: Request) => {
     if (!syncer) {
       return failSync(`Unsupported platform: ${adAccount.platform}`);
     }
-    const result = await syncer(accessToken, adAccount.external_account_id);
+    const result = await syncer(accessToken, adAccount.external_account_id, adAccount.selected_child_account_id);
     await writeResults(supabase, adAccount as { id: string; organization_id: string; platform: AdPlatform; external_account_id: string }, result);
 
     await supabase

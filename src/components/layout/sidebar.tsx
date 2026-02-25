@@ -17,6 +17,8 @@ import {
 import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
+import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, submitChildAccountSwitch, type GoogleChildAccount } from '@/lib/actions/google-ads';
+import { toast } from 'sonner';
 
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', href: '/dashboard' },
@@ -153,6 +155,10 @@ export function Sidebar() {
     [pathname]
   );
 
+  const [googleAdAccount, setGoogleAdAccount] = useState<any>(null);
+  const [googleChildren, setGoogleChildren] = useState<GoogleChildAccount[]>([]);
+  const [childLoading, setChildLoading] = useState(false);
+
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -162,6 +168,41 @@ export function Sidebar() {
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
+
+  // Fetch connected Google Ads account when sidebar loads
+  useEffect(() => {
+    let mounted = true;
+    if (organization) {
+      getConnectedGoogleAdsAccount().then((acc) => {
+        if (mounted && acc) {
+          setGoogleAdAccount(acc);
+          setChildLoading(true);
+          fetchGoogleChildAccounts(acc.id).then(children => {
+            if (mounted) setGoogleChildren(children);
+          }).finally(() => {
+            if (mounted) setChildLoading(false);
+          });
+        }
+      });
+    }
+    return () => { mounted = false; };
+  }, [organization]);
+
+  const handleSwitchChild = async (childId: string) => {
+    if (!googleAdAccount) return;
+    try {
+      if (googleAdAccount.selected_child_id === childId) return;
+      await submitChildAccountSwitch(googleAdAccount.id, childId);
+      toast.success('Ad account switched successfully. Data will update on next sync.');
+
+      setGoogleAdAccount({ ...googleAdAccount, selected_child_id: childId });
+
+      // Optionally trigger re-fetch of campaigns here, or tell user to click sync
+    } catch (err) {
+      toast.error('Failed to switch ad account');
+      console.error(err);
+    }
+  };
 
   const handleSignOut = async () => {
     const supabase = createBrowserClient(
@@ -191,26 +232,59 @@ export function Sidebar() {
       <div className="flex items-center gap-2 px-[18px] pt-[18px] pb-[12px]">
         <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#1A73E8]">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M2 10l2.5-4 2.5 2.5 2-3.5 3 5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 10l2.5-4 2.5 2.5 2-3.5 3 5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <span className="text-[15px] font-bold text-[#202124]">AdsPulse</span>
       </div>
 
-      {/* Account Switcher */}
-      <div className="mx-3 mb-[14px] flex cursor-pointer items-center gap-[9px] rounded-[9px] border border-[#E3E8EF] bg-white p-[9px_11px]">
-        <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#FBBC05] text-xs font-bold text-white">
-          {organization ? getInitials(organization.name) : '…'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="truncate text-[12.5px] font-semibold text-[#202124]">
-            {organization?.name ?? 'Loading…'}
+      {/* Account Switcher Options / Dropdown */}
+      <div className="px-3 mb-[14px]">
+        {/* We can make this a dropdown if we want org switching, but currently it's just displaying Org */}
+        <div className="flex items-center gap-[9px] rounded-[9px] border border-[#E3E8EF] bg-white p-[9px_11px]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-[7px] bg-[#FBBC05] text-xs font-bold text-white shrink-0">
+            {organization ? getInitials(organization.name) : '…'}
           </div>
-          <div className="text-[10.5px] text-[#9AA0A6] capitalize">{role ?? ''}</div>
+          <div className="flex-1 min-w-0">
+            <div className="truncate text-[12.5px] font-semibold text-[#202124]">
+              {organization?.name ?? 'Loading…'}
+            </div>
+            <div className="text-[10.5px] text-[#9AA0A6] capitalize">{role ?? ''}</div>
+          </div>
         </div>
-        <svg width="12" height="12" fill="none" stroke="#9AA0A6" strokeWidth="1.5" strokeLinecap="round">
-          <path d="M2 4l4 4 4-4"/>
-        </svg>
+
+        {/* Google Ads Sub-Account Switcher (If connected and has children) */}
+        {googleAdAccount && googleChildren.length > 0 && (
+          <div className="mt-2.5 rounded-[9px] border border-[#E3E8EF] bg-white text-[12px]">
+            <div className="border-b border-[#E3E8EF] px-2.5 py-1.5 flex items-center gap-1.5 bg-[#F8F9FA] rounded-t-[8px]">
+              <GoogleIcon size={12} />
+              <span className="font-semibold text-[#5F6368] text-[10.5px] uppercase tracking-wide">
+                Google Ads Account
+              </span>
+            </div>
+            <div className="max-h-[120px] overflow-y-auto px-1.5 py-1 custom-scrollbar">
+              {childLoading ? (
+                <div className="px-2 py-1.5 text-[11px] text-[#9AA0A6]">Loading accounts...</div>
+              ) : (
+                googleChildren.map((child) => (
+                  <button
+                    key={child.id}
+                    onClick={() => handleSwitchChild(child.id)}
+                    className={cn(
+                      "w-full text-left px-2 py-[7px] text-[11px] rounded-md transition-colors truncate",
+                      googleAdAccount.selected_child_id === child.id || (!googleAdAccount.selected_child_id && googleChildren[0].id === child.id)
+                        ? "bg-[#E8F0FE] text-[#1A73E8] font-semibold"
+                        : "text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]"
+                    )}
+                    title={`${child.name} (${child.id})`}
+                  >
+                    {child.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -377,7 +451,7 @@ export function Sidebar() {
               onClick={() => setUserMenuOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#202124] hover:bg-[#F1F3F4] transition-colors"
             >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="5" r="2.5"/><path d="M1 13c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="5" r="2.5" /><path d="M1 13c0-3.3 2.7-5 6-5s6 1.7 6 5" /></svg>
               Profile
             </Link>
             <Link
@@ -385,7 +459,7 @@ export function Sidebar() {
               onClick={() => setUserMenuOpen(false)}
               className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#202124] hover:bg-[#F1F3F4] transition-colors"
             >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="2.5"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.6 2.6l1 1M9.4 9.4l1 1M2.6 11.4l1-1M9.4 4.6l1-1"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="2.5" /><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.6 2.6l1 1M9.4 9.4l1 1M2.6 11.4l1-1M9.4 4.6l1-1" /></svg>
               Settings
             </Link>
             <div className="border-t border-[#F1F3F4] mx-2" />
@@ -393,7 +467,7 @@ export function Sidebar() {
               onClick={handleSignOut}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-[13px] text-[#C5221F] hover:bg-[#FEF3F2] transition-colors"
             >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2H4a1 1 0 00-1 1v8a1 1 0 001 1h5M11 9l3-3-3-3M14 6H6"/></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 2H4a1 1 0 00-1 1v8a1 1 0 001 1h5M11 9l3-3-3-3M14 6H6" /></svg>
               Sign out
             </button>
           </div>
