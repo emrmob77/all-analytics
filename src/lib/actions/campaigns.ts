@@ -10,6 +10,7 @@ export interface CampaignRow {
   platform: AdPlatform;
   status: CampaignStatus;
   budget: number;
+  currency?: string;
   spend: number;
   impressions: number;
   clicks: number;
@@ -73,7 +74,7 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
   let query = supabase
     .from('campaigns')
     .select(`
-      id, name, platform, status, budget_limit, created_at,
+      id, name, platform, status, budget_limit, created_at, currency,
       campaign_metrics(spend, impressions, clicks, conversions, revenue, date)
     `)
     .eq('organization_id', orgId)
@@ -82,7 +83,7 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
     .limit(10_000);
 
   if (platform && platform !== 'all') query = query.eq('platform', platform);
-  if (status && status !== 'all')     query = query.eq('status', status);
+  if (status && status !== 'all') query = query.eq('status', status);
   if (search?.trim()) {
     // Escape PostgreSQL LIKE metacharacters so they match literally
     const escaped = search.trim().replace(/[%_\\]/g, '\\$&');
@@ -95,34 +96,35 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
 
   type RawRow = {
     id: string; name: string; platform: string; status: string;
-    budget_limit: number; created_at: string;
+    budget_limit: number; created_at: string; currency: string;
     campaign_metrics: { spend: number; impressions: number; clicks: number; conversions: number; revenue: number; date: string }[];
   };
 
   // Aggregate pre-filtered metrics per campaign
   const rows: CampaignRow[] = ((data ?? []) as unknown as RawRow[]).map((row) => {
     const metrics = row.campaign_metrics ?? [];
-    const spend       = metrics.reduce((s, m) => s + (m.spend       ?? 0), 0);
-    const impressions = metrics.reduce((s, m) => s + (m.impressions  ?? 0), 0);
-    const clicks      = metrics.reduce((s, m) => s + (m.clicks       ?? 0), 0);
-    const conversions = metrics.reduce((s, m) => s + (m.conversions  ?? 0), 0);
-    const revenue     = metrics.reduce((s, m) => s + (m.revenue      ?? 0), 0);
-    const ctr         = impressions > 0 ? (clicks / impressions) * 100 : 0;
-    const roas        = spend > 0       ? revenue / spend               : 0;
+    const spend = metrics.reduce((s, m) => s + (m.spend ?? 0), 0);
+    const impressions = metrics.reduce((s, m) => s + (m.impressions ?? 0), 0);
+    const clicks = metrics.reduce((s, m) => s + (m.clicks ?? 0), 0);
+    const conversions = metrics.reduce((s, m) => s + (m.conversions ?? 0), 0);
+    const revenue = metrics.reduce((s, m) => s + (m.revenue ?? 0), 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const roas = spend > 0 ? revenue / spend : 0;
 
     return {
-      id:          row.id,
-      name:        row.name,
-      platform:    row.platform as AdPlatform,
-      status:      row.status as CampaignStatus,
-      budget:      row.budget_limit ?? 0,
-      spend:       +spend.toFixed(2),
+      id: row.id,
+      name: row.name,
+      platform: row.platform as AdPlatform,
+      status: row.status as CampaignStatus,
+      budget: row.budget_limit ?? 0,
+      currency: row.currency ?? 'USD',
+      spend: +spend.toFixed(2),
       impressions: Math.round(impressions),
-      clicks:      Math.round(clicks),
+      clicks: Math.round(clicks),
       conversions: +conversions.toFixed(2),
-      ctr:         +ctr.toFixed(2),
-      roas:        +roas.toFixed(2),
-      createdAt:   row.created_at,
+      ctr: +ctr.toFixed(2),
+      roas: +roas.toFixed(2),
+      createdAt: row.created_at,
     };
   });
 

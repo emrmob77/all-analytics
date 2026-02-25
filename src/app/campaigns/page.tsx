@@ -32,18 +32,18 @@ function defaultRange(): DateRange {
 }
 
 function toISO(d: Date): string {
-  const y  = d.getFullYear();
-  const m  = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${dd}`;
 }
 
 const STATUS_OPTIONS: { value: CampaignStatus | 'all'; label: string }[] = [
-  { value: 'all',      label: 'All Statuses' },
-  { value: 'active',   label: 'Active'       },
-  { value: 'paused',   label: 'Paused'       },
-  { value: 'stopped',  label: 'Stopped'      },
-  { value: 'archived', label: 'Archived'     },
+  { value: 'all', label: 'All Statuses' },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'stopped', label: 'Stopped' },
+  { value: 'archived', label: 'Archived' },
 ];
 
 const PAGE_SIZE = 50;
@@ -126,7 +126,7 @@ interface BudgetDialogProps {
 
 function BudgetDialog({ campaignId, campaignName, currentBudget, onClose }: BudgetDialogProps) {
   const [value, setValue] = useState(currentBudget.toFixed(2));
-  const [error, setError]  = useState('');
+  const [error, setError] = useState('');
   const { mutate, isPending } = useUpdateCampaignBudget();
 
   function handleSubmit(e: React.FormEvent) {
@@ -204,18 +204,18 @@ interface StatusCellProps {
 }
 
 const STATUS_CHANGE_OPTIONS: { value: CampaignStatus; label: string }[] = [
-  { value: 'active',   label: 'Active'   },
-  { value: 'paused',   label: 'Paused'   },
-  { value: 'stopped',  label: 'Stopped'  },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'stopped', label: 'Stopped' },
   { value: 'archived', label: 'Archived' },
 ];
 
 function StatusCell({ row }: StatusCellProps) {
-  const [open, setOpen]             = useState(false);
+  const [open, setOpen] = useState(false);
   const [optimistic, setOptimistic] = useState<CampaignStatus | null>(null);
-  const [pos, setPos]               = useState({ top: 0, left: 0 });
-  const btnRef                      = useRef<HTMLButtonElement>(null);
-  const { mutate, isPending }       = useUpdateCampaignStatus();
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const { mutate, isPending } = useUpdateCampaignStatus();
 
   const currentStatus = optimistic ?? row.status;
   const s = STATUS_STYLES[currentStatus] ?? STATUS_STYLES['archived'];
@@ -249,7 +249,7 @@ function StatusCell({ row }: StatusCellProps) {
       >
         <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ backgroundColor: s.dot }} />
         {currentStatus}
-        <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 2.5l3 3 3-3"/></svg>
+        <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 2.5l3 3 3-3" /></svg>
       </button>
 
       {open && (
@@ -265,9 +265,8 @@ function StatusCell({ row }: StatusCellProps) {
                 <button
                   key={opt.value}
                   onClick={() => handleChange(opt.value)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-[#F8F9FA] ${
-                    opt.value === currentStatus ? 'font-semibold' : ''
-                  }`}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] hover:bg-[#F8F9FA] ${opt.value === currentStatus ? 'font-semibold' : ''
+                    }`}
                 >
                   <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ backgroundColor: os.dot }} />
                   {opt.label}
@@ -286,15 +285,15 @@ function StatusCell({ row }: StatusCellProps) {
 // ---------------------------------------------------------------------------
 
 export default function CampaignsPage() {
-  const [dateRange, setDateRange]           = useState<DateRange>(defaultRange);
+  const [dateRange, setDateRange] = useState<DateRange>(defaultRange);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
-  const [statusFilter, setStatusFilter]     = useState<CampaignStatus | 'all'>('all');
-  const [search, setSearch]                 = useState('');
-  const [page, setPage]                     = useState(1);
-  const [sorting, setSorting]               = useState<SortingState>([{ id: 'spend', desc: true }]);
-  const [rowSelection, setRowSelection]     = useState<RowSelectionState>({});
-  const [bulkAction, setBulkAction]         = useState<CampaignStatus | null>(null);
-  const [budgetDialog, setBudgetDialog]     = useState<{ id: string; name: string; budget: number } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'spend', desc: true }]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkAction, setBulkAction] = useState<CampaignStatus | null>(null);
+  const [budgetDialog, setBudgetDialog] = useState<{ id: string; name: string; budget: number } | null>(null);
 
   // Reset row selection whenever any query param (including sort) changes
   useEffect(() => {
@@ -306,20 +305,20 @@ export default function CampaignsPage() {
 
   const { data, isLoading } = useCampaigns({
     from: toISO(dateRange.from),
-    to:   toISO(dateRange.to),
-    platform:      activePlatform,
-    status:        statusFilter,
-    search:        search || undefined,
+    to: toISO(dateRange.to),
+    platform: activePlatform,
+    status: statusFilter,
+    search: search || undefined,
     page,
-    pageSize:      PAGE_SIZE,
-    sortColumn:    sortCol,
+    pageSize: PAGE_SIZE,
+    sortColumn: sortCol,
     sortDirection: sortDir,
   });
 
   const { mutate: bulkUpdate, isPending: bulkPending } = useBulkUpdateStatus();
 
-  const campaigns  = data?.data ?? [];
-  const total      = data?.total ?? 0;
+  const campaigns = data?.data ?? [];
+  const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const columns = useMemo(
@@ -394,19 +393,19 @@ export default function CampaignsPage() {
               })
             }
           >
-            {info.getValue() > 0 ? formatCurrency(info.getValue()) : '—'}
+            {info.getValue() > 0 ? formatCurrency(info.getValue(), info.row.original.currency) : '—'}
             <svg
               className="opacity-0 group-hover:opacity-100 transition-opacity"
               width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.6"
             >
-              <path d="M1.5 7.5V9h1.5l4.5-4.5L6 3l-4.5 4.5zM8.5 1.5l1 1L8.5 3.5l-1-1 1-1z" strokeLinejoin="round"/>
+              <path d="M1.5 7.5V9h1.5l4.5-4.5L6 3l-4.5 4.5zM8.5 1.5l1 1L8.5 3.5l-1-1 1-1z" strokeLinejoin="round" />
             </svg>
           </button>
         ),
       }),
       colHelper.accessor('spend', {
         header: 'Spend',
-        cell: (info) => <span className="font-medium text-[#202124]">{info.getValue() > 0 ? formatCurrency(info.getValue()) : '—'}</span>,
+        cell: (info) => <span className="font-medium text-[#202124]">{info.getValue() > 0 ? formatCurrency(info.getValue(), info.row.original.currency) : '—'}</span>,
       }),
       colHelper.accessor('impressions', {
         header: 'Impressions',
@@ -453,8 +452,8 @@ export default function CampaignsPage() {
     getRowId: (row) => row.id,
   });
 
-  const selectedIds    = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-  const selectedCount  = selectedIds.length;
+  const selectedIds = Object.keys(rowSelection).filter((k) => rowSelection[k]);
+  const selectedCount = selectedIds.length;
 
   function handleBulkConfirm() {
     if (!bulkAction) return;
@@ -501,7 +500,7 @@ export default function CampaignsPage() {
           <div className="relative">
             <label htmlFor="campaign-search" className="sr-only">Search campaigns</label>
             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA0A6]" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-              <circle cx="5.5" cy="5.5" r="4.5"/><path d="M10 10l2.5 2.5"/>
+              <circle cx="5.5" cy="5.5" r="4.5" /><path d="M10 10l2.5 2.5" />
             </svg>
             <input
               id="campaign-search"
@@ -587,13 +586,12 @@ export default function CampaignsPage() {
                       <th
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
-                        className={`select-none whitespace-nowrap border-b border-[#E3E8EF] px-3.5 py-[9px] text-left text-[11px] font-medium ${
-                          header.column.getCanSort() ? 'cursor-pointer' : ''
-                        } ${header.column.getIsSorted() ? 'text-[#1A73E8]' : 'text-[#5F6368]'}`}
+                        className={`select-none whitespace-nowrap border-b border-[#E3E8EF] px-3.5 py-[9px] text-left text-[11px] font-medium ${header.column.getCanSort() ? 'cursor-pointer' : ''
+                          } ${header.column.getIsSorted() ? 'text-[#1A73E8]' : 'text-[#5F6368]'}`}
                       >
                         <span className="inline-flex items-center gap-1">
                           {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getIsSorted() === 'asc'  && ' ↑'}
+                          {header.column.getIsSorted() === 'asc' && ' ↑'}
                           {header.column.getIsSorted() === 'desc' && ' ↓'}
                         </span>
                       </th>
@@ -619,9 +617,8 @@ export default function CampaignsPage() {
                   table.getRowModel().rows.map((row) => (
                     <tr
                       key={row.id}
-                      className={`cursor-pointer transition-colors ${
-                        row.getIsSelected() ? 'bg-[#F0F6FF]' : 'bg-white hover:bg-[#F8FBFF]'
-                      }`}
+                      className={`cursor-pointer transition-colors ${row.getIsSelected() ? 'bg-[#F0F6FF]' : 'bg-white hover:bg-[#F8FBFF]'
+                        }`}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td
@@ -652,7 +649,7 @@ export default function CampaignsPage() {
                   aria-label="Previous page"
                   className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#E3E8EF] text-[#5F6368] disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M7 1L3 5l4 4"/></svg>
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M7 1L3 5l4 4" /></svg>
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
@@ -668,11 +665,10 @@ export default function CampaignsPage() {
                       <button
                         key={p}
                         onClick={() => setPage(p as number)}
-                        className={`flex h-7 w-7 items-center justify-center rounded-[6px] text-[12px] font-medium transition-colors ${
-                          page === p
+                        className={`flex h-7 w-7 items-center justify-center rounded-[6px] text-[12px] font-medium transition-colors ${page === p
                             ? 'bg-[#1A73E8] text-white'
                             : 'border border-[#E3E8EF] text-[#5F6368] hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>
@@ -684,7 +680,7 @@ export default function CampaignsPage() {
                   aria-label="Next page"
                   className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#E3E8EF] text-[#5F6368] disabled:opacity-40 hover:bg-gray-50"
                 >
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 1l4 4-4 4"/></svg>
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3 1l4 4-4 4" /></svg>
                 </button>
               </div>
             </div>
