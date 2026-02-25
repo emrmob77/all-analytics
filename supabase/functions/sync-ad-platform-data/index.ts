@@ -120,40 +120,139 @@ function last7DaysHours(): string[] {
   return hours;
 }
 
+// ---------------------------------------------------------------------------
+// Google Ads helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Discovers the first accessible 10-digit Google Ads customer ID.
+ * Tries API versions v19→v20→v21 in order.
+ * Throws a user-friendly error on DEVELOPER_TOKEN_NOT_APPROVED.
+ */
+async function googleListAccessibleCustomers(
+  accessToken: string,
+  devToken: string,
+  loginCustomerId: string
+): Promise<string | null> {
+  const versions = ['v19', 'v20', 'v21'] as const;
+  for (const version of versions) {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': devToken,
+    };
+    if (loginCustomerId) headers['login-customer-id'] = loginCustomerId;
+
+    const res = await fetch(
+      `https://googleads.googleapis.com/${version}/customers:listAccessibleCustomers`,
+      { headers }
+    );
+
+    if (res.status === 404) continue; // version not found, try next
+
+    const text = await res.text();
+
+    if (text.includes('DEVELOPER_TOKEN_NOT_APPROVED')) {
+      throw new Error(
+        'Google Ads developer token is in test mode (DEVELOPER_TOKEN_NOT_APPROVED). ' +
+        'Apply for Basic Access at ads.google.com → Tools & Settings → API Center.'
+      );
+    }
+
+    if (res.ok) {
+      const data = JSON.parse(text) as { resourceNames?: string[] };
+      // Prefer a 10-digit customer ID (real account, not MCC)
+      const resourceName =
+        data.resourceNames?.find(n => /^\d{10}$/.test(n.split('/')[1] ?? '')) ??
+        data.resourceNames?.[0];
+      return resourceName ? (resourceName.split('/')[1] ?? null) : null;
+    }
+
+    throw new Error(`listAccessibleCustomers (${version}) failed (${res.status}): ${text.slice(0, 300)}`);
+  }
+  return null;
+}
+
+/**
+ * Executes a GAQL searchStream query against the Google Ads API.
+ * Tries v19→v20→v21. Throws on DEVELOPER_TOKEN_NOT_APPROVED.
+ */
+async function googleAdsSearchStream(
+  accessToken: string,
+  devToken: string,
+  customerId: string,
+  loginCustomerId: string,
+  query: string
+): Promise<unknown[]> {
+  const versions = ['v19', 'v20', 'v21'] as const;
+  for (const version of versions) {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': devToken,
+      'Content-Type': 'application/json',
+    };
+    if (loginCustomerId) headers['login-customer-id'] = loginCustomerId;
+
+    const res = await fetch(
+      `https://googleads.googleapis.com/${version}/customers/${customerId}/googleAds:searchStream`,
+      { method: 'POST', headers, body: JSON.stringify({ query }) }
+    );
+
+    if (res.status === 404) continue;
+
+    const text = await res.text();
+
+    if (text.includes('DEVELOPER_TOKEN_NOT_APPROVED')) {
+      throw new Error(
+        'Google Ads developer token is in test mode (DEVELOPER_TOKEN_NOT_APPROVED). ' +
+        'Apply for Basic Access at ads.google.com → Tools & Settings → API Center.'
+      );
+    }
+
+    if (!res.ok) {
+      throw new Error(`Google Ads searchStream (${version}) failed (${res.status}): ${text.slice(0, 300)}`);
+    }
+
+    return JSON.parse(text) as unknown[];
+  }
+  throw new Error('No supported Google Ads API version responded to searchStream');
+}
+
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string
 ): Promise<PlatformSyncResult> {
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
-  const baseUrl = `https://googleads.googleapis.com/v18/customers/${externalAccountId}`;
+  if (!devToken) throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
+
+  const loginCustomerId = Deno.env.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID') ?? '';
+
+  // Resolve real customer ID — the stored external_account_id may be a Google
+  // profile sub (21 digits) if the OAuth fallback path ran during connection.
+  let customerId = externalAccountId;
+  if (!/^\d{10}$/.test(customerId)) {
+    console.log(`[syncGoogle] ${customerId} is not a 10-digit customer ID, discovering via listAccessibleCustomers`);
+    const discovered = await googleListAccessibleCustomers(accessToken, devToken, loginCustomerId);
+    if (!discovered) throw new Error('No accessible Google Ads customer found for this account');
+    customerId = discovered;
+    console.log(`[syncGoogle] discovered customer ID: ${customerId}`);
+  }
 
   // Fetch campaigns via GAQL
-  const campaignRes = await fetch(`${baseUrl}/googleAds:searchStream`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'developer-token': devToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `SELECT campaign.id, campaign.name, campaign.status,
-                     campaign_budget.amount_micros, metrics.cost_micros
-              FROM campaign
-              WHERE campaign.status != 'REMOVED'
-              ORDER BY campaign.id`,
-    }),
-  });
-
-  if (!campaignRes.ok) throw new Error(`Google Ads campaigns fetch failed: ${await campaignRes.text()}`);
-  const campaignData = await campaignRes.json() as { results?: Array<{ campaign: { id: string; name: string; status: string }; campaignBudget?: { amountMicros: string }; metrics?: { costMicros: string } }> }[];
+  const campaignChunks = await googleAdsSearchStream(
+    accessToken, devToken, customerId, loginCustomerId,
+    `SELECT campaign.id, campaign.name, campaign.status,
+            campaign_budget.amount_micros, metrics.cost_micros
+     FROM campaign
+     WHERE campaign.status != 'REMOVED'
+     ORDER BY campaign.id`
+  ) as { results?: Array<{ campaign: { id: string; name: string; status: string }; campaignBudget?: { amountMicros: string }; metrics?: { costMicros: string } }> }[];
 
   const campaigns: CampaignData[] = [];
-  const allResults = campaignData.flatMap(chunk => chunk.results ?? []);
+  const statusMap: Record<string, CampaignStatus> = {
+    ENABLED: 'active', PAUSED: 'paused', REMOVED: 'archived',
+  };
 
-  for (const row of allResults) {
-    const statusMap: Record<string, CampaignStatus> = {
-      ENABLED: 'active', PAUSED: 'paused', REMOVED: 'archived',
-    };
+  for (const row of campaignChunks.flatMap(c => c.results ?? [])) {
     campaigns.push({
       external_campaign_id: row.campaign.id,
       name: row.campaign.name,
@@ -165,43 +264,36 @@ async function syncGoogle(
   }
 
   // Fetch daily metrics (last 30 days)
-  const dailyMetrics: Record<string, DailyMetric[]> = {};
   const dates = lastNDays(30);
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
 
-  const metricsRes = await fetch(`${baseUrl}/googleAds:searchStream`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'developer-token': devToken,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `SELECT campaign.id, segments.date,
-                     metrics.cost_micros, metrics.impressions,
-                     metrics.clicks, metrics.conversions, metrics.conversions_value
-              FROM campaign
-              WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
-                AND campaign.status != 'REMOVED'`,
-    }),
-  });
+  const metricsChunks = await googleAdsSearchStream(
+    accessToken, devToken, customerId, loginCustomerId,
+    `SELECT campaign.id, segments.date,
+            metrics.cost_micros, metrics.impressions,
+            metrics.clicks, metrics.conversions, metrics.conversions_value
+     FROM campaign
+     WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+       AND campaign.status != 'REMOVED'`
+  ).catch(err => {
+    console.warn('[syncGoogle] daily metrics fetch failed (non-fatal):', err.message);
+    return [] as unknown[];
+  }) as { results?: Array<{ campaign: { id: string }; segments: { date: string }; metrics: { costMicros: string; impressions: string; clicks: string; conversions: string; conversionsValue: string } }> }[];
 
-  if (metricsRes.ok) {
-    const metricsData = await metricsRes.json() as { results?: Array<{ campaign: { id: string }; segments: { date: string }; metrics: { costMicros: string; impressions: string; clicks: string; conversions: string; conversionsValue: string } }> }[];
-    for (const chunk of metricsData) {
-      for (const row of chunk.results ?? []) {
-        const id = row.campaign.id;
-        if (!dailyMetrics[id]) dailyMetrics[id] = [];
-        dailyMetrics[id].push({
-          date: row.segments.date,
-          spend: Number(row.metrics.costMicros) / 1_000_000,
-          impressions: Number(row.metrics.impressions),
-          clicks: Number(row.metrics.clicks),
-          conversions: Number(row.metrics.conversions),
-          revenue: Number(row.metrics.conversionsValue),
-        });
-      }
+  const dailyMetrics: Record<string, DailyMetric[]> = {};
+  for (const chunk of metricsChunks) {
+    for (const row of chunk.results ?? []) {
+      const id = row.campaign.id;
+      if (!dailyMetrics[id]) dailyMetrics[id] = [];
+      dailyMetrics[id].push({
+        date: row.segments.date,
+        spend: Number(row.metrics.costMicros) / 1_000_000,
+        impressions: Number(row.metrics.impressions),
+        clicks: Number(row.metrics.clicks),
+        conversions: Number(row.metrics.conversions),
+        revenue: Number(row.metrics.conversionsValue),
+      });
     }
   }
 
@@ -596,8 +688,10 @@ Deno.serve(async (req: Request) => {
       .from('sync_logs')
       .update({ status: 'failed', error_message: message, completed_at: new Date().toISOString() })
       .eq('id', syncLogId);
-    return new Response(JSON.stringify({ error: message, sync_log_id: syncLogId }), {
-      status: 500,
+    // Return 200 so functions.invoke() passes the body to the caller instead of
+    // throwing a generic FunctionsFetchError. The caller checks body.error.
+    return new Response(JSON.stringify({ success: false, error: message, sync_log_id: syncLogId }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
