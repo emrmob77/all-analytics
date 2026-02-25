@@ -97,7 +97,7 @@ export async function triggerManualSync(
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const syncSecret = process.env.OAUTH_TOKEN_SECRET;
+  const syncSecret = process.env.SYNC_SHARED_SECRET;
 
   if (!supabaseUrl || !serviceKey) {
     return { syncLogId: null, error: 'Sync service is not configured' };

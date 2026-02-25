@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const syncSecret = Deno.env.get('OAUTH_TOKEN_SECRET');
+  const syncSecret = Deno.env.get('SYNC_SHARED_SECRET');
   if (!supabaseUrl || !serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Supabase env not configured' }), {
       status: 500,
