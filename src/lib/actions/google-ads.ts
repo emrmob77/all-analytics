@@ -61,7 +61,7 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
     const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '';
     const loginCustomerId = accountRow.external_account_id.replace(/-/g, '');
 
-    const runQuery = async (token: string) => {
+    const runQuery = async (token: string, useLoginHeader: boolean = false) => {
         // Use a clean query targeting level = 1 (direct children).
         // If it's not a manager account, Google API throws an authorization or NOT_MANAGER error which we catch below.
         const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
@@ -71,6 +71,9 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
             Authorization: `Bearer ${token}`,
             'developer-token': devToken,
         };
+        if (useLoginHeader) {
+            headers['login-customer-id'] = loginCustomerId;
+        }
 
         return fetch(
             `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
@@ -82,7 +85,17 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         );
     };
 
-    let response = await runQuery(accessToken);
+    // First attempt WITHOUT the login header. If it's a direct account, this will fail elegantly (which we catch).
+    let response = await runQuery(accessToken, false);
+
+    // If we got an INVALID_ARGUMENT (which happens when an MCC requires the login-customer-id but we didn't send it)
+    // We try again WITH the header.
+    let text = await response.text();
+    if (!response.ok && text.includes('INVALID_ARGUMENT')) {
+        console.log('[fetchGoogleChildAccounts] INVALID_ARGUMENT without header. Retrying WITH login-customer-id header...');
+        response = await runQuery(accessToken, true);
+        text = await response.text();
+    }
 
     // If unauthorized (access token expired), try refreshing it
     if (response.status === 401 && tokenRow.refresh_token) {
@@ -104,13 +117,18 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
 
             accessToken = newTokens.accessToken;
             // Retry the query
-            response = await runQuery(accessToken);
+            response = await runQuery(accessToken, false);
+            text = await response.text();
+
+            if (!response.ok && text.includes('INVALID_ARGUMENT')) {
+                response = await runQuery(accessToken, true);
+                text = await response.text();
+            }
         } catch (refreshErr) {
             console.error('[fetchGoogleChildAccounts] Failed to refresh token:', refreshErr);
         }
     }
 
-    const text = await response.text();
     if (!response.ok) {
         console.error('Google Ads API Error (fetching children):', text);
         // If it's not a manager account, we just return the account itself
