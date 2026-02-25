@@ -53,37 +53,54 @@ function GoogleAdsHeader({
   const { isAdmin } = useRole();
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <GoogleIcon size={24} />
-            <h1 className="text-[22px] font-bold tracking-[-0.3px] text-[#202124]">Google Ads Overview</h1>
-          </div>
-          <div className="mt-1">
+    <div className="border-b border-[#E3E8EF] px-6 pb-6 pt-8 lg:px-8 bg-gradient-to-b from-[#1A73E8]/10 via-transparent">
+      <div className="mx-auto max-w-[1280px]">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end justify-between">
+          <div>
+            <div className="flex items-center gap-3.5 mb-2.5">
+              <div
+                className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[#E3E8EF]/50"
+                style={{ color: '#1A73E8' }}
+              >
+                <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#1A73E8] p-2">
+                  <svg width="24" height="24" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 10l2.5-4 2.5 2.5 2-3.5 3 5" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h1 className="text-[26px] font-bold tracking-[-0.4px] text-[#202124] leading-tight">
+                  Google Ads Overview
+                </h1>
+              </div>
+            </div>
+            <p className="text-[13px] text-[#5F6368] mb-4">
+              Comprehensive performance dashboard for all your Google Ads efforts.
+            </p>
             <SyncStatusIndicator isAdmin={isAdmin} />
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Quick preset buttons — 7d / 30d / 90d */}
-          <div className="flex overflow-hidden rounded-lg border border-[#E3E8EF] bg-white">
-            {(['7d', '30d', '90d'] as QuickPreset[]).map((d, i) => (
-              <button
-                key={d}
-                onClick={() => setDateRange(makeRange(d))}
-                className={`px-[13px] py-1.5 text-xs font-medium transition-all ${i > 0 ? 'border-l border-[#E3E8EF]' : ''
-                  } ${activePreset === d
-                    ? 'bg-[#E8F0FE] font-semibold text-[#1A73E8]'
-                    : 'bg-white text-[#5F6368] hover:bg-gray-50'
-                  }`}
-              >
-                {d}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3 pb-1">
+            <div className="flex overflow-hidden rounded-[9px] border border-[#E3E8EF] bg-white shadow-sm">
+              {(['7d', '30d', '90d'] as QuickPreset[]).map((d, i) => (
+                <button
+                  key={d}
+                  onClick={() => setDateRange(makeRange(d))}
+                  className={`px-[13px] py-1.5 text-xs font-medium transition-colors ${i > 0 ? 'border-l border-[#E3E8EF]' : ''
+                    } ${activePreset === d
+                      ? 'bg-[#E8F0FE] text-[#1A73E8]'
+                      : 'bg-white text-[#5F6368] hover:bg-gray-50'
+                    }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            <div className="shadow-sm rounded-[9px] bg-white inline-block">
+              <DateRangePicker value={dateRange} onChange={setDateRange} />
+            </div>
           </div>
-
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
       </div>
     </div>
@@ -101,20 +118,20 @@ export default function GoogleAdsPage() {
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8F9FA]">
-      <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8">
-        <GoogleAdsHeader
-          dateRange={dateRange}
-          setDateRange={setDateRange}
-        />
+      <GoogleAdsHeader
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+      />
 
-        <div className="mt-6">
+      <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8">
+        <div className="mb-6">
           <MetricCards
             data={metricsQ.data}
             loading={metricsQ.isLoading}
           />
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-3.5">
+        <div className="mt-5 flex flex-wrap gap-3.5 mb-5">
           <PerformanceChart
             activePlatform={activePlatform}
             dateRange={dateRange}
@@ -127,7 +144,7 @@ export default function GoogleAdsPage() {
           />
         </div>
 
-        <div className="mt-5">
+        <div>
           <CampaignTable
             activePlatform={activePlatform}
             data={campaignsQ.data}
