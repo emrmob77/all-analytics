@@ -4,6 +4,8 @@ import { GoogleAdsOAuthService } from './google';
 import { MetaAdsOAuthService } from './meta';
 import { TikTokAdsOAuthService } from './tiktok';
 import { PinterestAdsOAuthService } from './pinterest';
+import { GoogleAnalyticsOAuthService } from './google-analytics';
+import { SearchConsoleOAuthService } from './search-console';
 
 export function getAdPlatformService(platform: AdPlatform): AdPlatformOAuthService {
   switch (platform) {
@@ -15,6 +17,10 @@ export function getAdPlatformService(platform: AdPlatform): AdPlatformOAuthServi
       return new TikTokAdsOAuthService();
     case 'pinterest':
       return new PinterestAdsOAuthService();
+    case 'google-analytics':
+      return new GoogleAnalyticsOAuthService();
+    case 'search-console':
+      return new SearchConsoleOAuthService();
     default: {
       const _exhaustive: never = platform;
       throw new Error(`Unknown ad platform: ${_exhaustive}`);

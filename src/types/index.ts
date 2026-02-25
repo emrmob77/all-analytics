@@ -1,5 +1,5 @@
 // Ad Platform Types
-export type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest';
+export type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest' | 'google-analytics' | 'search-console';
 export type CampaignStatus = 'active' | 'paused' | 'stopped' | 'archived';
 export type Role = 'owner' | 'admin' | 'member' | 'viewer';
 export type SyncStatus = 'in_progress' | 'completed' | 'failed';

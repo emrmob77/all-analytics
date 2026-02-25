@@ -64,6 +64,28 @@ const PLATFORM_META: Record<
       </svg>
     ),
   },
+  'google-analytics': {
+    label: 'Google Analytics 4',
+    color: 'text-[#E37400]',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+        <rect x="2" y="13" width="5" height="9" rx="1.5" fill="#E37400" />
+        <rect x="9.5" y="7" width="5" height="15" rx="1.5" fill="#FBBC04" />
+        <rect x="17" y="2" width="5" height="20" rx="1.5" fill="#34A853" />
+      </svg>
+    ),
+  },
+  'search-console': {
+    label: 'Search Console',
+    color: 'text-[#4285F4]',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+        <circle cx="10" cy="10" r="6.5" stroke="#4285F4" strokeWidth="2.2" />
+        <path d="M15 15L21 21" stroke="#34A853" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M7.5 10h5M10 7.5v5" stroke="#4285F4" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 };
 
 // ---------------------------------------------------------------------------

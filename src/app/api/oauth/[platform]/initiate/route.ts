@@ -5,7 +5,7 @@ import { getAdPlatformService } from '@/services/ad-platforms';
 import { getUserOrganization } from '@/lib/actions/organization';
 import type { AdPlatform } from '@/types';
 
-const VALID_PLATFORMS: AdPlatform[] = ['google', 'meta', 'tiktok', 'pinterest'];
+const VALID_PLATFORMS: AdPlatform[] = ['google', 'meta', 'tiktok', 'pinterest', 'google-analytics', 'search-console'];
 const SETTINGS_URL = '/settings?tab=connections';
 
 export async function GET(

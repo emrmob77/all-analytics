@@ -47,6 +47,8 @@ const PLATFORM_LABELS: Record<AdPlatform, string> = {
   meta: 'Meta Ads',
   tiktok: 'TikTok Ads',
   pinterest: 'Pinterest',
+  'google-analytics': 'Google Analytics 4',
+  'search-console': 'Search Console',
 };
 
 const PLATFORM_COLORS: Record<AdPlatform, string> = {
@@ -54,6 +56,8 @@ const PLATFORM_COLORS: Record<AdPlatform, string> = {
   meta: '#0866FF',
   tiktok: '#161823',
   pinterest: '#E60023',
+  'google-analytics': '#E37400',
+  'search-console': '#4285F4',
 };
 
 // ---------------------------------------------------------------------------

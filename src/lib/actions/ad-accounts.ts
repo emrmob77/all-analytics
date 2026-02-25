@@ -8,7 +8,7 @@ import { encryptToken, decryptToken } from '@/lib/crypto';
 import { getAdPlatformService } from '@/services/ad-platforms';
 import type { AdPlatform } from '@/types';
 
-const AD_PLATFORMS: AdPlatform[] = ['google', 'meta', 'tiktok', 'pinterest'];
+const AD_PLATFORMS: AdPlatform[] = ['google', 'meta', 'tiktok', 'pinterest', 'google-analytics', 'search-console'];
 
 export interface AdAccount {
   id: string;

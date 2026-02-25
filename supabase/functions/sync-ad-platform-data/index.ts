@@ -5,7 +5,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // Types
 // ---------------------------------------------------------------------------
 
-type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest';
+type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest' | 'google-analytics' | 'search-console';
 type CampaignStatus = 'active' | 'paused' | 'stopped' | 'archived';
 
 interface SyncPayload {
@@ -486,12 +486,30 @@ async function syncPinterest(
   return { campaigns, dailyMetrics, hourlyMetrics: {} };
 }
 
+// GA4 and Search Console don't have campaigns/ad-metrics — return empty so the
+// sync succeeds and last_synced_at is updated without writing campaign rows.
+async function syncGoogleAnalytics(
+  _accessToken: string,
+  _externalAccountId: string
+): Promise<PlatformSyncResult> {
+  return { campaigns: [], dailyMetrics: {}, hourlyMetrics: {} };
+}
+
+async function syncSearchConsole(
+  _accessToken: string,
+  _externalAccountId: string
+): Promise<PlatformSyncResult> {
+  return { campaigns: [], dailyMetrics: {}, hourlyMetrics: {} };
+}
+
 function getPlatformSyncer(platform: AdPlatform) {
   const map: Record<AdPlatform, (token: string, accountId: string) => Promise<PlatformSyncResult>> = {
     google: syncGoogle,
     meta: syncMeta,
     tiktok: syncTikTok,
     pinterest: syncPinterest,
+    'google-analytics': syncGoogleAnalytics,
+    'search-console': syncSearchConsole,
   };
   return map[platform];
 }

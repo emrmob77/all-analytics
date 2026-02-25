@@ -127,6 +127,8 @@ const CONNECTED_PLATFORMS = [
   { id: 'meta', label: 'Meta Ads', icon: MetaIcon },
   { id: 'tiktok', label: 'TikTok Ads', icon: TikTokIcon },
   { id: 'pinterest', label: 'Pinterest', icon: PinterestIcon },
+  { id: 'google-analytics', label: 'Google Analytics 4', icon: GA4Icon },
+  { id: 'search-console', label: 'Search Console', icon: SearchConsoleIcon },
 ];
 
 function getInitials(name: string): string {
