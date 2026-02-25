@@ -62,8 +62,9 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
     const loginCustomerId = accountRow.external_account_id.replace(/-/g, '');
 
     const runQuery = async (token: string) => {
-        // Use a clean, single-line query string. We check level <= 1 in case of single accounts.
-        const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level <= 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
+        // Use a clean query targeting level = 1 (direct children).
+        // If it's not a manager account, Google API throws an authorization or NOT_MANAGER error which we catch below.
+        const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
 
         return fetch(
             `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
