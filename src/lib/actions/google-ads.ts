@@ -41,7 +41,7 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
 
     const { data: tokenRow, error: tokenErr } = await supabase
         .from('ad_account_tokens')
-        .select('access_token')
+        .select('access_token, refresh_token')
         .eq('ad_account_id', adAccountId)
         .maybeSingle();
 
@@ -57,35 +57,61 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
 
     if (!accountRow) throw new Error('Account not found');
 
-    const accessToken = await decryptToken(tokenRow.access_token);
+    let accessToken = await decryptToken(tokenRow.access_token);
     const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '';
     const loginCustomerId = accountRow.external_account_id;
 
-    const query = `
-    SELECT customer_client.client_customer, customer_client.descriptive_name 
-    FROM customer_client 
-    WHERE customer_client.level = 1 
-      AND customer_client.manager = false 
-      AND customer_client.status = 'ENABLED'
-  `;
+    const runQuery = async (token: string) => {
+        const query = `
+            SELECT customer_client.client_customer, customer_client.descriptive_name 
+            FROM customer_client 
+            WHERE customer_client.level = 1 
+            AND customer_client.manager = false 
+            AND customer_client.status = 'ENABLED'
+        `;
 
-    const requestBody = {
-        query,
+        return fetch(
+            `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    'developer-token': devToken,
+                    'login-customer-id': loginCustomerId,
+                },
+                body: JSON.stringify({ query }),
+            }
+        );
     };
 
-    const response = await fetch(
-        `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessToken}`,
-                'developer-token': devToken,
-                'login-customer-id': loginCustomerId,
-            },
-            body: JSON.stringify(requestBody),
+    let response = await runQuery(accessToken);
+
+    // If unauthorized (access token expired), try refreshing it
+    if (response.status === 401 && tokenRow.refresh_token) {
+        console.log('[fetchGoogleChildAccounts] Token expired, attempting to refresh...');
+        try {
+            const service = getAdPlatformService('google');
+            const refreshTokenText = await decryptToken(tokenRow.refresh_token);
+            const newTokens = await service.refreshToken(refreshTokenText);
+
+            // Save new tokens to DB
+            const newEncryptedAccess = await encryptToken(newTokens.accessToken);
+            await supabase
+                .from('ad_account_tokens')
+                .update({
+                    access_token: newEncryptedAccess,
+                    token_expires_at: newTokens.expiresAt?.toISOString() ?? null,
+                })
+                .eq('ad_account_id', adAccountId);
+
+            accessToken = newTokens.accessToken;
+            // Retry the query
+            response = await runQuery(accessToken);
+        } catch (refreshErr) {
+            console.error('[fetchGoogleChildAccounts] Failed to refresh token:', refreshErr);
         }
-    );
+    }
 
     const text = await response.text();
     if (!response.ok) {
@@ -94,7 +120,9 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         if (text.includes('NOT_MANAGER')) {
             return [{ id: loginCustomerId, name: 'Direct Google Ads Account' }];
         }
-        throw new Error('Failed to fetch Google child accounts');
+
+        // Return fallback instead of crashing the UI
+        return [{ id: loginCustomerId, name: 'Main Ad Account' }];
     }
 
     const results: GoogleChildAccount[] = [];
