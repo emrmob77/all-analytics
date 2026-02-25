@@ -66,16 +66,17 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         // If it's not a manager account, Google API throws an authorization or NOT_MANAGER error which we catch below.
         const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
 
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'developer-token': devToken,
+        };
+
         return fetch(
             `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
             {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                    'developer-token': devToken,
-                    'login-customer-id': loginCustomerId,
-                },
+                headers,
                 body: JSON.stringify({ query }),
             }
         );
