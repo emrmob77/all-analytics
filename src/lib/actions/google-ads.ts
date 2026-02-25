@@ -118,11 +118,27 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         console.error('Google Ads API Error (fetching children):', text);
         // If it's not a manager account, we just return the account itself
         if (text.includes('NOT_MANAGER')) {
-            return [{ id: loginCustomerId, name: 'Direct Google Ads Account' }];
+            return [{ id: loginCustomerId, name: 'Google Ads Account (Direct)' }];
+        }
+
+        // Sometimes Google returns 403 when trying to list clients on a non-manager account
+        // without explicitly saying NOT_MANAGER in the first line. 
+        if (text.includes('AUTHORIZATION_ERROR')) {
+            return [{ id: loginCustomerId, name: 'Google Ads Account (Direct)' }];
+        }
+
+        let errMsg = 'API Error';
+        try {
+            const parsed = JSON.parse(text);
+            if (parsed.error && parsed.error.message) {
+                errMsg = parsed.error.message.split('.')[0];
+            }
+        } catch {
+            errMsg = 'Status ' + response.status;
         }
 
         // Return fallback instead of crashing the UI
-        return [{ id: loginCustomerId, name: 'Main Ad Account' }];
+        return [{ id: loginCustomerId, name: `Main Account (${errMsg})` }];
     }
 
     const results: GoogleChildAccount[] = [];
