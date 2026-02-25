@@ -59,16 +59,11 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
 
     let accessToken = await decryptToken(tokenRow.access_token);
     const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '';
-    const loginCustomerId = accountRow.external_account_id;
+    const loginCustomerId = accountRow.external_account_id.replace(/-/g, '');
 
     const runQuery = async (token: string) => {
-        const query = `
-            SELECT customer_client.client_customer, customer_client.descriptive_name 
-            FROM customer_client 
-            WHERE customer_client.level = 1 
-            AND customer_client.manager = false 
-            AND customer_client.status = 'ENABLED'
-        `;
+        // Use a clean, single-line query string. We check level <= 1 in case of single accounts.
+        const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level <= 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
 
         return fetch(
             `https://googleads.googleapis.com/v19/customers/${loginCustomerId}/googleAds:searchStream`,
