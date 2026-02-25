@@ -4,16 +4,16 @@
 
 | Bilgi | Değer |
 |-------|-------|
-| MCC Customer ID | `336-710-1005` (3367101005) |
-| Bağlı Reklam Hesabı | `3252564446` (emrmob7@gmail.com) |
-| Developer Token | `UWkv2_0Wb82QLXyxGOP_VQ` |
+| MCC Customer ID | Supabase secret: `GOOGLE_ADS_LOGIN_CUSTOMER_ID` |
+| Bağlı Reklam Hesabı | emrmob7@gmail.com hesabına bağlı |
+| Developer Token | Supabase secret: `GOOGLE_ADS_DEVELOPER_TOKEN` |
 | Mevcut Erişim | Test Hesabı |
 | Hedef Erişim | **Temel Erişim (Basic Access)** |
 
 ## Neden Gerekli?
 
 Test modundaki developer token yalnızca test hesaplarıyla çalışır.
-`3252564446` gerçek bir reklam hesabı olduğundan `DEVELOPER_TOKEN_NOT_APPROVED`
+emrmob7@gmail.com gerçek bir reklam hesabı olduğundan `DEVELOPER_TOKEN_NOT_APPROVED`
 hatası alınmaktadır. Temel Erişim onaylandıktan sonra sync çalışacaktır.
 
 ---
@@ -71,7 +71,7 @@ Onay e-postası `seoroascom@gmail.com` adresine gelecek.
 ## Onay Sonrası Yapılacaklar
 
 1. Supabase Dashboard → Settings → Connections → "Sync Now" butonuna bas
-2. Sync fonksiyonu `3252564446` customer ID'sini otomatik discover eder
+2. Sync fonksiyonu customer ID'sini otomatik discover eder
 3. Kampanyalar ve metrikler veritabanına yazılır
 4. Dashboard'da veriler görünmeye başlar
 
@@ -79,17 +79,20 @@ Onay e-postası `seoroascom@gmail.com` adresine gelecek.
 
 ## Teknik Notlar
 
-- `external_account_id` DB'de şu an `108106106452062883935` (Google profile sub) olarak kayıtlı
+- `external_account_id` DB'de Google profile sub (21 haneli) olarak kayıtlı olabilir
 - Sync fonksiyonu bu değerin customer ID olmadığını anlar, `listAccessibleCustomers` çağırır
-- `3252564446` discover edilerek kampanya sorgusu yapılır
+- Gerçek 10 haneli customer ID discover edilerek kampanya sorgusu yapılır
 - Sorun yok — kod bu durumu zaten yönetiyor
 
 ## İlgili Supabase Secrets
 
+Aşağıdaki secret'lar Supabase Dashboard → Settings → Edge Functions → Secrets bölümünde tanımlıdır.
+**Gerçek değerleri asla kaynak koda ya da dokümantasyona ekleme.**
+
 ```
-GOOGLE_ADS_DEVELOPER_TOKEN   = UWkv2_0Wb82QLXyxGOP_VQ
-GOOGLE_ADS_LOGIN_CUSTOMER_ID = 3367101005
-OAUTH_TOKEN_SECRET           = <mevcut>
+GOOGLE_ADS_DEVELOPER_TOKEN    (Google Ads API Center'dan alınan token)
+GOOGLE_ADS_LOGIN_CUSTOMER_ID  (MCC hesabının 10 haneli customer ID'si)
+OAUTH_TOKEN_SECRET            (AES-256-GCM token şifreleme anahtarı)
 ```
 
 ---

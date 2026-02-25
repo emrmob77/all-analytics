@@ -117,10 +117,13 @@ Deno.serve(async (req: Request) => {
 
       clearTimeout(timeout);
 
-      const body = await res.json() as { sync_log_id?: string; error?: string };
+      const body = await res.json() as { sync_log_id?: string; error?: string; success?: boolean };
+      // sync-ad-platform-data returns HTTP 200 even on sync failures (so that
+      // functions.invoke() propagates the error body instead of throwing).
+      // Check body.error in addition to res.ok to correctly detect failures.
       results.push({
         ad_account_id: account.id as string,
-        status: res.ok ? 'ok' : 'error',
+        status: (res.ok && !body.error) ? 'ok' : 'error',
         sync_log_id: body.sync_log_id,
       });
     } catch (err) {
