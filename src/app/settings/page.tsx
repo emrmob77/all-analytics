@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrgTab } from '@/components/settings/OrgTab';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -36,13 +36,22 @@ function isValidTab(value: string | null): value is TabValue {
 function SettingsContent() {
   const { role } = useOrganization();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const callerRole = role ?? 'viewer';
   const tabParam = searchParams.get('tab');
-  const defaultTab: TabValue = isValidTab(tabParam) ? tabParam : 'members';
+  // Controlled tab — always read from URL so remounts (caused by lazy-loaded
+  // child components suspending) don't reset the active tab to the default.
+  const activeTab: TabValue = isValidTab(tabParam) ? tabParam : 'members';
+
+  function handleTabChange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  }
 
   return (
-    <Tabs defaultValue={defaultTab}>
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
       <TabsList className="mb-6">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="organization">Organization</TabsTrigger>
