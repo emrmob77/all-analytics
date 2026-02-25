@@ -57,7 +57,7 @@ interface GoogleAdsSearchChunk {
       conversionsValue: string;
     };
     segments?: { date: string };
-    customer?: { manager: boolean };
+    customer?: { manager: boolean; currencyCode?: string };
     customerClient?: { clientCustomer: string; manager: boolean; status: string };
   }>;
 }
@@ -399,6 +399,25 @@ async function syncGoogle(
     // If we can't determine it's a manager or query fails, assume it's a direct client account
   }
 
+  // Detect account currency dynamically instead of assuming USD
+  let accountCurrency = 'USD';
+  try {
+    const currencyRes = await googleAdsSearchStream(
+      accessToken,
+      customerId,
+      `SELECT customer.currency_code FROM customer LIMIT 1`,
+      devToken,
+      loginCustomerId
+    );
+    const code = currencyRes[0]?.results?.[0]?.customer?.currencyCode;
+    if (code) {
+      accountCurrency = code;
+      console.log(`[syncGoogle] Detected currency ${accountCurrency} for account ${customerId}`);
+    }
+  } catch (err) {
+    console.warn('[syncGoogle] Currency detection failed, defaulting to USD');
+  }
+
   // Fetch campaigns via GAQL
   const campaignData = await googleAdsSearchStream(
     accessToken,
@@ -426,7 +445,7 @@ async function syncGoogle(
       status: statusMap[row.campaign.status] ?? 'paused',
       budget_limit: Number(row.campaignBudget?.amountMicros ?? 0) / 1_000_000,
       budget_used: Number(row.metrics?.costMicros ?? 0) / 1_000_000,
-      currency: 'USD',
+      currency: accountCurrency,
     });
   }
 
