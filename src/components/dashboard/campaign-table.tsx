@@ -14,15 +14,15 @@ interface CampaignTableProps {
 }
 
 const COLUMNS = [
-  { key: 'name',        label: 'Campaign'      },
-  { key: 'platform',    label: 'Platform'      },
-  { key: 'status',      label: 'Status'        },
-  { key: 'impressions', label: 'Impressions'   },
-  { key: 'clicks',      label: 'Clicks'        },
-  { key: 'ctr',         label: 'CTR'           },
-  { key: 'spend',       label: 'Spend / Budget'},
-  { key: 'conversions', label: 'Conv.'         },
-  { key: 'roas',        label: 'ROAS'          },
+  { key: 'name', label: 'Campaign' },
+  { key: 'platform', label: 'Platform' },
+  { key: 'status', label: 'Status' },
+  { key: 'impressions', label: 'Impressions' },
+  { key: 'clicks', label: 'Clicks' },
+  { key: 'ctr', label: 'CTR' },
+  { key: 'spend', label: 'Spend / Budget' },
+  { key: 'conversions', label: 'Conv.' },
+  { key: 'roas', label: 'ROAS' },
 ];
 
 function SkeletonRow() {
@@ -82,9 +82,8 @@ export function CampaignTable({ activePlatform, data = [], loading = false }: Ca
                 <th
                   key={col.key}
                   onClick={() => setSortCol(col.key as keyof DashboardCampaign)}
-                  className={`cursor-pointer select-none whitespace-nowrap border-b border-[#E3E8EF] px-3.5 py-[9px] text-left text-[11px] font-medium ${
-                    sortCol === col.key ? 'text-[#1A73E8]' : 'text-[#5F6368]'
-                  }`}
+                  className={`cursor-pointer select-none whitespace-nowrap border-b border-[#E3E8EF] px-3.5 py-[9px] text-left text-[11px] font-medium ${sortCol === col.key ? 'text-[#1A73E8]' : 'text-[#5F6368]'
+                    }`}
                 >
                   {col.label} {sortCol === col.key && '↓'}
                 </th>
@@ -95,18 +94,18 @@ export function CampaignTable({ activePlatform, data = [], loading = false }: Ca
             {loading
               ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
               : sorted.length === 0
-              ? (
-                <tr>
-                  <td colSpan={COLUMNS.length} className="px-3.5 py-10 text-center text-sm text-[#9AA0A6]">
-                    No campaigns found for this period.
-                  </td>
-                </tr>
-              )
-              : sorted.map(row => {
-                  const platform    = PLATFORMS.find(p => p.id === row.platform);
+                ? (
+                  <tr>
+                    <td colSpan={COLUMNS.length} className="px-3.5 py-10 text-center text-sm text-[#9AA0A6]">
+                      No campaigns found for this period.
+                    </td>
+                  </tr>
+                )
+                : sorted.map(row => {
+                  const platform = PLATFORMS.find(p => p.id === row.platform);
                   const statusStyle = STATUS_STYLES[row.status as keyof typeof STATUS_STYLES] ?? STATUS_STYLES['archived'];
-                  const pct         = row.budget > 0 ? Math.round((row.spend / row.budget) * 100) : 0;
-                  const barColor    = pct > 90 ? '#C5221F' : pct > 70 ? '#B06000' : '#1A73E8';
+                  const pct = row.budget > 0 ? Math.round((row.spend / row.budget) * 100) : 0;
+                  const barColor = pct > 90 ? '#C5221F' : pct > 70 ? '#B06000' : '#1A73E8';
 
                   return (
                     <tr key={row.id} className="cursor-pointer bg-white transition-colors hover:bg-[#F8FBFF]">
@@ -144,8 +143,8 @@ export function CampaignTable({ activePlatform, data = [], loading = false }: Ca
                         {row.spend > 0 ? (
                           <>
                             <div className="mb-1 flex justify-between text-[11.5px]">
-                              <span className="font-medium text-[#202124]">{formatCurrency(row.spend)}</span>
-                              <span className="text-[#9AA0A6]">/ {formatCurrency(row.budget)}</span>
+                              <span className="font-medium text-[#202124]">{formatCurrency(row.spend, row.currency)}</span>
+                              <span className="text-[#9AA0A6]">/ {formatCurrency(row.budget, row.currency)}</span>
                             </div>
                             <div className="h-1 rounded-sm bg-[#F1F3F4]">
                               <div className="h-full rounded-sm transition-all duration-500" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: barColor }} />

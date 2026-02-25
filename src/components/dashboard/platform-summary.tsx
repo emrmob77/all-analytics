@@ -40,51 +40,52 @@ export function PlatformSummary({ data = [], loading = false }: PlatformSummaryP
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : PLATFORMS.filter(p => p.id !== 'all').map(platform => {
-              const summary = data.find(d => d.platform === platform.id);
-              const spend       = summary?.spend       ?? 0;
-              const impressions = summary?.impressions  ?? 0;
-              const conversions = summary?.conversions  ?? 0;
-              const roas        = summary?.roas         ?? 0;
-              const pct         = summary?.budgetShare  ?? 0;
+            const summary = data.find(d => d.platform === platform.id);
+            const spend = summary?.spend ?? 0;
+            const impressions = summary?.impressions ?? 0;
+            const conversions = summary?.conversions ?? 0;
+            const roas = summary?.roas ?? 0;
+            const pct = summary?.budgetShare ?? 0;
+            const currency = summary?.currency ?? 'USD';
 
-              return (
-                <div
-                  key={platform.id}
-                  className="flex-[1_1_190px] min-w-0 rounded-[9px] border px-4 py-3.5"
-                  style={{ borderColor: `${platform.color}30`, backgroundColor: platform.bgColor }}
-                >
-                  <div className="mb-3 flex items-center gap-[7px]">
-                    <PlatformIcon platform={platform.id as AdPlatform} size={14} />
-                    <span className="text-[13px] font-semibold text-[#202124]">{platform.label}</span>
-                  </div>
-
-                  <div className="mb-3 grid grid-cols-2 gap-2">
-                    {[
-                      ['Spend',  formatCurrency(spend)],
-                      ['Conv.',  formatNumber(conversions)],
-                      ['Impr.',  formatNumber(impressions)],
-                      ['ROAS',   roas > 0 ? `${roas.toFixed(1)}x` : '—'],
-                    ].map(([label, value]) => (
-                      <div key={label}>
-                        <div className="text-[9.5px] text-[#9AA0A6]">{label}</div>
-                        <div className="mt-0.5 text-sm font-bold text-[#202124]">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mb-[5px] flex justify-between text-[10.5px] text-[#9AA0A6]">
-                    <span>Budget share</span>
-                    <span className="font-semibold" style={{ color: platform.color }}>{pct}%</span>
-                  </div>
-                  <div className="h-[5px] overflow-hidden rounded-[3px] bg-white">
-                    <div
-                      className="h-full rounded-[3px] transition-all duration-1000"
-                      style={{ width: `${pct}%`, backgroundColor: platform.color }}
-                    />
-                  </div>
+            return (
+              <div
+                key={platform.id}
+                className="flex-[1_1_190px] min-w-0 rounded-[9px] border px-4 py-3.5"
+                style={{ borderColor: `${platform.color}30`, backgroundColor: platform.bgColor }}
+              >
+                <div className="mb-3 flex items-center gap-[7px]">
+                  <PlatformIcon platform={platform.id as AdPlatform} size={14} />
+                  <span className="text-[13px] font-semibold text-[#202124]">{platform.label}</span>
                 </div>
-              );
-            })}
+
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  {[
+                    ['Spend', formatCurrency(spend, currency)],
+                    ['Conv.', formatNumber(conversions)],
+                    ['Impr.', formatNumber(impressions)],
+                    ['ROAS', roas > 0 ? `${roas.toFixed(1)}x` : '—'],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <div className="text-[9.5px] text-[#9AA0A6]">{label}</div>
+                      <div className="mt-0.5 text-sm font-bold text-[#202124]">{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mb-[5px] flex justify-between text-[10.5px] text-[#9AA0A6]">
+                  <span>Budget share</span>
+                  <span className="font-semibold" style={{ color: platform.color }}>{pct}%</span>
+                </div>
+                <div className="h-[5px] overflow-hidden rounded-[3px] bg-white">
+                  <div
+                    className="h-full rounded-[3px] transition-all duration-1000"
+                    style={{ width: `${pct}%`, backgroundColor: platform.color }}
+                  />
+                </div>
+              </div>
+            );
+          })}
       </div>
     </div>
   );

@@ -55,9 +55,9 @@ export interface MetricCardProps {
   /** Override suffix derived from format */
   suffix?: string;
   loading?: boolean;
-  /** Animation stagger delay in ms */
   delay?: number;
   sub?: string;
+  prefix?: string;
 }
 
 export function MetricCard({
@@ -70,8 +70,9 @@ export function MetricCard({
   loading = false,
   delay = 0,
   sub = 'vs last period',
+  prefix: prefixOverride,
 }: MetricCardProps) {
-  const prefix = format === 'currency' ? '$' : '';
+  const prefix = prefixOverride !== undefined ? prefixOverride : format === 'currency' ? '$' : '';
   const suffix = suffixOverride !== undefined ? suffixOverride : format === 'percentage' ? '%' : '';
   const decimals = decimalsOverride !== undefined ? decimalsOverride : format === 'percentage' ? 2 : 0;
 

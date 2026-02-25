@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from '@/lib/actions/organization';
+import { formatCurrencySymbol } from '@/lib/format';
 import type { AdPlatform } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -23,6 +24,8 @@ export interface DashboardMetrics {
   conversionsChange: number | null;
   ctrChange: number | null;
   roasChange: number | null;
+  currencyCode?: string;
+  currencySymbol?: string;
 }
 
 export interface DashboardCampaign {
@@ -37,6 +40,7 @@ export interface DashboardCampaign {
   ctr: number;
   conversions: number;
   roas: number;
+  currency?: string;
 }
 
 export interface DashboardChartPoint {
@@ -59,6 +63,7 @@ export interface DashboardPlatformSummary {
   conversions: number;
   roas: number;
   budgetShare: number; // 0-100
+  currency?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,17 +90,17 @@ type RawMetricRow = {
 function aggregateMetrics(rows: RawMetricRow[]) {
   const agg = rows.reduce(
     (acc, r) => ({
-      spend:       acc.spend       + (r.spend       ?? 0),
-      impressions: acc.impressions + (r.impressions  ?? 0),
-      clicks:      acc.clicks      + (r.clicks       ?? 0),
-      conversions: acc.conversions + (r.conversions  ?? 0),
-      revenue:     acc.revenue     + (r.revenue      ?? 0),
+      spend: acc.spend + (r.spend ?? 0),
+      impressions: acc.impressions + (r.impressions ?? 0),
+      clicks: acc.clicks + (r.clicks ?? 0),
+      conversions: acc.conversions + (r.conversions ?? 0),
+      revenue: acc.revenue + (r.revenue ?? 0),
     }),
     { spend: 0, impressions: 0, clicks: 0, conversions: 0, revenue: 0 },
   );
 
-  const ctr  = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0;
-  const roas = agg.spend > 0       ? agg.revenue / agg.spend              : 0;
+  const ctr = agg.impressions > 0 ? (agg.clicks / agg.impressions) * 100 : 0;
+  const roas = agg.spend > 0 ? agg.revenue / agg.spend : 0;
 
   return { ...agg, ctr, roas };
 }
@@ -119,10 +124,9 @@ export async function getDashboardMetrics(
 
   const supabase = await createClient();
 
-  // campaign_metrics joined through campaigns for org + platform scoping
   let query = supabase
     .from('campaign_metrics')
-    .select('spend, impressions, clicks, conversions, revenue, campaigns!inner(organization_id, platform)')
+    .select('spend, impressions, clicks, conversions, revenue, campaigns!inner(organization_id, platform, currency)')
     .eq('campaigns.organization_id', orgId)
     .gte('date', from)
     .lte('date', to);
@@ -141,6 +145,7 @@ export async function getDashboardMetrics(
         totalConversions: 0, totalRevenue: 0, avgCtr: 0, avgRoas: 0,
         spendChange: null, impressionsChange: null, clicksChange: null,
         conversionsChange: null, ctrChange: null, roasChange: null,
+        currencyCode: 'USD', currencySymbol: '$',
       },
       error: null,
     };
@@ -149,13 +154,13 @@ export async function getDashboardMetrics(
   const currAgg = aggregateMetrics(current as unknown as RawMetricRow[]);
 
   // Prior period — same length window ending the day before `from`
-  const fromDate  = new Date(from);
-  const toDate    = new Date(to);
-  const windowMs  = toDate.getTime() - fromDate.getTime();
-  const priorTo   = new Date(fromDate.getTime() - 86_400_000);
-  const priorFrom = new Date(priorTo.getTime()  - windowMs);
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const windowMs = toDate.getTime() - fromDate.getTime();
+  const priorTo = new Date(fromDate.getTime() - 86_400_000);
+  const priorFrom = new Date(priorTo.getTime() - windowMs);
   const priorFromStr = priorFrom.toISOString().slice(0, 10);
-  const priorToStr   = priorTo.toISOString().slice(0, 10);
+  const priorToStr = priorTo.toISOString().slice(0, 10);
 
   let priorQuery = supabase
     .from('campaign_metrics')
@@ -173,19 +178,21 @@ export async function getDashboardMetrics(
 
   return {
     data: {
-      totalSpend:       +currAgg.spend.toFixed(2),
+      totalSpend: +currAgg.spend.toFixed(2),
       totalImpressions: Math.round(currAgg.impressions),
-      totalClicks:      Math.round(currAgg.clicks),
+      totalClicks: Math.round(currAgg.clicks),
       totalConversions: +currAgg.conversions.toFixed(2),
-      totalRevenue:     +currAgg.revenue.toFixed(2),
-      avgCtr:           +currAgg.ctr.toFixed(2),
-      avgRoas:          +currAgg.roas.toFixed(2),
-      spendChange:       pctChange(currAgg.spend,       priorAgg.spend),
-      impressionsChange: pctChange(currAgg.impressions,  priorAgg.impressions),
-      clicksChange:      pctChange(currAgg.clicks,       priorAgg.clicks),
-      conversionsChange: pctChange(currAgg.conversions,  priorAgg.conversions),
-      ctrChange:         pctChange(currAgg.ctr,          priorAgg.ctr),
-      roasChange:        pctChange(currAgg.roas,         priorAgg.roas),
+      totalRevenue: +currAgg.revenue.toFixed(2),
+      avgCtr: +currAgg.ctr.toFixed(2),
+      avgRoas: +currAgg.roas.toFixed(2),
+      spendChange: pctChange(currAgg.spend, priorAgg.spend),
+      impressionsChange: pctChange(currAgg.impressions, priorAgg.impressions),
+      clicksChange: pctChange(currAgg.clicks, priorAgg.clicks),
+      conversionsChange: pctChange(currAgg.conversions, priorAgg.conversions),
+      ctrChange: pctChange(currAgg.ctr, priorAgg.ctr),
+      roasChange: pctChange(currAgg.roas, priorAgg.roas),
+      currencyCode: (current as any[])[0]?.campaigns?.currency ?? 'USD',
+      currencySymbol: formatCurrencySymbol((current as any[])[0]?.campaigns?.currency ?? 'USD'),
     },
     error: null,
   };
@@ -208,7 +215,7 @@ export async function getDashboardCampaigns(
   let query = supabase
     .from('campaigns')
     .select(`
-      id, name, platform, status, budget_limit,
+      id, name, platform, status, budget_limit, currency,
       campaign_metrics!inner(
         spend, impressions, clicks, conversions, revenue, date
       )
@@ -231,6 +238,7 @@ export async function getDashboardCampaigns(
     platform: string;
     status: string;
     budget_limit: number;
+    currency: string;
     campaign_metrics: {
       spend: number;
       impressions: number;
@@ -241,27 +249,28 @@ export async function getDashboardCampaigns(
   };
 
   const campaigns: DashboardCampaign[] = ((data ?? []) as unknown as RawRow[]).map((row) => {
-    const metrics     = row.campaign_metrics ?? [];
-    const spend       = metrics.reduce((s, m) => s + (m.spend       ?? 0), 0);
-    const impressions = metrics.reduce((s, m) => s + (m.impressions  ?? 0), 0);
-    const clicks      = metrics.reduce((s, m) => s + (m.clicks       ?? 0), 0);
-    const conversions = metrics.reduce((s, m) => s + (m.conversions  ?? 0), 0);
-    const revenue     = metrics.reduce((s, m) => s + (m.revenue      ?? 0), 0);
-    const ctr         = impressions > 0 ? (clicks / impressions) * 100 : 0;
-    const roas        = spend > 0       ? revenue / spend               : 0;
+    const metrics = row.campaign_metrics ?? [];
+    const spend = metrics.reduce((s, m) => s + (m.spend ?? 0), 0);
+    const impressions = metrics.reduce((s, m) => s + (m.impressions ?? 0), 0);
+    const clicks = metrics.reduce((s, m) => s + (m.clicks ?? 0), 0);
+    const conversions = metrics.reduce((s, m) => s + (m.conversions ?? 0), 0);
+    const revenue = metrics.reduce((s, m) => s + (m.revenue ?? 0), 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const roas = spend > 0 ? revenue / spend : 0;
 
     return {
-      id:          row.id,
-      name:        row.name,
-      platform:    row.platform as AdPlatform,
-      status:      row.status,
-      budget:      row.budget_limit ?? 0,
-      spend:       +spend.toFixed(2),
+      id: row.id,
+      name: row.name,
+      platform: row.platform as AdPlatform,
+      status: row.status,
+      budget: row.budget_limit ?? 0,
+      spend: +spend.toFixed(2),
       impressions: Math.round(impressions),
-      clicks:      Math.round(clicks),
+      clicks: Math.round(clicks),
       conversions: +conversions.toFixed(2),
-      ctr:         +ctr.toFixed(2),
-      roas:        +roas.toFixed(2),
+      ctr: +ctr.toFixed(2),
+      roas: +roas.toFixed(2),
+      currency: row.currency ?? 'USD',
     };
   });
 
@@ -300,7 +309,7 @@ export async function getDashboardChartData(
   const map = new Map<string, DashboardChartPoint>();
 
   for (const row of (data ?? []) as unknown as RawChartRow[]) {
-    const day      = row.date as string;
+    const day = row.date as string;
     const platform = row.campaigns?.platform as string;
     if (!map.has(day)) {
       map.set(day, { day, google: 0, meta: 0, tiktok: 0, pinterest: 0 });
@@ -350,11 +359,11 @@ export async function getDashboardHourlyData(): Promise<{
   // Average CTR per hour-of-day (0-23) across all platforms / days
   const hourMap = new Map<number, { clicks: number; impressions: number }>();
   for (const row of (data ?? []) as unknown as RawHourlyRow[]) {
-    const h    = new Date(row.hour).getUTCHours();
+    const h = new Date(row.hour).getUTCHours();
     const prev = hourMap.get(h) ?? { clicks: 0, impressions: 0 };
     hourMap.set(h, {
-      clicks:      prev.clicks      + (row.clicks      ?? 0),
-      impressions: prev.impressions  + (row.impressions  ?? 0),
+      clicks: prev.clicks + (row.clicks ?? 0),
+      impressions: prev.impressions + (row.impressions ?? 0),
     });
   }
 
@@ -384,7 +393,7 @@ export async function getDashboardPlatformSummary(
 
   const { data, error } = await supabase
     .from('campaign_metrics')
-    .select('spend, impressions, conversions, revenue, campaigns!inner(organization_id, platform)')
+    .select('spend, impressions, conversions, revenue, campaigns!inner(organization_id, platform, currency)')
     .eq('campaigns.organization_id', orgId)
     .gte('date', from)
     .lte('date', to);
@@ -396,12 +405,12 @@ export async function getDashboardPlatformSummary(
     impressions: number;
     conversions: number;
     revenue: number;
-    campaigns: { organization_id: string; platform: string };
+    campaigns: { organization_id: string; platform: string; currency: string };
   };
 
   const platforms: AdPlatform[] = ['google', 'meta', 'tiktok', 'pinterest'];
-  const platformMap = new Map<AdPlatform, { spend: number; impressions: number; conversions: number; revenue: number }>(
-    platforms.map(p => [p, { spend: 0, impressions: 0, conversions: 0, revenue: 0 }]),
+  const platformMap = new Map<AdPlatform, { spend: number; impressions: number; conversions: number; revenue: number; currency: string }>(
+    platforms.map(p => [p, { spend: 0, impressions: 0, conversions: 0, revenue: 0, currency: 'USD' }]),
   );
 
   for (const row of (data ?? []) as unknown as RawSummaryRow[]) {
@@ -409,25 +418,27 @@ export async function getDashboardPlatformSummary(
     if (!platformMap.has(p)) continue;
     const prev = platformMap.get(p)!;
     platformMap.set(p, {
-      spend:       prev.spend       + (row.spend       ?? 0),
-      impressions: prev.impressions  + (row.impressions  ?? 0),
-      conversions: prev.conversions  + (row.conversions  ?? 0),
-      revenue:     prev.revenue      + (row.revenue      ?? 0),
+      spend: prev.spend + (row.spend ?? 0),
+      impressions: prev.impressions + (row.impressions ?? 0),
+      conversions: prev.conversions + (row.conversions ?? 0),
+      revenue: prev.revenue + (row.revenue ?? 0),
+      currency: row.campaigns?.currency || prev.currency,
     });
   }
 
   const totalSpend = Array.from(platformMap.values()).reduce((s, p) => s + p.spend, 0);
 
   const result: DashboardPlatformSummary[] = platforms.map(p => {
-    const agg  = platformMap.get(p)!;
+    const agg = platformMap.get(p)!;
     const roas = agg.spend > 0 ? agg.revenue / agg.spend : 0;
     return {
-      platform:    p,
-      spend:       +agg.spend.toFixed(2),
+      platform: p,
+      spend: +agg.spend.toFixed(2),
       impressions: Math.round(agg.impressions),
       conversions: +agg.conversions.toFixed(2),
-      roas:        +roas.toFixed(2),
+      roas: +roas.toFixed(2),
       budgetShare: totalSpend > 0 ? Math.round((agg.spend / totalSpend) * 100) : 0,
+      currency: agg.currency,
     };
   });
 
