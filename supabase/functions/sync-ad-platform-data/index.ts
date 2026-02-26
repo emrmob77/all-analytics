@@ -407,69 +407,99 @@ async function syncGoogle(
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
   }
 
-  let baseAccountId = externalAccountId;
+  let accountCurrency = 'USD';
 
-  // If the stored value is not a plausible customer ID, discover one from Google Ads.
-  if (!isLikelyGoogleCustomerId(externalAccountId)) {
-    const accessibleCustomers = await googleListAccessibleCustomers(
-      accessToken,
-      devToken
-    );
-    const discoveredCustomerId = accessibleCustomers[0];
-    if (!discoveredCustomerId) {
+  const loginCustomerIds = externalAccountId.split(',').map(id => id.replace(/-/g, '').trim()).filter(Boolean);
+  if (loginCustomerIds.length === 0) {
+    const accessibleCustomers = await googleListAccessibleCustomers(accessToken, devToken);
+    if (accessibleCustomers.length > 0) {
+      loginCustomerIds.push(...accessibleCustomers);
+    } else {
       throw new Error('No accessible Google Ads customer found for this account.');
     }
-    console.warn(
-      `[syncGoogle] external_account_id "${externalAccountId}" is not a customer ID; using "${discoveredCustomerId}" from accessible customers.`
-    );
-    baseAccountId = discoveredCustomerId;
   }
 
-  let customerId = baseAccountId;
-  let loginCustomerId: string | undefined = undefined;
+  let customerId = selectedChildId || loginCustomerIds[0];
+  let correctLoginCustomerId: string | undefined = undefined;
 
+  // Let's determine the correct login-customer-id and find the active account if we need to
   if (selectedChildId) {
-    customerId = selectedChildId;
-    console.log(`[syncGoogle] Using explicitly selected child account ${customerId} for MCC ${externalAccountId}`);
-    loginCustomerId = externalAccountId; // assume MCC is the connected ad account
-  } else {
-    // Check if baseAccountId is a manager account
+    console.log(`[syncGoogle] Attempting to find correct login-customer-id for explicitly selected child ${customerId}`);
+    // Try without login-customer-id first
+    let success = false;
     try {
-      const res = await googleAdsSearchStream(
-        accessToken,
-        baseAccountId,
-        `SELECT customer.manager FROM customer LIMIT 1`,
-        devToken
-      );
-      const isManager = res[0]?.results?.[0]?.customer?.manager === true;
+      await googleAdsSearchStream(accessToken, customerId, `SELECT customer.id FROM customer LIMIT 1`, devToken);
+      success = true; // works without login-customer-id
+    } catch (e) {
+      // Did not work, try each potential login customer ID
+    }
 
-      if (isManager) {
-        loginCustomerId = baseAccountId;
-        // It is an MCC. Let's find an active child client account as fallback.
-        const childrenRes = await googleAdsSearchStream(
-          accessToken,
-          baseAccountId,
-          `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
-          devToken,
-          loginCustomerId
-        );
-
-        const clientCustomerName = childrenRes[0]?.results?.[0]?.customerClient?.clientCustomer;
-        if (!clientCustomerName) {
-          throw new Error('This Google Ads account is a Manager (MCC) but has no active client accounts.');
+    if (!success) {
+      for (const loginId of loginCustomerIds) {
+        try {
+          // If it fails, it will throw an Error
+          await googleAdsSearchStream(accessToken, customerId, `SELECT customer.id FROM customer LIMIT 1`, devToken, loginId);
+          correctLoginCustomerId = loginId;
+          success = true;
+          break;
+        } catch (e) {
+          // Ignore and try next
         }
-        customerId = clientCustomerName.split('/')[1] ?? clientCustomerName;
-        console.log(`[syncGoogle] Resolved MCC ${loginCustomerId} to first child account ${customerId}`);
       }
-    } catch (err) {
-      const errObj = err as Error;
-      console.warn('[syncGoogle] Manager resolution failed, proceeding as direct client:', errObj?.message ?? err);
-      // If we can't determine it's a manager or query fails, assume it's a direct client account
+    }
+
+    if (!success && loginCustomerIds.length > 0) {
+      console.warn(`[syncGoogle] All login-customer-id tests failed for ${customerId}, falling back to ${loginCustomerIds[0]}`);
+      correctLoginCustomerId = loginCustomerIds[0];
+    }
+  } else {
+    // If no child was explicitly selected, we find the first manager account and get its first child. 
+    // Or if it's not a manager, just use it.
+    let resolved = false;
+    for (const loginId of loginCustomerIds) {
+      try {
+        const res = await googleAdsSearchStream(
+          accessToken,
+          loginId,
+          `SELECT customer.manager FROM customer LIMIT 1`,
+          devToken,
+          undefined // Using itself as login customer ID or undefined
+        );
+        const isManager = res[0]?.results?.[0]?.customer?.manager === true;
+
+        if (isManager) {
+          correctLoginCustomerId = loginId;
+          // Find first child
+          const childrenRes = await googleAdsSearchStream(
+            accessToken,
+            loginId,
+            `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
+            devToken,
+            correctLoginCustomerId
+          );
+          const clientCustomerName = childrenRes[0]?.results?.[0]?.customerClient?.clientCustomer;
+          if (clientCustomerName) {
+            customerId = clientCustomerName.split('/')[1] ?? clientCustomerName;
+            resolved = true;
+            break;
+          }
+        } else {
+          customerId = loginId;
+          correctLoginCustomerId = undefined;
+          resolved = true;
+          break;
+        }
+      } catch (e) {
+        // keep trying next
+      }
+    }
+    if (!resolved) {
+      customerId = loginCustomerIds[0];
     }
   }
 
-  // Detect account currency dynamically instead of assuming USD
-  let accountCurrency = 'USD';
+  const loginCustomerId = correctLoginCustomerId;
+  console.log(`[syncGoogle] Final target customerId: ${customerId}, loginCustomerId: ${loginCustomerId || 'none'}`);
   try {
     const currencyRes = await googleAdsSearchStream(
       accessToken,
