@@ -120,11 +120,16 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
   useEffect(() => {
     const connected = searchParams.get('connected');
     const oauthError = searchParams.get('error');
+    const isActionRequired = searchParams.get('action_required') === 'true';
 
     if (connected === 'true') {
-      toast.success('Ad account connected successfully');
+      if (!isActionRequired) toast.success('Ad account connected successfully');
+
       const url = new URL(window.location.href);
       url.searchParams.delete('connected');
+      // We keep action_required in the URL so OAuthConnector knows to open its modal automatically, 
+      // but let's clear it from history once done in the connector or keep it simple
+      if (!isActionRequired) url.searchParams.delete('action_required');
       window.history.replaceState(null, '', url.toString());
       loadAccounts();
     } else if (oauthError) {
@@ -207,6 +212,9 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
         <div className="flex flex-col gap-2.5">
           {AD_PLATFORMS.map(platform => {
             const account = getAccountForPlatform(platform);
+            const isGoogle = platform === 'google';
+            const setupRequired = isGoogle && account ? !account.selected_child_account_id : false;
+
             return (
               <OAuthConnector
                 key={platform}
@@ -215,7 +223,9 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
                 accountName={account?.account_name}
                 accountId={account?.id}
                 isAdmin={isAdmin}
+                setupRequired={setupRequired}
                 onDisconnect={loadAccounts}
+                onSetupComplete={loadAccounts}
               />
             );
           })}

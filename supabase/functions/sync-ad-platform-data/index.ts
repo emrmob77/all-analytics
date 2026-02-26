@@ -407,6 +407,14 @@ async function syncGoogle(
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
   }
 
+  if (!selectedChildId) {
+    console.log('[syncGoogle] No selected child account ID provided. Skipping sync. Setup is incomplete.');
+    return {
+      status: 'success',
+      syncedRows: 0,
+    };
+  }
+
   let accountCurrency = 'USD';
 
   const loginCustomerIds = externalAccountId.split(',').map(id => id.replace(/-/g, '').trim()).filter(Boolean);

@@ -194,8 +194,12 @@ export async function GET(
       );
     }
 
+    const redirectParams = platform === 'google'
+      ? '&connected=true&action_required=true'
+      : '&connected=true';
+
     return redirectWithCookieDeletion(
-      new URL(`${SETTINGS_URL}&connected=true`, request.url),
+      new URL(`${SETTINGS_URL}${redirectParams}`, request.url),
       cookieName,
       isSecure
     );

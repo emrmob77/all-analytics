@@ -204,6 +204,11 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
     return Array.from(finalResults.values());
 }
 
+// --- ADD THIS EXPORT SO IT CAN BE CALLED DIRECTLY FROM THE NEW MODAL ---
+export async function fetchConnectableGoogleAccounts(adAccountId: string): Promise<GoogleChildAccount[]> {
+    return fetchGoogleChildAccounts(adAccountId);
+}
+
 export async function submitChildAccountSwitch(adAccountId: string, childId: string) {
     const membership = await getUserOrganization();
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
@@ -222,5 +227,6 @@ export async function submitChildAccountSwitch(adAccountId: string, childId: str
         throw new Error('Failed to update selected child account');
     }
 
-    // Optionally trigger a manual sync right here, although letting the user do it via UI is fine too.
+    // After a successful manual switch from the settings page, trigger background sync
+    // triggerManualSync can be imported or handled cleanly by the caller (we'll assume UI handles the toast!)
 }

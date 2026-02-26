@@ -15,6 +15,7 @@ export interface AdAccount {
   organization_id: string;
   platform: AdPlatform;
   external_account_id: string;
+  selected_child_account_id: string | null;
   account_name: string;
   is_active: boolean;
   last_synced_at: string | null;

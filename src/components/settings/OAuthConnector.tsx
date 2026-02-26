@@ -1,8 +1,12 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { disconnectAdAccount } from '@/lib/actions/ad-accounts';
+import { submitChildAccountSwitch } from '@/lib/actions/google-ads';
+import { triggerManualSync } from '@/lib/actions/sync';
+import { GoogleAccountSelectorModal } from './GoogleAccountSelectorModal';
+import { toast } from 'sonner';
 import type { AdPlatform } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -76,7 +80,9 @@ interface OAuthConnectorProps {
   accountName?: string;
   accountId?: string;
   isAdmin: boolean;
+  setupRequired?: boolean;
   onDisconnect: () => void;
+  onSetupComplete?: () => void;
 }
 
 export function OAuthConnector({
@@ -85,14 +91,25 @@ export function OAuthConnector({
   accountName,
   accountId,
   isAdmin,
+  setupRequired,
   onDisconnect,
+  onSetupComplete,
 }: OAuthConnectorProps) {
   const [isPending, startTransition] = useTransition();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const meta = PLATFORM_META[platform];
 
+  // Auto-open setup modal if explicitly required and just redirected back
+  useEffect(() => {
+    if (setupRequired && typeof window !== 'undefined') {
+      const isActionRequired = new URLSearchParams(window.location.search).get('action_required') === 'true';
+      if (isActionRequired) {
+        setIsModalOpen(true);
+      }
+    }
+  }, [setupRequired]);
+
   function handleConnect() {
-    // Navigate to the initiate route which sets the state cookie
-    // and redirects to the platform — more reliable than a Server Action
     window.location.href = `/api/oauth/${platform}/initiate`;
   }
 
@@ -104,65 +121,119 @@ export function OAuthConnector({
     });
   }
 
+  function handleAccountSelection(childId: string) {
+    if (!accountId) return;
+
+    startTransition(async () => {
+      try {
+        toast.loading('Saving account selection...', { id: 'setup-account' });
+        await submitChildAccountSwitch(accountId, childId);
+
+        // Save complete, close modal
+        setIsModalOpen(false);
+
+        // Trigger manual sync in background
+        toast.loading('Syncing latest data in background...', { id: 'setup-account' });
+        triggerManualSync(accountId).then(syncRes => {
+          if (syncRes.error) {
+            toast.error(`Background sync failed: ${syncRes.error}`, { id: 'setup-account', duration: 4000 });
+          } else {
+            toast.success('Setup and data sync completed.', { id: 'setup-account', duration: 3000 });
+          }
+        });
+
+        // Notify parent to refresh UI
+        if (onSetupComplete) onSetupComplete();
+
+      } catch (err) {
+        console.error('Failed to setup account:', err);
+        toast.error('Failed to save account selection.', { id: 'setup-account' });
+      }
+    });
+  }
+
   return (
-    <div className="flex items-center justify-between px-4 py-4 bg-white rounded-xl border border-gray-200">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100">
-          {meta.icon}
+    <>
+      <div className="flex items-center justify-between px-4 py-4 bg-white rounded-xl border border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100">
+            {meta.icon}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">{meta.label}</p>
+            {isConnected ? (
+              setupRequired ? (
+                <p className="text-xs text-orange-600 mt-0.5 flex items-center gap-1 font-medium">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  Action Required: Select Account
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
+                  {accountName || 'Connected'}
+                </p>
+              )
+            ) : (
+              <p className="text-xs text-gray-400 mt-0.5">Not connected</p>
+            )}
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-gray-900">{meta.label}</p>
-          {isConnected && accountName ? (
-            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-              {accountName}
-            </p>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {isConnected ? (
+            <>
+              {setupRequired ? (
+                <Button
+                  size="sm"
+                  onClick={() => setIsModalOpen(true)}
+                  disabled={isPending}
+                  className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  Select Account
+                </Button>
+              ) : (
+                <span className="hidden sm:inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 font-medium">
+                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Connected
+                </span>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  disabled={isPending}
+                  className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-8 text-xs"
+                >
+                  {isPending ? 'Disconnecting…' : 'Disconnect'}
+                </Button>
+              )}
+            </>
           ) : (
-            <p className="text-xs text-gray-400 mt-0.5">Not connected</p>
+            isAdmin && (
+              <Button
+                size="sm"
+                onClick={handleConnect}
+                disabled={isPending}
+                className="h-8 text-xs"
+              >
+                {isPending ? 'Connecting…' : `Connect ${meta.label}`}
+              </Button>
+            )
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {isConnected ? (
-          <>
-            <span className="hidden sm:inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 font-medium">
-              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M2 6l3 3 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Connected
-            </span>
-            {isAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDisconnect}
-                disabled={isPending}
-                className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 h-8 text-xs"
-              >
-                {isPending ? 'Disconnecting…' : 'Disconnect'}
-              </Button>
-            )}
-          </>
-        ) : (
-          isAdmin && (
-            <Button
-              size="sm"
-              onClick={handleConnect}
-              disabled={isPending}
-              className="h-8 text-xs"
-            >
-              {isPending ? 'Connecting…' : `Connect ${meta.label}`}
-            </Button>
-          )
-        )}
-      </div>
-    </div>
+      {platform === 'google' && accountId && isAdmin && (
+        <GoogleAccountSelectorModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          adAccountId={accountId}
+          onSelectCallback={handleAccountSelection}
+        />
+      )}
+    </>
   );
 }

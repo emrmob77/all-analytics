@@ -179,12 +179,16 @@ export function Sidebar() {
       getConnectedGoogleAdsAccount().then((acc) => {
         if (mounted && acc) {
           setGoogleAdAccount(acc);
-          setChildLoading(true);
-          fetchGoogleChildAccounts(acc.id).then(children => {
-            if (mounted) setGoogleChildren(children);
-          }).finally(() => {
-            if (mounted) setChildLoading(false);
-          });
+
+          // Only fetch child accounts if one is already selected (setup complete).
+          if (acc.selected_child_id) {
+            setChildLoading(true);
+            fetchGoogleChildAccounts(acc.id).then(children => {
+              if (mounted) setGoogleChildren(children);
+            }).finally(() => {
+              if (mounted) setChildLoading(false);
+            });
+          }
         }
       });
     }
@@ -277,7 +281,7 @@ export function Sidebar() {
         </div>
 
         {/* Google Ads Sub-Account Switcher (If connected and has children) */}
-        {googleAdAccount && googleChildren.length > 0 && (
+        {googleAdAccount && googleAdAccount.selected_child_id && googleChildren.length > 0 && (
           <div className="mt-2.5 relative">
             <button
               onClick={() => setIsAccountDropdownOpen(o => !o)}
@@ -329,6 +333,23 @@ export function Sidebar() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Warning Banner if connected but setup incomplete */}
+        {googleAdAccount && !googleAdAccount.selected_child_id && (
+          <Link href="/settings?tab=connections&action_required=true" className="mt-2.5 block text-left w-full rounded-[9px] border border-orange-200 bg-orange-50 p-[9px_11px] transition-colors hover:bg-orange-100 focus:outline-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <GoogleIcon size={14} />
+              <div className="flex-1 min-w-0">
+                <div className="truncate text-[11px] font-bold text-orange-800 uppercase tracking-wide">
+                  Action Required
+                </div>
+                <div className="text-[11.5px] font-medium text-orange-700 leading-tight mt-0.5">
+                  Select Google Ads account in Settings to start.
+                </div>
+              </div>
+            </div>
+          </Link>
         )}
       </div>
 
