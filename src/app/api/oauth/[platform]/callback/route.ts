@@ -15,7 +15,8 @@ function isAdPlatform(value: string): value is AdPlatform {
 const SETTINGS_URL = '/settings?tab=connections';
 
 function isGoogleCustomerId(value: string): boolean {
-  return /^\d{10}$/.test(value.replace(/-/g, ''));
+  if (!value) return false;
+  return value.split(',').every(id => /^\d{10}$/.test(id.trim().replace(/-/g, '')));
 }
 
 /**
