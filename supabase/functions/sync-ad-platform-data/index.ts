@@ -7,6 +7,17 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 type AdPlatform = 'google' | 'meta' | 'tiktok' | 'pinterest';
 type CampaignStatus = 'active' | 'paused' | 'stopped' | 'archived';
+type KeywordStatus = 'enabled' | 'paused' | 'removed';
+type KeywordMatchType = 'exact' | 'phrase' | 'broad';
+
+interface KeywordData {
+  external_campaign_id: string;
+  external_keyword_id: string;
+  text: string;
+  match_type: KeywordMatchType;
+  status: KeywordStatus;
+  quality_score?: number;
+}
 
 interface SyncPayload {
   ad_account_id: string;
@@ -43,12 +54,20 @@ interface PlatformSyncResult {
   campaigns: CampaignData[];
   dailyMetrics: Record<string, DailyMetric[]>;   // externalCampaignId → metrics
   hourlyMetrics: Record<string, HourlyMetric[]>; // externalCampaignId → metrics
+  keywords?: KeywordData[];
+  keywordMetrics?: Record<string, DailyMetric[]>; // externalKeywordId -> metrics
 }
 
 interface GoogleAdsSearchChunk {
   results?: Array<{
     campaign?: { id: string; name: string; status: string };
     campaignBudget?: { amountMicros: string };
+    adGroupCriterion?: {
+      criterionId: string;
+      status: string;
+      keyword?: { text: string; matchType: string };
+      qualityInfo?: { qualityScore?: number };
+    };
     metrics?: {
       costMicros: string;
       impressions: string;
@@ -507,7 +526,87 @@ async function syncGoogle(
     }
   }
 
-  return { campaigns, dailyMetrics, hourlyMetrics: {} };
+  // Fetch keywords
+  const keywordData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT campaign.id,
+            ad_group_criterion.criterion_id, 
+            ad_group_criterion.status,
+            ad_group_criterion.keyword.text, 
+            ad_group_criterion.keyword.match_type,
+            ad_group_criterion.quality_info.quality_score
+     FROM keyword_view
+     WHERE ad_group_criterion.status != 'REMOVED'`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] keywords fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const keywords: KeywordData[] = [];
+  const keywordStatusMap: Record<string, KeywordStatus> = {
+    ENABLED: 'enabled', PAUSED: 'paused', REMOVED: 'removed'
+  };
+  const matchTypeMap: Record<string, KeywordMatchType> = {
+    EXACT: 'exact', PHRASE: 'phrase', BROAD: 'broad'
+  };
+
+  for (const chunk of keywordData) {
+    for (const row of chunk.results ?? []) {
+      const campId = row.campaign?.id;
+      const crit = row.adGroupCriterion;
+      if (!campId || !crit || !crit.keyword) continue;
+
+      keywords.push({
+        external_campaign_id: campId,
+        external_keyword_id: crit.criterionId,
+        text: crit.keyword.text,
+        match_type: matchTypeMap[crit.keyword.matchType] ?? 'broad',
+        status: keywordStatusMap[crit.status] ?? 'paused',
+        quality_score: crit.qualityInfo?.qualityScore ?? 5,
+      });
+    }
+  }
+
+  // Fetch keyword metrics
+  const keywordMetricsData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT ad_group_criterion.criterion_id, segments.date,
+            metrics.cost_micros, metrics.impressions, metrics.clicks,
+            metrics.conversions, metrics.conversions_value
+     FROM keyword_view
+     WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'
+       AND ad_group_criterion.status != 'REMOVED'`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] keyword metrics fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const keywordMetrics: Record<string, DailyMetric[]> = {};
+  for (const chunk of keywordMetricsData) {
+    for (const row of chunk.results ?? []) {
+      const critId = row.adGroupCriterion?.criterionId;
+      const date = row.segments?.date;
+      if (!critId || !date || !row.metrics) continue;
+
+      if (!keywordMetrics[critId]) keywordMetrics[critId] = [];
+      keywordMetrics[critId].push({
+        date,
+        spend: Number(row.metrics.costMicros) / 1_000_000,
+        impressions: Number(row.metrics.impressions),
+        clicks: Number(row.metrics.clicks),
+        conversions: Number(row.metrics.conversions),
+        revenue: Number(row.metrics.conversionsValue),
+      });
+    }
+  }
+
+  return { campaigns, dailyMetrics, hourlyMetrics: {}, keywords, keywordMetrics };
 }
 
 async function syncMeta(
@@ -717,6 +816,8 @@ async function writeResults(
 ): Promise<void> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
 
+  const dbCampaignMap: Record<string, string> = {};
+
   for (const campaign of result.campaigns) {
     // Upsert campaign
     const { data: dbCampaign, error: campErr } = await supabase
@@ -745,6 +846,7 @@ async function writeResults(
 
     const campaignId = dbCampaign.id as string;
     const extId = campaign.external_campaign_id;
+    dbCampaignMap[extId] = campaignId;
 
     // Upsert daily metrics
     const daily = result.dailyMetrics[extId] ?? [];
@@ -785,6 +887,59 @@ async function writeResults(
           .upsert(rows, { onConflict: 'campaign_id,hour' });
         if (hourlyErr) {
           console.error(`[writeResults] hourly_metrics upsert failed for campaign ${campaignId}:`, hourlyErr.message);
+        }
+      }
+    }
+  }
+
+  if (result.keywords && result.keywordMetrics) {
+    for (const kw of result.keywords) {
+      const campaignId = dbCampaignMap[kw.external_campaign_id];
+      if (!campaignId) continue;
+
+      // Upsert keyword
+      const { data: dbKeyword, error: kwErr } = await supabase
+        .from('keywords')
+        .upsert({
+          organization_id: adAccount.organization_id,
+          ad_account_id: adAccount.id,
+          campaign_id: campaignId,
+          platform: adAccount.platform,
+          external_keyword_id: kw.external_keyword_id,
+          text: kw.text,
+          match_type: kw.match_type,
+          status: kw.status,
+          quality_score: kw.quality_score,
+        }, { onConflict: 'ad_account_id,external_keyword_id' })
+        .select('id')
+        .single();
+
+      if (kwErr || !dbKeyword) {
+        console.error(`[writeResults] keyword upsert failed: ${kw.external_keyword_id}`, kwErr.message);
+        continue;
+      }
+
+      const dbKwId = dbKeyword.id;
+
+      // Upsert keyword metrics
+      const kMetrics = result.keywordMetrics[kw.external_keyword_id] ?? [];
+      if (kMetrics.length > 0) {
+        const rows = kMetrics.map(m => ({
+          keyword_id: dbKwId,
+          date: m.date,
+          spend: m.spend,
+          impressions: m.impressions,
+          clicks: m.clicks,
+          conversions: m.conversions,
+          revenue: m.revenue,
+        }));
+
+        const { error: kmErr } = await supabase
+          .from('keyword_metrics')
+          .upsert(rows, { onConflict: 'keyword_id,date' });
+
+        if (kmErr) {
+          console.error(`[writeResults] keyword_metrics upsert failed for keyword ${dbKwId}:`, kmErr.message);
         }
       }
     }
