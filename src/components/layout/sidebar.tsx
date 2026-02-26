@@ -197,22 +197,26 @@ export function Sidebar() {
       if (googleAdAccount.selected_child_id === childId) return;
 
       setIsSwitching(true);
-      toast.loading('Switching account & syncing data...', { id: 'switch-account' });
+      toast.loading('Switching selected account...', { id: 'switch-account' });
 
       await submitChildAccountSwitch(googleAdAccount.id, childId);
       setGoogleAdAccount({ ...googleAdAccount, selected_child_id: childId });
       setIsAccountDropdownOpen(false);
 
-      // Trigger automatic background sync for the new child account
-      const syncRes = await triggerManualSync(googleAdAccount.id);
+      toast.success('Ad account switched.', { id: 'switch-account' });
 
-      if (syncRes.error) {
-        toast.error(`Switched, but sync failed: ${syncRes.error}`, { id: 'switch-account' });
-      } else {
-        toast.success('Ad account switched and data synced.', { id: 'switch-account' });
-      }
+      // Trigger automatic background sync without blocking the UI
+      toast.loading('Syncing latest data in background...', { id: 'sync-account' });
+      triggerManualSync(googleAdAccount.id).then(syncRes => {
+        if (syncRes.error) {
+          toast.error(`Background sync failed: ${syncRes.error}`, { id: 'sync-account', duration: 4000 });
+        } else {
+          toast.success('Background data sync completed.', { id: 'sync-account', duration: 3000 });
+          router.refresh();
+        }
+      });
 
-      // Hard refresh to re-fetch campaigns from DB immediately or invalidate paths
+      // Hard refresh to immediately render with new account data (it might be old data immediately until sync finishes, but UI stays responsive)
       router.refresh();
 
     } catch (err) {

@@ -65,11 +65,7 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
 
     const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? '';
 
-    const runQuery = async (loginCustomerId: string, token: string, useLoginHeader: boolean = false) => {
-        // Use a clean query targeting level = 1 (direct children).
-        // If it's not a manager account, Google API throws an authorization or NOT_MANAGER error which we catch below.
-        const query = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
-
+    const runQuery = async (loginCustomerId: string, token: string, query: string, useLoginHeader: boolean = false) => {
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -89,16 +85,14 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         );
     };
 
-    for (const loginCustomerId of loginCustomerIds) {
-        // First attempt WITHOUT the login header. If it's a direct account, this will fail elegantly (which we catch).
-        let response = await runQuery(loginCustomerId, accessToken, false);
+    const fetchWithRetry = async (loginCustomerId: string, query: string) => {
+        let response = await runQuery(loginCustomerId, accessToken, query, false);
+        let text = await response.text();
 
         // If we got an INVALID_ARGUMENT (which happens when an MCC requires the login-customer-id but we didn't send it)
-        // We try again WITH the header.
-        let text = await response.text();
         if (!response.ok && text.includes('INVALID_ARGUMENT')) {
             console.log(`[fetchGoogleChildAccounts] INVALID_ARGUMENT without header for ${loginCustomerId}. Retrying WITH login-customer-id header...`);
-            response = await runQuery(loginCustomerId, accessToken, true);
+            response = await runQuery(loginCustomerId, accessToken, query, true);
             text = await response.text();
         }
 
@@ -110,7 +104,6 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
                 const refreshTokenText = await decryptToken(tokenRow.refresh_token);
                 const newTokens = await service.refreshToken(refreshTokenText);
 
-                // Save new tokens to DB
                 const newEncryptedAccess = await encryptToken(newTokens.accessToken);
                 await supabase
                     .from('ad_account_tokens')
@@ -123,12 +116,11 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
                 accessToken = newTokens.accessToken;
                 tokenRefreshed = true;
 
-                // Retry the query
-                response = await runQuery(loginCustomerId, accessToken, false);
+                response = await runQuery(loginCustomerId, accessToken, query, false);
                 text = await response.text();
 
                 if (!response.ok && text.includes('INVALID_ARGUMENT')) {
-                    response = await runQuery(loginCustomerId, accessToken, true);
+                    response = await runQuery(loginCustomerId, accessToken, query, true);
                     text = await response.text();
                 }
             } catch (refreshErr) {
@@ -136,61 +128,76 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
             }
         }
 
+        return { response, text };
+    };
+
+    const customerQuery = "SELECT customer.id, customer.descriptive_name, customer.manager FROM customer LIMIT 1";
+    const childrenQuery = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
+
+    for (const loginCustomerId of loginCustomerIds) {
+        // Step 1: Query the customer info directly to get its name and check if it's an MCC
+        const { response, text } = await fetchWithRetry(loginCustomerId, customerQuery);
+
         if (!response.ok) {
-            console.error(`Google Ads API Error (fetching children for ${loginCustomerId}):`, text);
-            // If it's not a manager account, we just return the account itself
-            if (text.includes('NOT_MANAGER') || text.includes('AUTHORIZATION_ERROR')) {
-                if (!finalResults.has(loginCustomerId)) {
-                    finalResults.set(loginCustomerId, { id: loginCustomerId, name: `Google Ads Account (${loginCustomerId})` });
-                }
-                continue;
-            }
-
-            let errMsg = 'API Error';
-            try {
-                const parsed = JSON.parse(text);
-                if (Array.isArray(parsed) && parsed[0]?.error?.message) {
-                    errMsg = parsed[0].error.message.split('.')[0];
-                } else if (parsed.error && parsed.error.message) {
-                    errMsg = parsed.error.message.split('.')[0];
-                } else if (parsed[0]?.error?.status) {
-                    errMsg = parsed[0].error.status;
-                } else {
-                    const stringified = JSON.stringify(parsed);
-                    errMsg = stringified.length < 50 ? stringified : 'Status ' + response.status;
-                }
-            } catch {
-                errMsg = text.length < 50 ? text : 'Status ' + response.status;
-            }
-
-            // Return fallback
+            console.error(`Google Ads API Error (fetching customer for ${loginCustomerId}):`, text);
+            // Fallback if querying self fails
             if (!finalResults.has(loginCustomerId)) {
-                finalResults.set(loginCustomerId, { id: loginCustomerId, name: `Account ${loginCustomerId} (${errMsg})` });
+                finalResults.set(loginCustomerId, { id: loginCustomerId, name: `Account ${loginCustomerId}` });
             }
             continue;
         }
 
-        try {
-            const dataChunks = text
-                .split('\n')
-                .filter((line) => line.trim().length > 0)
-                .map((line) => JSON.parse(line));
+        let isManager = false;
+        let customerName = `Account ${loginCustomerId}`;
 
+        try {
+            const dataChunks = text.split('\n').filter((line) => line.trim().length > 0).map((line) => JSON.parse(line));
             for (const chunk of dataChunks) {
                 if (!chunk.results) continue;
                 for (const row of chunk.results) {
-                    if (row.customerClient) {
-                        const rawId = row.customerClient.clientCustomer;
-                        const name = row.customerClient.descriptiveName ?? 'Unnamed Account';
-                        const id = rawId.split('/')[1] ?? rawId;
-                        if (!finalResults.has(id)) {
-                            finalResults.set(id, { id, name });
+                    if (row.customer) {
+                        customerName = row.customer.descriptiveName ?? customerName;
+                        isManager = row.customer.manager === true;
+
+                        // We add the account itself if it's a direct account
+                        if (!isManager) {
+                            if (!finalResults.has(loginCustomerId)) {
+                                finalResults.set(loginCustomerId, { id: loginCustomerId, name: customerName });
+                            }
                         }
                     }
                 }
             }
         } catch (err) {
-            console.error(`Failed to parse Google Ads streaming response for ${loginCustomerId}:`, err);
+            console.error(`Failed to parse Google Ads streaming response (customer) for ${loginCustomerId}:`, err);
+        }
+
+        // Step 2: If it's an MCC, fetch its children
+        if (isManager) {
+            const childrenRes = await fetchWithRetry(loginCustomerId, childrenQuery);
+            if (!childrenRes.response.ok) {
+                console.error(`Failed to fetch children for manager ${loginCustomerId}:`, childrenRes.text);
+                continue;
+            }
+
+            try {
+                const dataChunks = childrenRes.text.split('\n').filter((line) => line.trim().length > 0).map((line) => JSON.parse(line));
+                for (const chunk of dataChunks) {
+                    if (!chunk.results) continue;
+                    for (const row of chunk.results) {
+                        if (row.customerClient) {
+                            const rawId = row.customerClient.clientCustomer;
+                            const name = row.customerClient.descriptiveName ?? 'Unnamed Account';
+                            const id = rawId.split('/')[1] ?? rawId;
+                            if (!finalResults.has(id)) {
+                                finalResults.set(id, { id, name });
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to parse Google Ads streaming response (children) for ${loginCustomerId}:`, err);
+            }
         }
     }
 
