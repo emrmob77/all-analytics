@@ -5,35 +5,30 @@ import { PlatformIcon } from '@/components/ui/platform-icons';
 import { formatNumber, formatInteger, formatPercent, formatCurrency } from '@/lib/format';
 import type { AdPlatform } from '@/types';
 
-interface AdGroupRow {
-  id: string;
-  name: string;
-  platform: AdPlatform;
-  status: 'active' | 'paused' | 'stopped';
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  spend: number;
+import { useAdGroups } from '@/hooks/useAdgroups';
+import { DateRangePicker, type DateRange } from '@/components/ui/date-range-picker';
+import { addDays } from '@/lib/date';
+
+function defaultRange(): DateRange {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return { from: addDays(today, -29), to: today };
 }
 
-const DEMO_DATA: AdGroupRow[] = [
-  { id: '1', name: 'Brand Keywords — Exact',      platform: 'google',    status: 'active', impressions: 45200,  clicks: 2340, ctr: 5.18, spend: 1240 },
-  { id: '2', name: 'Competitor Targeting',         platform: 'google',    status: 'active', impressions: 38100,  clicks: 1890, ctr: 4.96, spend: 980  },
-  { id: '3', name: 'Lookalike 2% — Purchasers',   platform: 'meta',      status: 'active', impressions: 182000, clicks: 4100, ctr: 2.25, spend: 2310 },
-  { id: '4', name: 'Retargeting — 30d Visitors',  platform: 'meta',      status: 'paused', impressions: 94000,  clicks: 1820, ctr: 1.94, spend: 840  },
-  { id: '5', name: 'Interest: Fashion & Style',   platform: 'meta',      status: 'active', impressions: 210000, clicks: 3200, ctr: 1.52, spend: 1650 },
-  { id: '6', name: 'TikTok — Gen Z Audiences',    platform: 'tiktok',    status: 'active', impressions: 510000, clicks: 6800, ctr: 1.33, spend: 3100 },
-  { id: '7', name: 'Engagement Retargeting',      platform: 'tiktok',    status: 'paused', impressions: 72000,  clicks: 890,  ctr: 1.24, spend: 410  },
-  { id: '8', name: 'Pinterest Shopping',           platform: 'pinterest', status: 'active', impressions: 38000,  clicks: 620,  ctr: 1.63, spend: 290  },
-];
+function toISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
 
 const PLATFORM_LABELS: Record<string, string> = {
   google: 'Google', meta: 'Meta', tiktok: 'TikTok', pinterest: 'Pinterest',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active:  'bg-[#E6F4EA] text-[#137333]',
-  paused:  'bg-[#FEF3CD] text-[#92640D]',
+  active: 'bg-[#E6F4EA] text-[#137333]',
+  paused: 'bg-[#FEF3CD] text-[#92640D]',
   stopped: 'bg-[#FCE8E6] text-[#C5221F]',
 };
 
@@ -44,28 +39,35 @@ export default function AdGroupsPage() {
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
 
-  const filtered = useMemo(() => {
-    return DEMO_DATA.filter((row) => {
-      const matchSearch = row.name.toLowerCase().includes(search.toLowerCase());
-      const matchPlatform = platformFilter === 'all' || row.platform === platformFilter;
-      return matchSearch && matchPlatform;
-    });
-  }, [search, platformFilter]);
+  const [dateRange, setDateRange] = useState<DateRange>(defaultRange);
+
+  const { data, isLoading } = useAdGroups({
+    from: toISO(dateRange.from),
+    to: toISO(dateRange.to),
+    platform: platformFilter,
+    search: search || undefined
+  });
+
+  const filtered = data?.data ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <div className="mx-auto max-w-[1280px] px-6 py-6 lg:px-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-[#202124] tracking-tight">Ad Groups</h1>
-        <p className="text-sm text-[#5F6368] mt-0.5">Manage and analyse your ad groups across all platforms</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#202124] tracking-tight">Ad Groups</h1>
+          <p className="text-sm text-[#5F6368] mt-0.5">Manage and analyse your ad groups across all platforms</p>
+        </div>
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-[320px]">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9AA0A6]" width="14" height="14" viewBox="0 0 20 20" fill="none">
-            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
-            <path d="M13.5 13.5L18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M13.5 13.5L18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
           <input
             type="text"
@@ -80,11 +82,10 @@ export default function AdGroupsPage() {
             <button
               key={p}
               onClick={() => setPlatformFilter(p)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors ${
-                platformFilter === p
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors ${platformFilter === p
                   ? 'bg-[#1A73E8] text-white'
                   : 'text-[#5F6368] hover:bg-[#F1F3F4]'
-              }`}
+                }`}
             >
               {p === 'all' ? (
                 'All'
@@ -97,7 +98,7 @@ export default function AdGroupsPage() {
             </button>
           ))}
         </div>
-        <span className="text-[12px] text-[#9AA0A6] ml-auto">{filtered.length} ad group{filtered.length !== 1 ? 's' : ''}</span>
+        <span className="text-[12px] text-[#9AA0A6] ml-auto">{total} ad group{total !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Table */}
@@ -106,6 +107,7 @@ export default function AdGroupsPage() {
           <thead>
             <tr className="border-b border-[#E3E8EF] bg-[#FAFAFA]">
               <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Ad Group</th>
+              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Campaign</th>
               <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Platform</th>
               <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Status</th>
               <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Impressions</th>
@@ -115,9 +117,15 @@ export default function AdGroupsPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {isLoading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-[#9AA0A6]">
+                <td colSpan={8} className="px-4 py-12 text-center text-[#9AA0A6]">
+                  Loading ad groups...
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center text-[#9AA0A6]">
                   No ad groups match your search.
                 </td>
               </tr>
@@ -125,11 +133,11 @@ export default function AdGroupsPage() {
               filtered.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-[#F1F3F4] last:border-0 hover:bg-[#F8F9FA] transition-colors ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'
-                  }`}
+                  className={`border-b border-[#F1F3F4] last:border-0 hover:bg-[#F8F9FA] transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'
+                    }`}
                 >
                   <td className="px-4 py-3 font-medium text-[#202124]">{row.name}</td>
+                  <td className="px-4 py-3 text-[#5F6368] max-w-[200px] truncate" title={row.campaignName}>{row.campaignName}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <PlatformIcon platform={row.platform} size={12} />
@@ -148,7 +156,7 @@ export default function AdGroupsPage() {
                       {formatPercent(row.ctr)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-[#202124] tabular-nums font-medium">{formatCurrency(row.spend)}</td>
+                  <td className="px-4 py-3 text-right text-[#202124] tabular-nums font-medium">{formatCurrency(row.spend, row.currency, row.currency === 'TRY' ? 'tr-TR' : 'en-US')}</td>
                 </tr>
               ))
             )}
@@ -157,11 +165,11 @@ export default function AdGroupsPage() {
       </div>
 
       {/* Summary footer */}
-      {filtered.length > 0 && (
+      {!isLoading && filtered.length > 0 && (
         <div className="mt-3 flex items-center gap-6 px-1 text-[11.5px] text-[#9AA0A6]">
           <span>Total impressions: <span className="font-medium text-[#5F6368]">{formatNumber(filtered.reduce((s, r) => s + r.impressions, 0))}</span></span>
           <span>Total clicks: <span className="font-medium text-[#5F6368]">{formatInteger(filtered.reduce((s, r) => s + r.clicks, 0))}</span></span>
-          <span>Total spend: <span className="font-medium text-[#5F6368]">{formatCurrency(filtered.reduce((s, r) => s + r.spend, 0))}</span></span>
+          <span>Total spend: <span className="font-medium text-[#5F6368]">{formatCurrency(filtered.reduce((s, r) => s + r.spend, 0), filtered[0]?.currency || 'USD', filtered[0]?.currency === 'TRY' ? 'tr-TR' : 'en-US')}</span></span>
         </div>
       )}
     </div>

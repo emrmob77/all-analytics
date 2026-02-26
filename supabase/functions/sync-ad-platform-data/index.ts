@@ -26,6 +26,13 @@ interface AudienceData {
   size: number;
 }
 
+interface AdGroupData {
+  external_campaign_id: string;
+  external_adgroup_id: string;
+  name: string;
+  status: string;
+}
+
 interface SyncPayload {
   ad_account_id: string;
   triggered_by?: 'manual' | 'scheduled';
@@ -65,6 +72,8 @@ interface PlatformSyncResult {
   keywordMetrics?: Record<string, DailyMetric[]>; // externalKeywordId -> metrics
   audiences?: AudienceData[];
   audienceMetrics?: Record<string, DailyMetric[]>; // externalAudienceId -> metrics
+  adgroups?: AdGroupData[];
+  adgroupMetrics?: Record<string, DailyMetric[]>; // externalAdgroupId -> metrics
 }
 
 interface GoogleAdsSearchChunk {
@@ -77,6 +86,11 @@ interface GoogleAdsSearchChunk {
       keyword?: { text: string; matchType: string };
       qualityInfo?: { qualityScore?: number };
       userList?: { userList: string };
+    };
+    adGroup?: {
+      id: string;
+      name: string;
+      status: string;
     };
     userList?: {
       id: string;
@@ -703,7 +717,75 @@ async function syncGoogle(
     }
   }
 
-  return { campaigns, dailyMetrics, hourlyMetrics: {}, keywords, keywordMetrics, audiences, audienceMetrics };
+  // Fetch adgroups
+  const adgroupData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT campaign.id, ad_group.id, ad_group.name, ad_group.status
+     FROM ad_group
+     WHERE ad_group.status != 'REMOVED'`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] adgroups fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const adgroups: AdGroupData[] = [];
+  const adgroupStatusMap: Record<string, string> = {
+    ENABLED: 'active', PAUSED: 'paused', REMOVED: 'stopped'
+  };
+
+  for (const chunk of adgroupData) {
+    for (const row of chunk.results ?? []) {
+      const campId = row.campaign?.id;
+      const ag = row.adGroup;
+      if (!campId || !ag || !ag.id) continue;
+
+      adgroups.push({
+        external_campaign_id: campId,
+        external_adgroup_id: ag.id,
+        name: ag.name,
+        status: adgroupStatusMap[ag.status] ?? 'paused',
+      });
+    }
+  }
+
+  // Fetch adgroup metrics
+  const adgroupMetricsData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT ad_group.id, segments.date, metrics.cost_micros, metrics.impressions,
+            metrics.clicks, metrics.conversions, metrics.conversions_value
+     FROM ad_group
+     WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] adgroup metrics fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const adgroupMetrics: Record<string, DailyMetric[]> = {};
+  for (const chunk of adgroupMetricsData) {
+    for (const row of chunk.results ?? []) {
+      const agId = row.adGroup?.id;
+      const date = row.segments?.date;
+      if (!agId || !date || !row.metrics) continue;
+
+      if (!adgroupMetrics[agId]) adgroupMetrics[agId] = [];
+      adgroupMetrics[agId].push({
+        date,
+        spend: Number(row.metrics.costMicros) / 1_000_000,
+        impressions: Number(row.metrics.impressions),
+        clicks: Number(row.metrics.clicks),
+        conversions: Number(row.metrics.conversions),
+        revenue: Number(row.metrics.conversionsValue),
+      });
+    }
+  }
+
+  return { campaigns, dailyMetrics, hourlyMetrics: {}, keywords, keywordMetrics, audiences, audienceMetrics, adgroups, adgroupMetrics };
 }
 
 async function syncMeta(
@@ -1101,6 +1183,57 @@ async function writeResults(
 
         if (amErr) {
           console.error(`[writeResults] audience_metrics upsert failed for audience ${dbAudId}:`, amErr.message);
+        }
+      }
+    }
+  }
+
+  if (result.adgroups && result.adgroupMetrics) {
+    for (const ag of result.adgroups) {
+      const campaignId = dbCampaignMap[ag.external_campaign_id];
+      if (!campaignId) continue;
+
+      // Upsert adgroup
+      const { data: dbAdgroup, error: agErr } = await supabase
+        .from('adgroups')
+        .upsert({
+          organization_id: adAccount.organization_id,
+          ad_account_id: adAccount.id,
+          campaign_id: campaignId,
+          platform: adAccount.platform,
+          external_adgroup_id: ag.external_adgroup_id,
+          name: ag.name,
+          status: ag.status,
+        }, { onConflict: 'ad_account_id,external_adgroup_id' })
+        .select('id')
+        .single();
+
+      if (agErr || !dbAdgroup) {
+        console.error(`[writeResults] adgroups upsert failed: ${ag.external_adgroup_id}`, agErr?.message);
+        continue;
+      }
+
+      const dbAgId = dbAdgroup.id;
+
+      // Upsert adgroup metrics
+      const agMetrics = result.adgroupMetrics[ag.external_adgroup_id] ?? [];
+      if (agMetrics.length > 0) {
+        const rows = agMetrics.map(m => ({
+          adgroup_id: dbAgId,
+          date: m.date,
+          spend: m.spend,
+          impressions: m.impressions,
+          clicks: m.clicks,
+          conversions: m.conversions,
+          revenue: m.revenue,
+        }));
+
+        const { error: agmErr } = await supabase
+          .from('adgroup_metrics')
+          .upsert(rows, { onConflict: 'adgroup_id,date' });
+
+        if (agmErr) {
+          console.error(`[writeResults] adgroup_metrics upsert failed for adgroup ${dbAgId}:`, agmErr.message);
         }
       }
     }
