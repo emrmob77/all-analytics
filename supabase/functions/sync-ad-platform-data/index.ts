@@ -19,6 +19,13 @@ interface KeywordData {
   quality_score?: number;
 }
 
+interface AudienceData {
+  external_audience_id: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 interface SyncPayload {
   ad_account_id: string;
   triggered_by?: 'manual' | 'scheduled';
@@ -56,6 +63,8 @@ interface PlatformSyncResult {
   hourlyMetrics: Record<string, HourlyMetric[]>; // externalCampaignId → metrics
   keywords?: KeywordData[];
   keywordMetrics?: Record<string, DailyMetric[]>; // externalKeywordId -> metrics
+  audiences?: AudienceData[];
+  audienceMetrics?: Record<string, DailyMetric[]>; // externalAudienceId -> metrics
 }
 
 interface GoogleAdsSearchChunk {
@@ -67,6 +76,14 @@ interface GoogleAdsSearchChunk {
       status: string;
       keyword?: { text: string; matchType: string };
       qualityInfo?: { qualityScore?: number };
+      userList?: { userList: string };
+    };
+    userList?: {
+      id: string;
+      name: string;
+      type: string;
+      sizeForSearch: string;
+      sizeForDisplay: string;
     };
     metrics?: {
       costMicros: string;
@@ -606,7 +623,87 @@ async function syncGoogle(
     }
   }
 
-  return { campaigns, dailyMetrics, hourlyMetrics: {}, keywords, keywordMetrics };
+  // Fetch audiences
+  const audienceData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT user_list.id, user_list.name, user_list.type, user_list.size_for_search, user_list.size_for_display
+     FROM user_list`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] audiences fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const audiences: AudienceData[] = [];
+  const audTypeMap: Record<string, string> = {
+    REMARKETING: 'Remarketing',
+    LOGICAL: 'Custom',
+    EXTERNAL_REMARKETING: 'Remarketing',
+    RULE_BASED: 'Remarketing',
+    SIMILAR: 'Lookalike',
+    CRM_BASED: 'Custom'
+  };
+
+  for (const chunk of audienceData) {
+    for (const row of chunk.results ?? []) {
+      const ul = row.userList;
+      if (!ul || !ul.id || !ul.name) continue;
+
+      let size = Number(ul.sizeForSearch ?? 0);
+      if (!size || size === 0) size = Number(ul.sizeForDisplay ?? 0);
+
+      audiences.push({
+        external_audience_id: ul.id.toString(),
+        name: ul.name,
+        type: audTypeMap[ul.type] ?? 'Interest',
+        size: size,
+      });
+    }
+  }
+
+  // Fetch audience metrics
+  const audienceMetricsData = await googleAdsSearchStream(
+    accessToken,
+    customerId,
+    `SELECT ad_group_criterion.user_list.user_list, segments.date,
+            metrics.cost_micros, metrics.impressions, metrics.clicks,
+            metrics.conversions, metrics.conversions_value
+     FROM ad_group_audience_view
+     WHERE segments.date BETWEEN '${startDate}' AND '${endDate}'`,
+    devToken,
+    loginCustomerId
+  ).catch(err => {
+    console.warn('[syncGoogle] audience metrics fetch failed:', err.message);
+    return [] as GoogleAdsSearchChunk[];
+  });
+
+  const audienceMetrics: Record<string, DailyMetric[]> = {};
+  for (const chunk of audienceMetricsData) {
+    for (const row of chunk.results ?? []) {
+      const userListStr = row.adGroupCriterion?.userList?.userList;
+      if (!userListStr) continue;
+
+      const ulParts = userListStr.split('/');
+      const ulId = ulParts[ulParts.length - 1];
+
+      const date = row.segments?.date;
+      if (!ulId || !date || !row.metrics) continue;
+
+      if (!audienceMetrics[ulId]) audienceMetrics[ulId] = [];
+      audienceMetrics[ulId].push({
+        date,
+        spend: Number(row.metrics.costMicros) / 1_000_000,
+        impressions: Number(row.metrics.impressions),
+        clicks: Number(row.metrics.clicks),
+        conversions: Number(row.metrics.conversions),
+        revenue: Number(row.metrics.conversionsValue),
+      });
+    }
+  }
+
+  return { campaigns, dailyMetrics, hourlyMetrics: {}, keywords, keywordMetrics, audiences, audienceMetrics };
 }
 
 async function syncMeta(
@@ -940,6 +1037,70 @@ async function writeResults(
 
         if (kmErr) {
           console.error(`[writeResults] keyword_metrics upsert failed for keyword ${dbKwId}:`, kmErr.message);
+        }
+      }
+    }
+  }
+
+  if (result.audiences && result.audienceMetrics) {
+    for (const aud of result.audiences) {
+      // Upsert audience
+      const { data: dbAudience, error: audErr } = await supabase
+        .from('audiences')
+        .upsert({
+          organization_id: adAccount.organization_id,
+          ad_account_id: adAccount.id,
+          platform: adAccount.platform,
+          external_audience_id: aud.external_audience_id,
+          name: aud.name,
+          type: aud.type,
+          size: aud.size,
+        }, { onConflict: 'ad_account_id,external_audience_id' })
+        .select('id')
+        .single();
+
+      if (audErr || !dbAudience) {
+        console.error(`[writeResults] audience upsert failed: ${aud.external_audience_id}`, audErr?.message);
+        continue;
+      }
+
+      const dbAudId = dbAudience.id as string;
+
+      // Upsert audience metrics
+      const aMetrics = result.audienceMetrics[aud.external_audience_id] ?? [];
+
+      // We might have multiple ad groups targeting the same audience, so we need to aggregate by date first.
+      const aggMetrics = new Map<string, DailyMetric>();
+      for (const m of aMetrics) {
+        if (!aggMetrics.has(m.date)) {
+          aggMetrics.set(m.date, { ...m });
+        } else {
+          const existing = aggMetrics.get(m.date)!;
+          existing.spend += m.spend;
+          existing.impressions += m.impressions;
+          existing.clicks += m.clicks;
+          existing.conversions += m.conversions;
+          existing.revenue += m.revenue;
+        }
+      }
+
+      const rowsToInsert = Array.from(aggMetrics.values()).map(m => ({
+        audience_id: dbAudId,
+        date: m.date,
+        spend: m.spend,
+        impressions: m.impressions,
+        clicks: m.clicks,
+        conversions: m.conversions,
+        revenue: m.revenue,
+      }));
+
+      if (rowsToInsert.length > 0) {
+        const { error: amErr } = await supabase
+          .from('audience_metrics')
+          .upsert(rowsToInsert, { onConflict: 'audience_id,date' });
+
+        if (amErr) {
+          console.error(`[writeResults] audience_metrics upsert failed for audience ${dbAudId}:`, amErr.message);
         }
       }
     }
