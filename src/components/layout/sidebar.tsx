@@ -18,6 +18,7 @@ import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
 import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, submitChildAccountSwitch, type GoogleChildAccount } from '@/lib/actions/google-ads';
+import { triggerManualSync } from '@/lib/actions/sync';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
@@ -158,6 +159,8 @@ export function Sidebar() {
   const [googleAdAccount, setGoogleAdAccount] = useState<any>(null);
   const [googleChildren, setGoogleChildren] = useState<GoogleChildAccount[]>([]);
   const [childLoading, setChildLoading] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -192,15 +195,31 @@ export function Sidebar() {
     if (!googleAdAccount) return;
     try {
       if (googleAdAccount.selected_child_id === childId) return;
+
+      setIsSwitching(true);
+      toast.loading('Switching account & syncing data...', { id: 'switch-account' });
+
       await submitChildAccountSwitch(googleAdAccount.id, childId);
-      toast.success('Ad account switched successfully. Data will update on next sync.');
-
       setGoogleAdAccount({ ...googleAdAccount, selected_child_id: childId });
+      setIsAccountDropdownOpen(false);
 
-      // Optionally trigger re-fetch of campaigns here, or tell user to click sync
+      // Trigger automatic background sync for the new child account
+      const syncRes = await triggerManualSync(googleAdAccount.id);
+
+      if (syncRes.error) {
+        toast.error(`Switched, but sync failed: ${syncRes.error}`, { id: 'switch-account' });
+      } else {
+        toast.success('Ad account switched and data synced.', { id: 'switch-account' });
+      }
+
+      // Hard refresh to re-fetch campaigns from DB immediately or invalidate paths
+      router.refresh();
+
     } catch (err) {
-      toast.error('Failed to switch ad account');
+      toast.error('Failed to switch ad account', { id: 'switch-account' });
       console.error(err);
+    } finally {
+      setIsSwitching(false);
     }
   };
 
@@ -255,34 +274,56 @@ export function Sidebar() {
 
         {/* Google Ads Sub-Account Switcher (If connected and has children) */}
         {googleAdAccount && googleChildren.length > 0 && (
-          <div className="mt-2.5 rounded-[9px] border border-[#E3E8EF] bg-white text-[12px]">
-            <div className="border-b border-[#E3E8EF] px-2.5 py-1.5 flex items-center gap-1.5 bg-[#F8F9FA] rounded-t-[8px]">
-              <GoogleIcon size={12} />
-              <span className="font-semibold text-[#5F6368] text-[10.5px] uppercase tracking-wide">
-                Google Ads Account
-              </span>
-            </div>
-            <div className="max-h-[120px] overflow-y-auto px-1.5 py-1 custom-scrollbar">
-              {childLoading ? (
-                <div className="px-2 py-1.5 text-[11px] text-[#9AA0A6]">Loading accounts...</div>
-              ) : (
-                googleChildren.map((child) => (
+          <div className="mt-2.5 relative">
+            <button
+              onClick={() => setIsAccountDropdownOpen(o => !o)}
+              disabled={isSwitching}
+              className="flex w-full items-center justify-between gap-1.5 rounded-[9px] border border-[#E3E8EF] bg-white p-[9px_11px] text-left transition-colors hover:bg-gray-50 focus:outline-none"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <GoogleIcon size={14} />
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-[11px] font-semibold text-[#5F6368] uppercase tracking-wide">
+                    Google Ads Account
+                  </div>
+                  <div className="truncate text-[12.5px] font-semibold text-[#1A73E8]">
+                    {childLoading ? 'Loading...' : (googleChildren.find(c => c.id === googleAdAccount.selected_child_id)?.name || googleChildren[0]?.name || 'Select Account')}
+                  </div>
+                </div>
+              </div>
+              <svg
+                width="10"
+                height="10"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                className={cn('shrink-0 text-[#9AA0A6] transition-transform duration-200', isAccountDropdownOpen && 'rotate-180')}
+              >
+                <path d="M1.5 3l3.5 3.5L8.5 3" />
+              </svg>
+            </button>
+
+            {isAccountDropdownOpen && !childLoading && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-[9px] border border-[#E3E8EF] bg-white shadow-lg max-h-[160px] overflow-y-auto custom-scrollbar p-1.5">
+                {googleChildren.map((child) => (
                   <button
                     key={child.id}
                     onClick={() => handleSwitchChild(child.id)}
                     className={cn(
-                      "w-full text-left px-2 py-[7px] text-[11px] rounded-md transition-colors truncate",
-                      googleAdAccount.selected_child_id === child.id || (!googleAdAccount.selected_child_id && googleChildren[0].id === child.id)
-                        ? "bg-[#E8F0FE] text-[#1A73E8] font-semibold"
-                        : "text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]"
+                      "w-full text-left px-2 py-2 text-[11.5px] rounded-md transition-colors truncate",
+                      (googleAdAccount.selected_child_id === child.id || (!googleAdAccount.selected_child_id && googleChildren[0].id === child.id))
+                        ? "bg-[#E8F0FE] text-[#1A73E8] font-bold"
+                        : "text-[#202124] hover:bg-[#F1F3F4]"
                     )}
                     title={`${child.name} (${child.id})`}
                   >
-                    {child.name}
+                    <span>{child.name}</span>
+                    <span className="ml-1 text-[#9AA0A6] text-[10px] font-normal font-mono">({child.id})</span>
                   </button>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
