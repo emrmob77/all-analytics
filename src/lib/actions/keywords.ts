@@ -18,6 +18,7 @@ export interface KeywordRow {
   avgCpc: number;
   qualityScore: number;
   campaignName: string;
+  currency: string;
   platform: AdPlatform;
 }
 
@@ -51,7 +52,7 @@ export async function getKeywords({
     // 1. Get base keywords query
     let query = supabase
       .from('keywords')
-      .select('*, campaigns!inner(name)', { count: 'exact' })
+      .select('*, campaigns!inner(name, currency)', { count: 'exact' })
       .eq('organization_id', membership.organization.id);
 
     if (platform !== 'all') {
@@ -127,6 +128,9 @@ export async function getKeywords({
         campaignName: Array.isArray(kw.campaigns)
           ? (kw.campaigns[0] as unknown as { name: string })?.name || ''
           : (kw.campaigns as unknown as { name: string })?.name || '',
+        currency: Array.isArray(kw.campaigns)
+          ? (kw.campaigns[0] as unknown as { currency: string })?.currency || 'USD'
+          : (kw.campaigns as unknown as { currency: string })?.currency || 'USD',
         platform: kw.platform
       };
     });

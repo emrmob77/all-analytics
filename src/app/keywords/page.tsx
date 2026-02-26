@@ -23,9 +23,9 @@ function toISO(d: Date): string {
 }
 
 const MATCH_STYLES: Record<KeywordMatchType, { bg: string; text: string }> = {
-  exact:  { bg: 'bg-[#E8F0FE]', text: 'text-[#1A73E8]' },
+  exact: { bg: 'bg-[#E8F0FE]', text: 'text-[#1A73E8]' },
   phrase: { bg: 'bg-[#F3E8FD]', text: 'text-[#7B1FA2]' },
-  broad:  { bg: 'bg-[#F1F3F4]', text: 'text-[#5F6368]' },
+  broad: { bg: 'bg-[#F1F3F4]', text: 'text-[#5F6368]' },
 };
 
 const STATUS_STYLES: Record<KeywordStatus, string> = {
@@ -81,8 +81,8 @@ export default function KeywordsPage() {
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-[300px]">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9AA0A6]" width="14" height="14" viewBox="0 0 20 20" fill="none">
-            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
-            <path d="M13.5 13.5L18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M13.5 13.5L18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
           <input
             type="text"
@@ -101,11 +101,10 @@ export default function KeywordsPage() {
             <button
               key={m}
               onClick={() => setMatchFilter(m)}
-              className={`px-2.5 py-1 rounded-md text-[12px] font-medium capitalize transition-colors ${
-                matchFilter === m
-                  ? 'bg-[#1A73E8] text-white'
-                  : 'text-[#5F6368] hover:bg-[#F1F3F4]'
-              }`}
+              className={`px-2.5 py-1 rounded-md text-[12px] font-medium capitalize transition-colors ${matchFilter === m
+                ? 'bg-[#1A73E8] text-white'
+                : 'text-[#5F6368] hover:bg-[#F1F3F4]'
+                }`}
             >
               {m === 'all' ? 'All Match Types' : m}
             </button>
@@ -118,11 +117,10 @@ export default function KeywordsPage() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-2.5 py-1 rounded-md text-[12px] font-medium capitalize transition-colors ${
-                statusFilter === s
-                  ? 'bg-[#1A73E8] text-white'
-                  : 'text-[#5F6368] hover:bg-[#F1F3F4]'
-              }`}
+              className={`px-2.5 py-1 rounded-md text-[12px] font-medium capitalize transition-colors ${statusFilter === s
+                ? 'bg-[#1A73E8] text-white'
+                : 'text-[#5F6368] hover:bg-[#F1F3F4]'
+                }`}
             >
               {s === 'all' ? 'All Statuses' : s}
             </button>
@@ -135,67 +133,66 @@ export default function KeywordsPage() {
       {/* Table */}
       <div className="rounded-xl border border-[#E3E8EF] bg-white overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full text-[12.5px] whitespace-nowrap">
-          <thead>
-            <tr className="border-b border-[#E3E8EF] bg-[#FAFAFA]">
-              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Keyword</th>
-              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Campaign</th>
-              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Match Type</th>
-              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Status</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Impressions</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Clicks</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">CTR</th>
-              <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Avg CPC</th>
-              <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Quality Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-[#9AA0A6]">
-                  Loading keywords...
-                </td>
+          <table className="w-full text-[12.5px] whitespace-nowrap">
+            <thead>
+              <tr className="border-b border-[#E3E8EF] bg-[#FAFAFA]">
+                <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Keyword</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Campaign</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Match Type</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Status</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Impressions</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Clicks</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">CTR</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-[#5F6368]">Avg CPC</th>
+                <th className="px-4 py-2.5 text-left font-semibold text-[#5F6368]">Quality Score</th>
               </tr>
-            ) : keywords.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-[#9AA0A6]">
-                  No keywords found.
-                </td>
-              </tr>
-            ) : (
-              keywords.map((row, i) => (
-                <tr
-                  key={row.id}
-                  className={`border-b border-[#F1F3F4] last:border-0 hover:bg-[#F8F9FA] transition-colors ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'
-                  }`}
-                >
-                  <td className="px-4 py-3 font-medium text-[#202124]">{row.keyword}</td>
-                  <td className="px-4 py-3 text-[#5F6368] max-w-[200px] truncate" title={row.campaignName}>{row.campaignName}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10.5px] font-semibold capitalize ${MATCH_STYLES[row.matchType].bg} ${MATCH_STYLES[row.matchType].text}`}>
-                      {row.matchType}
-                    </span>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-12 text-center text-[#9AA0A6]">
+                    Loading keywords...
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10.5px] font-semibold capitalize ${STATUS_STYLES[row.status]}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatInteger(row.impressions)}</td>
-                  <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatInteger(row.clicks)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    <span className={row.ctr >= 5 ? 'text-[#137333] font-medium' : row.ctr >= 3 ? 'text-[#202124]' : 'text-[#5F6368]'}>
-                      {formatPercent(row.ctr)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatCurrency(row.avgCpc)}</td>
-                  <td className="px-4 py-3"><QualityScore score={row.qualityScore} /></td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : keywords.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-12 text-center text-[#9AA0A6]">
+                    No keywords found.
+                  </td>
+                </tr>
+              ) : (
+                keywords.map((row, i) => (
+                  <tr
+                    key={row.id}
+                    className={`border-b border-[#F1F3F4] last:border-0 hover:bg-[#F8F9FA] transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'
+                      }`}
+                  >
+                    <td className="px-4 py-3 font-medium text-[#202124]">{row.keyword}</td>
+                    <td className="px-4 py-3 text-[#5F6368] max-w-[200px] truncate" title={row.campaignName}>{row.campaignName}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10.5px] font-semibold capitalize ${MATCH_STYLES[row.matchType].bg} ${MATCH_STYLES[row.matchType].text}`}>
+                        {row.matchType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10.5px] font-semibold capitalize ${STATUS_STYLES[row.status]}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatInteger(row.impressions)}</td>
+                    <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatInteger(row.clicks)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      <span className={row.ctr >= 5 ? 'text-[#137333] font-medium' : row.ctr >= 3 ? 'text-[#202124]' : 'text-[#5F6368]'}>
+                        {formatPercent(row.ctr)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-[#202124] tabular-nums">{formatCurrency(row.avgCpc, row.currency, row.currency === 'TRY' ? 'tr-TR' : 'en-US')}</td>
+                    <td className="px-4 py-3"><QualityScore score={row.qualityScore} /></td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -203,7 +200,7 @@ export default function KeywordsPage() {
       {!isLoading && keywords.length > 0 && (
         <div className="mt-3 flex items-center gap-6 px-1 text-[11.5px] text-[#9AA0A6]">
           <span>Avg CTR: <span className="font-medium text-[#5F6368]">{formatPercent(keywords.reduce((s, r) => s + r.ctr, 0) / keywords.length)}</span></span>
-          <span>Avg CPC: <span className="font-medium text-[#5F6368]">{formatCurrency(keywords.reduce((s, r) => s + r.avgCpc, 0) / keywords.length)}</span></span>
+          <span>Avg CPC: <span className="font-medium text-[#5F6368]">{formatCurrency(keywords.reduce((s, r) => s + r.avgCpc, 0) / keywords.length, keywords[0]?.currency || 'USD', keywords[0]?.currency === 'TRY' ? 'tr-TR' : 'en-US')}</span></span>
           <span>Avg Quality Score: <span className="font-medium text-[#5F6368]">{(keywords.reduce((s, r) => s + r.qualityScore, 0) / keywords.length).toFixed(1)}</span></span>
         </div>
       )}
