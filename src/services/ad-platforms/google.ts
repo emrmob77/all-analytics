@@ -136,9 +136,9 @@ export class GoogleAdsOAuthService implements AdPlatformOAuthService {
           .map(resourceName => resourceName.split('/')[1] ?? resourceName)
           .filter(isGoogleCustomerId);
 
-        const externalId = customerIds.length > 0 ? customerIds[0] : null;
-        if (externalId) {
-          return { externalId, name: `Google Ads (${externalId})` };
+        if (customerIds.length > 0) {
+          const externalId = customerIds.join(',');
+          return { externalId, name: `Google Ads (${customerIds.length} accounts)` };
         }
         throw new Error(
           'No accessible Google Ads customer found. Make sure this Google user is added to your MCC/test account and invitation is accepted.'
