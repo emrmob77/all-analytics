@@ -160,7 +160,7 @@ export async function GET(
     if (upsertError || !adAccount) {
       console.error(`[oauth/${platform}] upsert ad_account error:`, upsertError?.message);
       return redirectWithCookieDeletion(
-        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+        new URL(`${SETTINGS_URL}&error=oauth_failed&message=${encodeURIComponent(upsertError?.message || 'Database error')}`, request.url),
         cookieName,
         isSecure
       );
@@ -187,7 +187,7 @@ export async function GET(
     if (tokenError) {
       console.error(`[oauth/${platform}] upsert token error:`, tokenError.message);
       return redirectWithCookieDeletion(
-        new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+        new URL(`${SETTINGS_URL}&error=oauth_failed&message=${encodeURIComponent(tokenError.message)}`, request.url),
         cookieName,
         isSecure
       );
@@ -201,7 +201,7 @@ export async function GET(
   } catch (err) {
     console.error(`[oauth/${platform}] unexpected error:`, err instanceof Error ? err.message : err);
     return redirectWithCookieDeletion(
-      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      new URL(`${SETTINGS_URL}&error=oauth_failed&message=${encodeURIComponent(err instanceof Error ? err.message : String(err))}`, request.url),
       cookieName,
       isSecure
     );

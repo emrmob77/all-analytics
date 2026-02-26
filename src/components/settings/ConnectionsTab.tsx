@@ -129,15 +129,19 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
       loadAccounts();
     } else if (oauthError) {
       const messages: Record<string, string> = {
-        oauth_failed: 'Failed to connect ad account. Please try again.',
+        oauth_failed: 'Failed to connect ad account.',
         oauth_denied: 'Connection was cancelled.',
         invalid_platform: 'Invalid platform specified.',
         oauth_no_ads_access:
           'Connected Google user has no Google Ads access. Add this user to MCC/ad account and accept the invitation.',
       };
-      toast.error(messages[oauthError] ?? 'An error occurred during connection.');
+      const customMsg = searchParams.get('message');
+      const baseMsg = messages[oauthError] ?? 'An error occurred during connection.';
+      toast.error(customMsg ? `${baseMsg} ${customMsg}` : baseMsg);
+
       const url = new URL(window.location.href);
       url.searchParams.delete('error');
+      url.searchParams.delete('message');
       window.history.replaceState(null, '', url.toString());
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -193,8 +197,8 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
               className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[#E3E8EF] bg-white px-3 py-1.5 text-xs font-medium text-[#202124] hover:bg-[#F8F9FA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <svg className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} viewBox="0 0 16 16" fill="none">
-                <path d="M13.5 8A5.5 5.5 0 112.5 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-                <path d="M13.5 4v4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.5 8A5.5 5.5 0 112.5 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M13.5 4v4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {isSyncing ? 'Syncing…' : 'Sync Now'}
             </button>
