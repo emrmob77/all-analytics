@@ -57,17 +57,18 @@ export async function getKeywords({
     if (platform !== 'all') {
       query = query.eq('platform', platform);
     }
-    
+
     if (status !== 'all') {
-       query = query.eq('status', status);
+      query = query.eq('status', status);
     }
-    
+
     if (matchType !== 'all') {
       query = query.eq('match_type', matchType);
     }
 
     if (search) {
-      query = query.ilike('text', `%${search}%`);
+      const escaped = search.trim().replace(/[%_\\]/g, '\\$&');
+      query = query.ilike('text', `%${escaped}%`);
     }
 
     // Pagination
@@ -89,47 +90,50 @@ export async function getKeywords({
       .select('keyword_id, spend, impressions, clicks')
       .in('keyword_id', keywordIds)
       .gte('date', from)
-      .lte('date', to);
+      .lte('date', to)
+      .limit(10_000);
 
     if (metricsError) throw metricsError;
 
     // 3. Aggregate metrics
     const aggMap = new Map<string, { spend: number; impressions: number; clicks: number }>();
     for (const m of metrics ?? []) {
-        const id = m.keyword_id;
-        if (!aggMap.has(id)) {
-            aggMap.set(id, { spend: 0, impressions: 0, clicks: 0 });
-        }
-        const state = aggMap.get(id)!;
-        state.spend += Number(m.spend);
-        state.impressions += Number(m.impressions);
-        state.clicks += Number(m.clicks);
+      const id = m.keyword_id;
+      if (!aggMap.has(id)) {
+        aggMap.set(id, { spend: 0, impressions: 0, clicks: 0 });
+      }
+      const state = aggMap.get(id)!;
+      state.spend += Number(m.spend);
+      state.impressions += Number(m.impressions);
+      state.clicks += Number(m.clicks);
     }
 
     // 4. Map to KeywordRow
     const rows: KeywordRow[] = keywords.map((kw) => {
-        const m = aggMap.get(kw.id) ?? { spend: 0, impressions: 0, clicks: 0 };
-        const ctr = m.impressions > 0 ? (m.clicks / m.impressions) * 100 : 0;
-        const avgCpc = m.clicks > 0 ? m.spend / m.clicks : 0;
+      const m = aggMap.get(kw.id) ?? { spend: 0, impressions: 0, clicks: 0 };
+      const ctr = m.impressions > 0 ? (m.clicks / m.impressions) * 100 : 0;
+      const avgCpc = m.clicks > 0 ? m.spend / m.clicks : 0;
 
-        return {
-            id: kw.id,
-            keyword: kw.text,
-            matchType: kw.match_type,
-            status: kw.status,
-            impressions: m.impressions,
-            clicks: m.clicks,
-            ctr,
-            avgCpc,
-            qualityScore: kw.quality_score ?? 5, // fallback
-            campaignName: (kw.campaigns as any).name,
-            platform: kw.platform
-        };
+      return {
+        id: kw.id,
+        keyword: kw.text,
+        matchType: kw.match_type,
+        status: kw.status,
+        impressions: m.impressions,
+        clicks: m.clicks,
+        ctr,
+        avgCpc,
+        qualityScore: kw.quality_score ?? 5, // fallback
+        campaignName: Array.isArray(kw.campaigns)
+          ? (kw.campaigns[0] as unknown as { name: string })?.name || ''
+          : (kw.campaigns as unknown as { name: string })?.name || '',
+        platform: kw.platform
+      };
     });
 
     return { data: rows, total: count ?? 0 };
-  } catch (err: any) {
+  } catch (err) {
     console.error('getKeywords error:', err);
-    return { data: [], total: 0, error: err.message };
+    return { data: [], total: 0, error: err instanceof Error ? err.message : String(err) };
   }
 }
