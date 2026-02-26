@@ -105,9 +105,10 @@ export async function getAdGroups({
                 campaignName: Array.isArray(ag.campaigns)
                     ? (ag.campaigns[0] as unknown as { name: string })?.name || ''
                     : (ag.campaigns as unknown as { name: string })?.name || '',
-                currency: Array.isArray(ag.campaigns)
-                    ? (ag.campaigns[0] as unknown as { currency: string })?.currency || 'USD'
-                    : (ag.campaigns as unknown as { currency: string })?.currency || 'USD',
+                currency: (Array.isArray(ag.campaigns)
+                    ? (ag.campaigns[0] as unknown as { currency: string })?.currency
+                    : (ag.campaigns as unknown as { currency: string })?.currency
+                )?.trim() || 'USD',
             };
         });
 

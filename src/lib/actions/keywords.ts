@@ -128,9 +128,10 @@ export async function getKeywords({
         campaignName: Array.isArray(kw.campaigns)
           ? (kw.campaigns[0] as unknown as { name: string })?.name || ''
           : (kw.campaigns as unknown as { name: string })?.name || '',
-        currency: Array.isArray(kw.campaigns)
-          ? (kw.campaigns[0] as unknown as { currency: string })?.currency || 'USD'
-          : (kw.campaigns as unknown as { currency: string })?.currency || 'USD',
+        currency: (Array.isArray(kw.campaigns)
+          ? (kw.campaigns[0] as unknown as { currency: string })?.currency
+          : (kw.campaigns as unknown as { currency: string })?.currency
+        )?.trim() || 'USD',
         platform: kw.platform
       };
     });

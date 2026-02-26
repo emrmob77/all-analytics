@@ -117,7 +117,7 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
       platform: row.platform as AdPlatform,
       status: row.status as CampaignStatus,
       budget: row.budget_limit ?? 0,
-      currency: row.currency ?? 'USD',
+      currency: (row.currency ?? 'USD').trim(),
       spend: +spend.toFixed(2),
       impressions: Math.round(impressions),
       clicks: Math.round(clicks),
