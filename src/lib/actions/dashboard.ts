@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from '@/lib/actions/organization';
 import { formatCurrencySymbol } from '@/lib/format';
+import { getConnectedGoogleAdsAccount } from '@/lib/actions/google-ads';
 import type { AdPlatform } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -87,6 +88,12 @@ type RawMetricRow = {
   revenue: number;
 };
 
+type RawMetricWithCampaignRow = RawMetricRow & {
+  campaigns?: {
+    currency?: string | null;
+  } | null;
+};
+
 function aggregateMetrics(rows: RawMetricRow[]) {
   const agg = rows.reduce(
     (acc, r) => ({
@@ -135,6 +142,18 @@ export async function getDashboardMetrics(
     query = query.eq('campaigns.platform', platform);
   }
 
+  // Filter Google campaigns by active child account if applicable
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('campaigns.child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+      }
+    }
+  }
+
   const { data: current, error } = await query;
   if (error) return { data: null, error: error.message };
 
@@ -151,7 +170,8 @@ export async function getDashboardMetrics(
     };
   }
 
-  const currAgg = aggregateMetrics(current as unknown as RawMetricRow[]);
+  const currentRows = (current ?? []) as unknown as RawMetricWithCampaignRow[];
+  const currAgg = aggregateMetrics(currentRows);
 
   // Prior period — same length window ending the day before `from`
   const fromDate = new Date(from);
@@ -173,6 +193,18 @@ export async function getDashboardMetrics(
     priorQuery = priorQuery.eq('campaigns.platform', platform);
   }
 
+  // Same logic for PriorQuery
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        priorQuery = priorQuery.eq('campaigns.child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        priorQuery = priorQuery.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+      }
+    }
+  }
+
   const { data: prior } = await priorQuery;
   const priorAgg = aggregateMetrics((prior ?? []) as unknown as RawMetricRow[]);
 
@@ -191,8 +223,8 @@ export async function getDashboardMetrics(
       conversionsChange: pctChange(currAgg.conversions, priorAgg.conversions),
       ctrChange: pctChange(currAgg.ctr, priorAgg.ctr),
       roasChange: pctChange(currAgg.roas, priorAgg.roas),
-      currencyCode: (current as any[])[0]?.campaigns?.currency ?? 'USD',
-      currencySymbol: formatCurrencySymbol((current as any[])[0]?.campaigns?.currency ?? 'USD'),
+      currencyCode: currentRows[0]?.campaigns?.currency ?? 'USD',
+      currencySymbol: formatCurrencySymbol(currentRows[0]?.campaigns?.currency ?? 'USD'),
     },
     error: null,
   };
@@ -227,6 +259,17 @@ export async function getDashboardCampaigns(
 
   if (platform && platform !== 'all') {
     query = query.eq('platform', platform);
+  }
+
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`);
+      }
+    }
   }
 
   const { data, error } = await query;
@@ -290,13 +333,20 @@ export async function getDashboardChartData(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('campaign_metrics')
     .select('date, impressions, campaigns!inner(organization_id, platform)')
     .eq('campaigns.organization_id', orgId)
     .gte('date', from)
     .lte('date', to)
     .order('date', { ascending: true });
+
+  const googleAccount = await getConnectedGoogleAdsAccount();
+  if (googleAccount?.selected_child_account_id) {
+    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+  }
+
+  const { data, error } = await query;
 
   if (error) return { data: [], error: error.message };
 
@@ -341,12 +391,19 @@ export async function getDashboardHourlyData(): Promise<{
   since.setHours(0, 0, 0, 0);
   const sinceStr = since.toISOString();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('hourly_metrics')
-    .select('hour, clicks, impressions, campaigns!inner(organization_id)')
+    .select('hour, clicks, impressions, campaigns!inner(organization_id, platform)')
     .eq('campaigns.organization_id', orgId)
     .gte('hour', sinceStr)
     .order('hour', { ascending: true });
+
+  const googleAccount = await getConnectedGoogleAdsAccount();
+  if (googleAccount?.selected_child_account_id) {
+    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+  }
+
+  const { data, error } = await query;
 
   if (error) return { data: [], error: error.message };
 
@@ -391,12 +448,19 @@ export async function getDashboardPlatformSummary(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('campaign_metrics')
     .select('spend, impressions, conversions, revenue, campaigns!inner(organization_id, platform, currency)')
     .eq('campaigns.organization_id', orgId)
     .gte('date', from)
     .lte('date', to);
+
+  const googleAccount = await getConnectedGoogleAdsAccount();
+  if (googleAccount?.selected_child_account_id) {
+    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+  }
+
+  const { data, error } = await query;
 
   if (error) return { data: [], error: error.message };
 

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from '@/lib/actions/organization';
+import { getConnectedGoogleAdsAccount } from '@/lib/actions/google-ads';
 import type { AdPlatform } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,17 @@ export async function getReportCampaigns(
 
   if (platform && platform !== 'all') {
     query = query.eq('platform', platform);
+  }
+
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`);
+      }
+    }
   }
 
   const { data, error } = await query;
@@ -191,6 +203,17 @@ export async function getReportData(params: {
     query = query.in('id', validCampaignIds);
   }
 
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`);
+      }
+    }
+  }
+
   const { data, error } = await query;
   if (error) return { data: null, error: error.message };
 
@@ -213,49 +236,49 @@ export async function getReportData(params: {
 
   // ─── Aggregate per campaign ───────────────────────────────────────────────
   const campaigns: ReportCampaignRow[] = rows.map((row) => {
-    const metrics     = row.campaign_metrics ?? [];
-    const spend       = metrics.reduce((s, m) => s + (m.spend       ?? 0), 0);
+    const metrics = row.campaign_metrics ?? [];
+    const spend = metrics.reduce((s, m) => s + (m.spend ?? 0), 0);
     const impressions = metrics.reduce((s, m) => s + (m.impressions ?? 0), 0);
-    const clicks      = metrics.reduce((s, m) => s + (m.clicks      ?? 0), 0);
+    const clicks = metrics.reduce((s, m) => s + (m.clicks ?? 0), 0);
     const conversions = metrics.reduce((s, m) => s + (m.conversions ?? 0), 0);
-    const revenue     = metrics.reduce((s, m) => s + (m.revenue     ?? 0), 0);
-    const ctr         = impressions > 0 ? (clicks / impressions) * 100 : 0;
-    const roas        = spend > 0       ? revenue / spend               : 0;
+    const revenue = metrics.reduce((s, m) => s + (m.revenue ?? 0), 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const roas = spend > 0 ? revenue / spend : 0;
 
     return {
-      id:          row.id,
-      name:        row.name,
-      platform:    row.platform as AdPlatform,
-      status:      row.status,
-      spend:       +spend.toFixed(2),
+      id: row.id,
+      name: row.name,
+      platform: row.platform as AdPlatform,
+      status: row.status,
+      spend: +spend.toFixed(2),
       impressions: Math.round(impressions),
-      clicks:      Math.round(clicks),
+      clicks: Math.round(clicks),
       conversions: +conversions.toFixed(2),
-      revenue:     +revenue.toFixed(2),
-      ctr:         +ctr.toFixed(2),
-      roas:        +roas.toFixed(2),
+      revenue: +revenue.toFixed(2),
+      ctr: +ctr.toFixed(2),
+      roas: +roas.toFixed(2),
     };
   });
 
   // ─── Aggregate overall metrics ────────────────────────────────────────────
-  const totalSpend       = campaigns.reduce((s, c) => s + c.spend, 0);
+  const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
   const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0);
-  const totalClicks      = campaigns.reduce((s, c) => s + c.clicks, 0);
+  const totalClicks = campaigns.reduce((s, c) => s + c.clicks, 0);
   const totalConversions = campaigns.reduce((s, c) => s + c.conversions, 0);
-  const totalRevenue     = campaigns.reduce((s, c) => s + c.revenue, 0);
-  const avgCtr           = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-  const avgRoas          = totalSpend > 0       ? totalRevenue / totalSpend               : 0;
+  const totalRevenue = campaigns.reduce((s, c) => s + c.revenue, 0);
+  const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
 
   const generatedAt = new Date().toISOString();
 
   const metrics: ReportMetrics = {
-    totalSpend:       +totalSpend.toFixed(2),
+    totalSpend: +totalSpend.toFixed(2),
     totalImpressions: Math.round(totalImpressions),
-    totalClicks:      Math.round(totalClicks),
+    totalClicks: Math.round(totalClicks),
     totalConversions: +totalConversions.toFixed(2),
-    totalRevenue:     +totalRevenue.toFixed(2),
-    avgCtr:           +avgCtr.toFixed(2),
-    avgRoas:          +avgRoas.toFixed(2),
+    totalRevenue: +totalRevenue.toFixed(2),
+    avgCtr: +avgCtr.toFixed(2),
+    avgRoas: +avgRoas.toFixed(2),
     generatedAt,
   };
 
@@ -270,25 +293,25 @@ export async function getReportData(params: {
   }
 
   const byPlatform: ReportPlatformRow[] = platforms.map(p => {
-    const pCampaigns  = platformMap.get(p) ?? [];
-    const pSpend       = pCampaigns.reduce((s, c) => s + c.spend, 0);
+    const pCampaigns = platformMap.get(p) ?? [];
+    const pSpend = pCampaigns.reduce((s, c) => s + c.spend, 0);
     const pImpressions = pCampaigns.reduce((s, c) => s + c.impressions, 0);
-    const pClicks      = pCampaigns.reduce((s, c) => s + c.clicks, 0);
+    const pClicks = pCampaigns.reduce((s, c) => s + c.clicks, 0);
     const pConversions = pCampaigns.reduce((s, c) => s + c.conversions, 0);
-    const pRevenue     = pCampaigns.reduce((s, c) => s + c.revenue, 0);
-    const pCtr         = pImpressions > 0 ? (pClicks / pImpressions) * 100 : 0;
-    const pRoas        = pSpend > 0       ? pRevenue / pSpend               : 0;
-    const budgetShare  = totalSpend > 0   ? (pSpend / totalSpend) * 100      : 0;
+    const pRevenue = pCampaigns.reduce((s, c) => s + c.revenue, 0);
+    const pCtr = pImpressions > 0 ? (pClicks / pImpressions) * 100 : 0;
+    const pRoas = pSpend > 0 ? pRevenue / pSpend : 0;
+    const budgetShare = totalSpend > 0 ? (pSpend / totalSpend) * 100 : 0;
 
     return {
-      platform:    p,
-      spend:       +pSpend.toFixed(2),
+      platform: p,
+      spend: +pSpend.toFixed(2),
       impressions: Math.round(pImpressions),
-      clicks:      Math.round(pClicks),
+      clicks: Math.round(pClicks),
       conversions: +pConversions.toFixed(2),
-      revenue:     +pRevenue.toFixed(2),
-      ctr:         +pCtr.toFixed(2),
-      roas:        +pRoas.toFixed(2),
+      revenue: +pRevenue.toFixed(2),
+      ctr: +pCtr.toFixed(2),
+      roas: +pRoas.toFixed(2),
       budgetShare: +budgetShare.toFixed(1),
     };
   });
