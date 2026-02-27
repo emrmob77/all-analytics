@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { disconnectAdAccount } from '@/lib/actions/ad-accounts';
 import { submitChildAccountsSelection } from '@/lib/actions/google-ads';
 import { triggerManualSync } from '@/lib/actions/sync';
-import { GoogleAccountSelectorModal } from './GoogleAccountSelectorModal';
+import { GoogleAccountInlineSelector } from './GoogleAccountInlineSelector';
 import { toast } from 'sonner';
 import type { AdPlatform } from '@/types';
 
@@ -226,12 +226,11 @@ export function OAuthConnector({
         </div>
       </div>
 
-      {platform === 'google' && accountId && isAdmin && (
-        <GoogleAccountSelectorModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
+      {platform === 'google' && accountId && isAdmin && isModalOpen && (
+        <GoogleAccountInlineSelector
           adAccountId={accountId}
           onSelectCallback={handleAccountSelection}
+          onCancelCallback={() => setIsModalOpen(false)}
         />
       )}
     </>
