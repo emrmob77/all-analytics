@@ -33,6 +33,11 @@ export async function GET(
 
   // Generate state and build auth URL
   const state = randomBytes(32).toString('hex');
+  const statePayload = JSON.stringify({
+    state,
+    user_id: user.id,
+    organization_id: membership.organization.id,
+  });
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const redirectUri = `${appUrl}/api/oauth/${platform}/callback`;
 
@@ -47,7 +52,7 @@ export async function GET(
 
   // Set state cookie on the redirect response — reliable server-side Set-Cookie
   const response = NextResponse.redirect(authUrl);
-  response.cookies.set(`oauth_state_${platform}`, state, {
+  response.cookies.set(`oauth_state_${platform}`, statePayload, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
