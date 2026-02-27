@@ -233,13 +233,13 @@ export function Sidebar() {
     });
   };
 
+  const activeChildId = googleAdAccount?.selected_child_account_id;
+
   const { data: campaignCount } = useQuery<number>({
-    queryKey: ['campaign-count'],
+    queryKey: ['campaign-count', organization?.id ?? null, activeChildId ?? null],
     queryFn: () => getCampaignCount(),
     staleTime: 60_000,
   });
-
-  const activeChildId = googleAdAccount?.selected_child_account_id;
 
   // Filter only the selected accounts that are explicitly connected
   const selectedChildren = (googleAdAccount?.selected_child_accounts || [])

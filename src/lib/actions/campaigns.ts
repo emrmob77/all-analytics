@@ -229,11 +229,19 @@ export async function getCampaignCount(): Promise<number> {
   if (!orgId) return 0;
 
   const supabase = await createClient();
-  const { count } = await supabase
+  let query = supabase
     .from('campaigns')
     .select('id', { count: 'exact', head: true })
     .eq('organization_id', orgId)
     .neq('status', 'archived');
 
+  const googleAccount = await getConnectedGoogleAdsAccount();
+  if (googleAccount?.selected_child_account_id) {
+    query = query.or(
+      `platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`
+    );
+  }
+
+  const { count } = await query;
   return count ?? 0;
 }
