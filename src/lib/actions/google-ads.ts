@@ -133,7 +133,7 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
     };
 
     const customerQuery = "SELECT customer.id, customer.descriptive_name, customer.manager FROM customer LIMIT 1";
-    const childrenQuery = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED'";
+    const childrenQuery = "SELECT customer_client.client_customer, customer_client.descriptive_name FROM customer_client WHERE customer_client.manager = false AND customer_client.status = 'ENABLED'";
 
     for (const loginCustomerId of loginCustomerIds) {
         // Step 1: Query the customer info directly to get its name and check if it's an MCC

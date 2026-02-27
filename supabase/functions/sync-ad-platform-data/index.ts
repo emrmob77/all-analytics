@@ -525,7 +525,7 @@ async function syncGoogleSingle(
           const childrenRes = await googleAdsSearchStream(
             accessToken,
             loginId,
-            `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.level = 1 AND customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
+            `SELECT customer_client.client_customer FROM customer_client WHERE customer_client.manager = false AND customer_client.status = 'ENABLED' LIMIT 1`,
             devToken,
             correctLoginCustomerId
           );
