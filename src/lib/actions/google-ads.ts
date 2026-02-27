@@ -12,6 +12,59 @@ export interface GoogleChildAccount {
     parent_manager_id?: string;
 }
 
+type GoogleAdsRow = {
+    customer?: {
+        descriptiveName?: string;
+        manager?: boolean;
+    };
+    customerClient?: {
+        clientCustomer?: string;
+        descriptiveName?: string;
+        manager?: boolean;
+    };
+};
+
+type GoogleAdsStreamChunk = {
+    results?: GoogleAdsRow[];
+};
+
+function parseGoogleAdsStreamChunks(payload: string): GoogleAdsStreamChunk[] {
+    const text = payload.trim();
+    if (!text) return [];
+
+    const chunks: GoogleAdsStreamChunk[] = [];
+
+    const appendParsed = (value: unknown) => {
+        if (!value) return;
+        if (Array.isArray(value)) {
+            for (const item of value) appendParsed(item);
+            return;
+        }
+        if (typeof value === 'object') {
+            chunks.push(value as GoogleAdsStreamChunk);
+        }
+    };
+
+    try {
+        appendParsed(JSON.parse(text));
+        if (chunks.length > 0) return chunks;
+    } catch {
+        // Fall back to NDJSON parsing below.
+    }
+
+    for (const line of text.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+            appendParsed(JSON.parse(trimmed));
+        } catch {
+            // Ignore non-JSON partial lines (e.g. pretty-printed array fragments).
+        }
+    }
+
+    return chunks;
+}
+
 export async function getConnectedGoogleAdsAccount() {
     const membership = await getUserOrganization();
     if (!membership) return null;
@@ -339,7 +392,7 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
         let customerName = `Account ${loginCustomerId}`;
 
         try {
-            const dataChunks = text.split('\n').filter((line) => line.trim().length > 0).map((line) => JSON.parse(line));
+            const dataChunks = parseGoogleAdsStreamChunks(text);
             for (const chunk of dataChunks) {
                 if (!chunk.results) continue;
                 for (const row of chunk.results) {
@@ -368,12 +421,13 @@ export async function fetchGoogleChildAccounts(adAccountId: string): Promise<Goo
             }
 
             try {
-                const dataChunks = childrenRes.text.split('\n').filter((line) => line.trim().length > 0).map((line) => JSON.parse(line));
+                const dataChunks = parseGoogleAdsStreamChunks(childrenRes.text);
                 for (const chunk of dataChunks) {
                     if (!chunk.results) continue;
                     for (const row of chunk.results) {
                         if (row.customerClient) {
-                            const rawId = row.customerClient.clientCustomer;
+                            const rawId = row.customerClient.clientCustomer ?? '';
+                            if (!rawId) continue;
                             const name = row.customerClient.descriptiveName ?? 'Unnamed Account';
                             const id = rawId.split('/')[1] ?? rawId;
                             upsertAccount({
