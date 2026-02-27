@@ -220,8 +220,7 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
                 key={platform}
                 platform={platform}
                 isConnected={!!account}
-                accountName={account?.account_name}
-                accountId={account?.id}
+                account={account}
                 isAdmin={isAdmin}
                 setupRequired={setupRequired}
                 onDisconnect={loadAccounts}

@@ -159,7 +159,6 @@ export function Sidebar() {
   const [googleAdAccount, setGoogleAdAccount] = useState<any>(null);
   const [googleChildren, setGoogleChildren] = useState<GoogleChildAccount[]>([]);
   const [childLoading, setChildLoading] = useState(false);
-  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
@@ -205,7 +204,6 @@ export function Sidebar() {
 
       await updateActiveGoogleAdsView(googleAdAccount.id, childId);
       setGoogleAdAccount({ ...googleAdAccount, selected_child_account_id: childId });
-      setIsAccountDropdownOpen(false);
 
       toast.success('Active view changed.', { id: 'switch-account' });
 
@@ -245,9 +243,12 @@ export function Sidebar() {
   const activeChildId = googleAdAccount?.selected_child_account_id;
 
   // Filter only the selected accounts that are explicitly connected
-  const selectedChildren = (googleAdAccount?.selected_child_accounts || []).map((id: string) =>
-    googleChildren.find(c => c.id === id) || { id, name: `Account ${id}` }
-  );
+  const selectedChildren = (googleAdAccount?.selected_child_accounts || []).map((childOrId: string | GoogleChildAccount) => {
+    if (typeof childOrId === 'string') {
+      return googleChildren.find(c => c.id === childOrId) || { id: childOrId, name: `Account ${childOrId}` };
+    }
+    return childOrId as GoogleChildAccount;
+  });
 
   return (
     <aside className="flex h-full w-[220px] flex-col border-r border-[#E3E8EF] bg-[#FAFAFA]">
@@ -276,62 +277,57 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Google Ads Sub-Account Switcher (If connected and has children) */}
+        {/* Google Ads Sub-Account Switcher (Open List style) */}
         {googleAdAccount && selectedChildren.length > 0 && (
-          <div className="mt-2.5 relative">
-            <button
-              onClick={() => setIsAccountDropdownOpen(o => !o)}
-              disabled={isSwitching}
-              className="flex w-full items-center justify-between gap-1.5 rounded-[9px] border border-[#E3E8EF] bg-white p-[9px_11px] text-left transition-colors hover:bg-gray-50 focus:outline-none"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <GoogleIcon size={14} />
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-[11px] font-semibold text-[#5F6368] uppercase tracking-wide">
-                    Google Ads Account
-                  </div>
-                  {childLoading ? 'Loading...' : (selectedChildren.find((c: any) => c.id === activeChildId)?.name || selectedChildren[0]?.name || 'Select Account')}
-                </div>
-              </div>
-              <svg
-                width="10"
-                height="10"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                className={cn('shrink-0 text-[#9AA0A6] transition-transform duration-200', isAccountDropdownOpen && 'rotate-180')}
-              >
-                <path d="M1.5 3l3.5 3.5L8.5 3" />
-              </svg>
-            </button>
-
-            {isAccountDropdownOpen && !childLoading && (
-              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-[9px] border border-[#E3E8EF] bg-white shadow-lg max-h-[160px] overflow-y-auto custom-scrollbar p-1.5">
-                {selectedChildren.map((child: any) => (
+          <div className="mt-2.5">
+            <div className="px-1 mb-1.5 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-[#9AA0A6] uppercase tracking-wider">
+                Google Ads Accounts
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {selectedChildren.map((child: GoogleChildAccount) => {
+                const isActive = activeChildId === child.id || (!activeChildId && selectedChildren[0].id === child.id);
+                return (
                   <button
                     key={child.id}
                     onClick={() => handleSwitchChild(child.id)}
+                    disabled={isSwitching}
+                    title={child.id}
                     className={cn(
-                      "w-full text-left px-2 py-2 text-[11.5px] rounded-md transition-colors truncate",
-                      (activeChildId === child.id || (!activeChildId && selectedChildren[0].id === child.id))
-                        ? "bg-[#E8F0FE] text-[#1A73E8] font-bold"
-                        : "text-[#202124] hover:bg-[#F1F3F4]"
+                      "group flex items-center gap-2.5 w-full text-left px-2.5 py-2 rounded-[9px] transition-all",
+                      isActive
+                        ? "bg-[#E8F0FE] text-[#1A73E8]"
+                        : "text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]"
                     )}
-                    title={`${child.name} (${child.id})`}
                   >
-                    <span>{child.name}</span>
-                    <span className="ml-1 text-[#9AA0A6] text-[10px] font-normal font-mono">({child.id})</span>
+                    <div className={cn(
+                      "flex items-center justify-center shrink-0 w-5 h-5 rounded-[5px] transition-colors",
+                      isActive ? "bg-white shadow-sm" : "bg-[#F1F3F4] group-hover:bg-white group-hover:shadow-sm"
+                    )}>
+                      <GoogleIcon size={12} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={cn(
+                        "truncate text-[12px]",
+                        isActive ? "font-semibold" : "font-medium"
+                      )}>
+                        {child.name}
+                      </div>
+                    </div>
+                    {isActive && (
+                      <div className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#1A73E8]" />
+                    )}
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* Warning Banner if connected but setup incomplete */}
         {googleAdAccount && (!googleAdAccount.selected_child_accounts || googleAdAccount.selected_child_accounts.length === 0) && (
-          <Link href="/settings?tab=connections&action_required=true" className="mt-2.5 block text-left w-full rounded-[9px] border border-orange-200 bg-orange-50 p-[9px_11px] transition-colors hover:bg-orange-100 focus:outline-none">
+          <Link href="/settings?tab=connections&action_required=true" className="mt-2 block text-left w-full rounded-[9px] border border-orange-200 bg-orange-50 p-[9px_11px] transition-colors hover:bg-orange-100 focus:outline-none">
             <div className="flex items-center gap-2 min-w-0">
               <GoogleIcon size={14} />
               <div className="flex-1 min-w-0">

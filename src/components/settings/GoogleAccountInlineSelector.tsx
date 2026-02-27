@@ -6,7 +6,7 @@ import { fetchConnectableGoogleAccounts, GoogleChildAccount } from '@/lib/action
 
 interface GoogleAccountInlineSelectorProps {
     adAccountId: string;
-    onSelectCallback: (childIds: string[]) => void;
+    onSelectCallback: (childAccounts: GoogleChildAccount[]) => void;
     onCancelCallback: () => void;
 }
 
@@ -23,10 +23,6 @@ export function GoogleAccountInlineSelector({
 
     useEffect(() => {
         let mounted = true;
-        setLoading(true);
-        setError(null);
-        setAccounts([]);
-        setSelectedIds(new Set());
 
         fetchConnectableGoogleAccounts(adAccountId)
             .then(data => {
@@ -51,7 +47,8 @@ export function GoogleAccountInlineSelector({
     function handleConfirm() {
         if (selectedIds.size === 0) return;
         startTransition(() => {
-            onSelectCallback(Array.from(selectedIds));
+            const selectedAccountsObjects = accounts.filter(a => selectedIds.has(a.id));
+            onSelectCallback(selectedAccountsObjects);
         });
     }
 

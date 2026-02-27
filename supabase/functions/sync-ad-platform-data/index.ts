@@ -400,7 +400,7 @@ async function googleListAccessibleCustomers(
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string,
-  selectedChildIds?: string[]
+  selectedChildIds?: any[]
 ): Promise<PlatformSyncResult> {
   if (!selectedChildIds || selectedChildIds.length === 0) {
     console.log('[syncGoogle] No selected child account IDs provided. Skipping sync. Setup is incomplete.');
@@ -419,7 +419,9 @@ async function syncGoogle(
     audienceMetrics: {},
   };
 
-  for (const childId of selectedChildIds) {
+  const idsToSync = selectedChildIds.map(c => typeof c === 'string' ? c : c.id);
+
+  for (const childId of idsToSync) {
     try {
       console.log(`[syncGoogle] Syncing child account: ${childId}`);
       const result = await syncGoogleSingle(accessToken, externalAccountId, childId);

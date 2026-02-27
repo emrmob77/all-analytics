@@ -70,6 +70,8 @@ const PLATFORM_META: Record<
   },
 };
 
+import type { AdAccount } from '@/lib/actions/ad-accounts';
+
 // ---------------------------------------------------------------------------
 // OAuthConnector
 // ---------------------------------------------------------------------------
@@ -77,8 +79,7 @@ const PLATFORM_META: Record<
 interface OAuthConnectorProps {
   platform: AdPlatform;
   isConnected: boolean;
-  accountName?: string;
-  accountId?: string;
+  account?: AdAccount;
   isAdmin: boolean;
   setupRequired?: boolean;
   onDisconnect: () => void;
@@ -88,8 +89,7 @@ interface OAuthConnectorProps {
 export function OAuthConnector({
   platform,
   isConnected,
-  accountName,
-  accountId,
+  account,
   isAdmin,
   setupRequired,
   onDisconnect,
@@ -98,15 +98,22 @@ export function OAuthConnector({
   const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const meta = PLATFORM_META[platform];
+  const accountId = account?.id;
+  const accountName = account?.account_name;
+  const childAccounts = account?.selected_child_accounts || [];
 
   // Auto-open setup modal if explicitly required and just redirected back
   useEffect(() => {
+    let mounted = true;
     if (setupRequired && typeof window !== 'undefined') {
       const isActionRequired = new URLSearchParams(window.location.search).get('action_required') === 'true';
       if (isActionRequired) {
-        setIsModalOpen(true);
+        setTimeout(() => {
+          if (mounted) setIsModalOpen(true);
+        }, 10);
       }
     }
+    return () => { mounted = false; };
   }, [setupRequired]);
 
   function handleConnect() {
@@ -121,13 +128,13 @@ export function OAuthConnector({
     });
   }
 
-  function handleAccountSelection(childIds: string[]) {
+  function handleAccountSelection(childAccounts: Array<{ id: string; name: string }>) {
     if (!accountId) return;
 
     startTransition(async () => {
       try {
         toast.loading('Saving account selections...', { id: 'setup-account' });
-        await submitChildAccountsSelection(accountId, childIds);
+        await submitChildAccountsSelection(accountId, childAccounts);
 
         // Save complete, close modal
         setIsModalOpen(false);
@@ -170,7 +177,9 @@ export function OAuthConnector({
               ) : (
                 <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500" />
-                  {accountName || 'Connected'}
+                  {platform === 'google' && childAccounts.length > 0
+                    ? `Google Ads ${childAccounts.length === 1 ? '(1 account)' : `(${childAccounts.length} accounts)`}`
+                    : accountName || 'Connected'}
                 </p>
               )
             ) : (
@@ -192,12 +201,29 @@ export function OAuthConnector({
                   Select Account
                 </Button>
               ) : (
-                <span className="hidden sm:inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 font-medium">
-                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Connected
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 font-medium">
+                    <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Connected
+                  </span>
+                  {platform === 'google' && isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsModalOpen(true)}
+                      disabled={isPending}
+                      className="text-gray-600 border-gray-200 hover:bg-gray-50 h-8 text-xs px-2"
+                      title="Edit Accounts"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                      </svg>
+                    </Button>
+                  )}
+                </div>
               )}
               {isAdmin && (
                 <Button

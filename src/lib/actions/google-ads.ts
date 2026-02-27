@@ -210,7 +210,7 @@ export async function fetchConnectableGoogleAccounts(adAccountId: string): Promi
     return fetchGoogleChildAccounts(adAccountId);
 }
 
-export async function submitChildAccountsSelection(adAccountId: string, childIds: string[]) {
+export async function submitChildAccountsSelection(adAccountId: string, childAccounts: Array<{ id: string; name: string }>) {
     const membership = await getUserOrganization();
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
         throw new Error('Unauthorized');
@@ -221,8 +221,8 @@ export async function submitChildAccountsSelection(adAccountId: string, childIds
     const { error } = await supabase
         .from('ad_accounts')
         .update({
-            selected_child_accounts: childIds,
-            selected_child_account_id: childIds[0] || null // Maintain active view context
+            selected_child_accounts: childAccounts,
+            selected_child_account_id: childAccounts[0]?.id || null // Maintain active view context
         })
         .eq('id', adAccountId)
         .eq('organization_id', membership.organization.id);
