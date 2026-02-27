@@ -400,19 +400,61 @@ async function googleListAccessibleCustomers(
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string,
+  selectedChildIds?: string[]
+): Promise<PlatformSyncResult> {
+  if (!selectedChildIds || selectedChildIds.length === 0) {
+    console.log('[syncGoogle] No selected child account IDs provided. Skipping sync. Setup is incomplete.');
+    return { status: 'success', syncedRows: 0 } as any; // Hacky return for UI logs
+  }
+
+  const mergedResult: PlatformSyncResult = {
+    campaigns: [],
+    dailyMetrics: {},
+    hourlyMetrics: {},
+    adgroups: [],
+    adgroupMetrics: {},
+    keywords: [],
+    keywordMetrics: {},
+    audiences: [],
+    audienceMetrics: {},
+  };
+
+  for (const childId of selectedChildIds) {
+    try {
+      console.log(`[syncGoogle] Syncing child account: ${childId}`);
+      const result = await syncGoogleSingle(accessToken, externalAccountId, childId);
+
+      // Merge results safely
+      mergedResult.campaigns.push(...result.campaigns);
+      Object.assign(mergedResult.dailyMetrics, result.dailyMetrics);
+      Object.assign(mergedResult.hourlyMetrics, result.hourlyMetrics);
+
+      if (result.adgroups && mergedResult.adgroups) mergedResult.adgroups.push(...result.adgroups);
+      if (result.adgroupMetrics && mergedResult.adgroupMetrics) Object.assign(mergedResult.adgroupMetrics, result.adgroupMetrics);
+
+      if (result.keywords && mergedResult.keywords) mergedResult.keywords.push(...result.keywords);
+      if (result.keywordMetrics && mergedResult.keywordMetrics) Object.assign(mergedResult.keywordMetrics, result.keywordMetrics);
+
+      if (result.audiences && mergedResult.audiences) mergedResult.audiences.push(...result.audiences);
+      if (result.audienceMetrics && mergedResult.audienceMetrics) Object.assign(mergedResult.audienceMetrics, result.audienceMetrics);
+
+    } catch (e: any) {
+      console.error(`[syncGoogle] Failed to sync child ${childId}:`, e.message);
+      // Continue to next child instead of crashing the whole batch
+    }
+  }
+
+  return mergedResult;
+}
+
+async function syncGoogleSingle(
+  accessToken: string,
+  externalAccountId: string,
   selectedChildId?: string
 ): Promise<PlatformSyncResult> {
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
   if (!devToken) {
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
-  }
-
-  if (!selectedChildId) {
-    console.log('[syncGoogle] No selected child account ID provided. Skipping sync. Setup is incomplete.');
-    return {
-      status: 'success',
-      syncedRows: 0,
-    };
   }
 
   let accountCurrency = 'USD';
@@ -1013,7 +1055,7 @@ async function syncPinterest(
 }
 
 function getPlatformSyncer(platform: AdPlatform) {
-  const map: Record<AdPlatform, (token: string, accountId: string, selectedChildId?: string) => Promise<PlatformSyncResult>> = {
+  const map: Record<AdPlatform, (token: string, accountId: string, selectedChildIds?: string[]) => Promise<PlatformSyncResult>> = {
     google: syncGoogle,
     meta: syncMeta as any,
     tiktok: syncTikTok as any,
@@ -1353,7 +1395,7 @@ Deno.serve(async (req: Request) => {
   // Fetch ad account
   const { data: adAccount, error: accountErr } = await supabase
     .from('ad_accounts')
-    .select('id, organization_id, platform, external_account_id, is_active, selected_child_account_id')
+    .select('id, organization_id, platform, external_account_id, is_active, selected_child_accounts')
     .eq('id', ad_account_id)
     .maybeSingle();
 
@@ -1429,7 +1471,7 @@ Deno.serve(async (req: Request) => {
     if (!syncer) {
       return failSync(`Unsupported platform: ${adAccount.platform}`);
     }
-    const result = await syncer(accessToken, adAccount.external_account_id, adAccount.selected_child_account_id);
+    const result = await syncer(accessToken, adAccount.external_account_id, adAccount.selected_child_accounts);
     await writeResults(supabase, adAccount as { id: string; organization_id: string; platform: AdPlatform; external_account_id: string }, result);
 
     await supabase

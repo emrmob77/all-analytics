@@ -10,7 +10,7 @@ interface GoogleAccountSelectorModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     adAccountId: string;
-    onSelectCallback: (childId: string) => void;
+    onSelectCallback: (childIds: string[]) => void;
 }
 
 export function GoogleAccountSelectorModal({
@@ -22,7 +22,7 @@ export function GoogleAccountSelectorModal({
     const [accounts, setAccounts] = useState<GoogleChildAccount[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
@@ -32,14 +32,14 @@ export function GoogleAccountSelectorModal({
         setLoading(true);
         setError(null);
         setAccounts([]);
-        setSelectedId(null);
+        setSelectedIds(new Set());
 
         fetchConnectableGoogleAccounts(adAccountId)
             .then(data => {
                 if (!mounted) return;
                 setAccounts(data);
-                if (data.length > 0) {
-                    setSelectedId(data[0].id);
+                if (data.length === 1) {
+                    setSelectedIds(new Set([data[0].id]));
                 }
             })
             .catch(err => {
@@ -55,9 +55,21 @@ export function GoogleAccountSelectorModal({
     }, [open, adAccountId]);
 
     function handleConfirm() {
-        if (!selectedId) return;
+        if (selectedIds.size === 0) return;
         startTransition(() => {
-            onSelectCallback(selectedId);
+            onSelectCallback(Array.from(selectedIds));
+        });
+    }
+
+    function toggleSelection(id: string) {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
         });
     }
 
@@ -65,9 +77,9 @@ export function GoogleAccountSelectorModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Select Google Ads Account</DialogTitle>
+                    <DialogTitle>Select Google Ads Accounts</DialogTitle>
                     <DialogDescription>
-                        Choose the specific Google Ads account you want to sync data for. If you connected an MCC (Manager Account), select one of its active client accounts.
+                        Choose the Google Ads accounts you want to sync data for. If you connected an MCC (Manager Account), select all the active client accounts you want to display on the dashboard.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -86,24 +98,36 @@ export function GoogleAccountSelectorModal({
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
-                            {accounts.map((acc) => (
-                                <button
-                                    key={acc.id}
-                                    onClick={() => setSelectedId(acc.id)}
-                                    className={`
-                    w-full text-left px-3 py-2.5 rounded-lg border transition-all text-sm
-                    ${selectedId === acc.id
-                                            ? 'border-blue-500 bg-blue-50 text-blue-900 ring-1 ring-blue-500'
-                                            : 'border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-gray-50'
-                                        }
-                  `}
-                                >
-                                    <div className="font-semibold">{acc.name}</div>
-                                    <div className={`text-xs mt-0.5 font-mono ${selectedId === acc.id ? 'text-blue-600' : 'text-gray-500'}`}>
-                                        ID: {acc.id}
-                                    </div>
-                                </button>
-                            ))}
+                            {accounts.map((acc) => {
+                                const isSelected = selectedIds.has(acc.id);
+                                return (
+                                    <label
+                                        key={acc.id}
+                                        className={`
+                                            flex items-start gap-3 w-full text-left px-3 py-2.5 rounded-lg border transition-all text-sm cursor-pointer
+                                            ${isSelected
+                                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                                                : 'border-gray-200 bg-white hover:border-blue-200 hover:bg-gray-50'
+                                            }
+                                        `}
+                                    >
+                                        <div className="pt-0.5">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                checked={isSelected}
+                                                onChange={() => toggleSelection(acc.id)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className={`font-semibold ${isSelected ? 'text-blue-900' : 'text-gray-700'}`}>{acc.name}</div>
+                                            <div className={`text-xs mt-0.5 font-mono ${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                ID: {acc.id}
+                                            </div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -114,9 +138,9 @@ export function GoogleAccountSelectorModal({
                     </Button>
                     <Button
                         onClick={handleConfirm}
-                        disabled={!selectedId || isPending || loading}
+                        disabled={selectedIds.size === 0 || isPending || loading}
                     >
-                        {isPending ? 'Saving...' : 'Confirm Selection'}
+                        {isPending ? 'Saving...' : `Confirm (${selectedIds.size})`}
                     </Button>
                 </div>
             </DialogContent>

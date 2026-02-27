@@ -213,7 +213,7 @@ export function ConnectionsTab({ isAdmin }: ConnectionsTabProps) {
           {AD_PLATFORMS.map(platform => {
             const account = getAccountForPlatform(platform);
             const isGoogle = platform === 'google';
-            const setupRequired = isGoogle && account ? !account.selected_child_account_id : false;
+            const setupRequired = isGoogle && account ? (!account.selected_child_accounts || account.selected_child_accounts.length === 0) : false;
 
             return (
               <OAuthConnector

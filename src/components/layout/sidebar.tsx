@@ -17,7 +17,7 @@ import {
 import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
-import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, submitChildAccountSwitch, type GoogleChildAccount } from '@/lib/actions/google-ads';
+import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, updateActiveGoogleAdsView, type GoogleChildAccount } from '@/lib/actions/google-ads';
 import { triggerManualSync } from '@/lib/actions/sync';
 import { toast } from 'sonner';
 
@@ -180,8 +180,8 @@ export function Sidebar() {
         if (mounted && acc) {
           setGoogleAdAccount(acc);
 
-          // Only fetch child accounts if one is already selected (setup complete).
-          if (acc.selected_child_id) {
+          // Only fetch child accounts if setup is complete
+          if (acc.selected_child_accounts && acc.selected_child_accounts.length > 0) {
             setChildLoading(true);
             fetchGoogleChildAccounts(acc.id).then(children => {
               if (mounted) setGoogleChildren(children);
@@ -198,29 +198,18 @@ export function Sidebar() {
   const handleSwitchChild = async (childId: string) => {
     if (!googleAdAccount) return;
     try {
-      if (googleAdAccount.selected_child_id === childId) return;
+      if (googleAdAccount.selected_child_account_id === childId) return;
 
       setIsSwitching(true);
-      toast.loading('Switching selected account...', { id: 'switch-account' });
+      toast.loading('Switching active view...', { id: 'switch-account' });
 
-      await submitChildAccountSwitch(googleAdAccount.id, childId);
-      setGoogleAdAccount({ ...googleAdAccount, selected_child_id: childId });
+      await updateActiveGoogleAdsView(googleAdAccount.id, childId);
+      setGoogleAdAccount({ ...googleAdAccount, selected_child_account_id: childId });
       setIsAccountDropdownOpen(false);
 
-      toast.success('Ad account switched.', { id: 'switch-account' });
+      toast.success('Active view changed.', { id: 'switch-account' });
 
-      // Trigger automatic background sync without blocking the UI
-      toast.loading('Syncing latest data in background...', { id: 'sync-account' });
-      triggerManualSync(googleAdAccount.id).then(syncRes => {
-        if (syncRes.error) {
-          toast.error(`Background sync failed: ${syncRes.error}`, { id: 'sync-account', duration: 4000 });
-        } else {
-          toast.success('Background data sync completed.', { id: 'sync-account', duration: 3000 });
-          router.refresh();
-        }
-      });
-
-      // Hard refresh to immediately render with new account data (it might be old data immediately until sync finishes, but UI stays responsive)
+      // Hard refresh to immediately render with new account context
       router.refresh();
 
     } catch (err) {
@@ -253,6 +242,13 @@ export function Sidebar() {
     staleTime: 60_000,
   });
 
+  const activeChildId = googleAdAccount?.selected_child_account_id;
+
+  // Filter only the selected accounts that are explicitly connected
+  const selectedChildren = (googleAdAccount?.selected_child_accounts || []).map((id: string) =>
+    googleChildren.find(c => c.id === id) || { id, name: `Account ${id}` }
+  );
+
   return (
     <aside className="flex h-full w-[220px] flex-col border-r border-[#E3E8EF] bg-[#FAFAFA]">
       {/* Logo */}
@@ -281,7 +277,7 @@ export function Sidebar() {
         </div>
 
         {/* Google Ads Sub-Account Switcher (If connected and has children) */}
-        {googleAdAccount && googleAdAccount.selected_child_id && googleChildren.length > 0 && (
+        {googleAdAccount && selectedChildren.length > 0 && (
           <div className="mt-2.5 relative">
             <button
               onClick={() => setIsAccountDropdownOpen(o => !o)}
@@ -294,9 +290,7 @@ export function Sidebar() {
                   <div className="truncate text-[11px] font-semibold text-[#5F6368] uppercase tracking-wide">
                     Google Ads Account
                   </div>
-                  <div className="truncate text-[12.5px] font-semibold text-[#1A73E8]">
-                    {childLoading ? 'Loading...' : (googleChildren.find(c => c.id === googleAdAccount.selected_child_id)?.name || googleChildren[0]?.name || 'Select Account')}
-                  </div>
+                  {childLoading ? 'Loading...' : (selectedChildren.find((c: any) => c.id === activeChildId)?.name || selectedChildren[0]?.name || 'Select Account')}
                 </div>
               </div>
               <svg
@@ -314,13 +308,13 @@ export function Sidebar() {
 
             {isAccountDropdownOpen && !childLoading && (
               <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-[9px] border border-[#E3E8EF] bg-white shadow-lg max-h-[160px] overflow-y-auto custom-scrollbar p-1.5">
-                {googleChildren.map((child) => (
+                {selectedChildren.map((child: any) => (
                   <button
                     key={child.id}
                     onClick={() => handleSwitchChild(child.id)}
                     className={cn(
                       "w-full text-left px-2 py-2 text-[11.5px] rounded-md transition-colors truncate",
-                      (googleAdAccount.selected_child_id === child.id || (!googleAdAccount.selected_child_id && googleChildren[0].id === child.id))
+                      (activeChildId === child.id || (!activeChildId && selectedChildren[0].id === child.id))
                         ? "bg-[#E8F0FE] text-[#1A73E8] font-bold"
                         : "text-[#202124] hover:bg-[#F1F3F4]"
                     )}
@@ -336,7 +330,7 @@ export function Sidebar() {
         )}
 
         {/* Warning Banner if connected but setup incomplete */}
-        {googleAdAccount && !googleAdAccount.selected_child_id && (
+        {googleAdAccount && (!googleAdAccount.selected_child_accounts || googleAdAccount.selected_child_accounts.length === 0) && (
           <Link href="/settings?tab=connections&action_required=true" className="mt-2.5 block text-left w-full rounded-[9px] border border-orange-200 bg-orange-50 p-[9px_11px] transition-colors hover:bg-orange-100 focus:outline-none">
             <div className="flex items-center gap-2 min-w-0">
               <GoogleIcon size={14} />

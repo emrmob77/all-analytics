@@ -3,7 +3,7 @@
 import { useTransition, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { disconnectAdAccount } from '@/lib/actions/ad-accounts';
-import { submitChildAccountSwitch } from '@/lib/actions/google-ads';
+import { submitChildAccountsSelection } from '@/lib/actions/google-ads';
 import { triggerManualSync } from '@/lib/actions/sync';
 import { GoogleAccountSelectorModal } from './GoogleAccountSelectorModal';
 import { toast } from 'sonner';
@@ -121,13 +121,13 @@ export function OAuthConnector({
     });
   }
 
-  function handleAccountSelection(childId: string) {
+  function handleAccountSelection(childIds: string[]) {
     if (!accountId) return;
 
     startTransition(async () => {
       try {
-        toast.loading('Saving account selection...', { id: 'setup-account' });
-        await submitChildAccountSwitch(accountId, childId);
+        toast.loading('Saving account selections...', { id: 'setup-account' });
+        await submitChildAccountsSelection(accountId, childIds);
 
         // Save complete, close modal
         setIsModalOpen(false);

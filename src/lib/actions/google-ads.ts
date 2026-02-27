@@ -17,7 +17,7 @@ export async function getConnectedGoogleAdsAccount() {
     const supabase = await createClient();
     const { data: adAccount, error } = await supabase
         .from('ad_accounts')
-        .select('id, external_account_id, selected_child_account_id, account_name')
+        .select('id, external_account_id, selected_child_account_id, selected_child_accounts, account_name')
         .eq('organization_id', membership.organization.id)
         .eq('platform', 'google')
         .eq('is_active', true)
@@ -28,7 +28,8 @@ export async function getConnectedGoogleAdsAccount() {
     return {
         id: adAccount.id,
         external_account_id: adAccount.external_account_id,
-        selected_child_id: adAccount.selected_child_account_id,
+        selected_child_account_id: adAccount.selected_child_account_id,
+        selected_child_accounts: adAccount.selected_child_accounts,
         name: adAccount.account_name,
     };
 }
@@ -209,7 +210,32 @@ export async function fetchConnectableGoogleAccounts(adAccountId: string): Promi
     return fetchGoogleChildAccounts(adAccountId);
 }
 
-export async function submitChildAccountSwitch(adAccountId: string, childId: string) {
+export async function submitChildAccountsSelection(adAccountId: string, childIds: string[]) {
+    const membership = await getUserOrganization();
+    if (!membership || !['owner', 'admin'].includes(membership.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('ad_accounts')
+        .update({
+            selected_child_accounts: childIds,
+            selected_child_account_id: childIds[0] || null // Maintain active view context
+        })
+        .eq('id', adAccountId)
+        .eq('organization_id', membership.organization.id);
+
+    if (error) {
+        throw new Error('Failed to update selected child accounts');
+    }
+
+    // After a successful manual switch from the settings page, trigger background sync
+    // triggerManualSync can be imported or handled cleanly by the caller (we'll assume UI handles the toast!)
+}
+
+export async function updateActiveGoogleAdsView(adAccountId: string, childId: string) {
     const membership = await getUserOrganization();
     if (!membership || !['owner', 'admin'].includes(membership.role)) {
         throw new Error('Unauthorized');
@@ -224,9 +250,6 @@ export async function submitChildAccountSwitch(adAccountId: string, childId: str
         .eq('organization_id', membership.organization.id);
 
     if (error) {
-        throw new Error('Failed to update selected child account');
+        throw new Error('Failed to update active view');
     }
-
-    // After a successful manual switch from the settings page, trigger background sync
-    // triggerManualSync can be imported or handled cleanly by the caller (we'll assume UI handles the toast!)
 }
