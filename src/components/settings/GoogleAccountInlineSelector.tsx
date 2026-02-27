@@ -68,7 +68,7 @@ export function GoogleAccountInlineSelector({
         <div className="mt-3 bg-white rounded-xl border border-orange-200 p-4 shadow-sm animate-in fade-in slide-in-from-top-2">
             <h3 className="text-[13.5px] font-semibold text-[#202124]">Select Google Ads Accounts</h3>
             <p className="text-[12.5px] text-[#5F6368] mt-0.5 mb-4">
-                Choose the accounts you want to sync data for. Select all the active client accounts you want to display on the dashboard.
+                Choose the normal and MCC accounts you want to sync. MCC selections automatically include their enabled child accounts.
             </p>
 
             <div className="py-2">
@@ -88,6 +88,7 @@ export function GoogleAccountInlineSelector({
                     <div className="flex flex-col gap-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                         {accounts.map((acc) => {
                             const isSelected = selectedIds.has(acc.id);
+                            const accountTypeLabel = acc.kind === 'manager' ? 'MCC' : 'Normal';
                             return (
                                 <label
                                     key={acc.id}
@@ -108,7 +109,12 @@ export function GoogleAccountInlineSelector({
                                         />
                                     </div>
                                     <div>
-                                        <div className={`font-semibold ${isSelected ? 'text-[#1A73E8]' : 'text-[#202124]'}`}>{acc.name}</div>
+                                        <div className="flex items-center gap-2">
+                                            <div className={`font-semibold ${isSelected ? 'text-[#1A73E8]' : 'text-[#202124]'}`}>{acc.name}</div>
+                                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${acc.kind === 'manager' ? 'border-[#D2E3FC] bg-[#E8F0FE] text-[#1A73E8]' : 'border-[#E3E8EF] bg-[#F8F9FA] text-[#5F6368]'}`}>
+                                                {accountTypeLabel}
+                                            </span>
+                                        </div>
                                         <div className={`text-xs mt-0.5 font-mono ${isSelected ? 'text-[#1A73E8]/80' : 'text-[#9AA0A6]'}`}>
                                             ID: {acc.id}
                                         </div>

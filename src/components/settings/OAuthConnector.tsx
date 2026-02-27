@@ -3,7 +3,7 @@
 import { useTransition, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { disconnectAdAccount } from '@/lib/actions/ad-accounts';
-import { submitChildAccountsSelection } from '@/lib/actions/google-ads';
+import { submitChildAccountsSelection, type GoogleChildAccount } from '@/lib/actions/google-ads';
 import { triggerManualSync } from '@/lib/actions/sync';
 import { GoogleAccountInlineSelector } from './GoogleAccountInlineSelector';
 import { toast } from 'sonner';
@@ -128,7 +128,7 @@ export function OAuthConnector({
     });
   }
 
-  function handleAccountSelection(childAccounts: Array<{ id: string; name: string }>) {
+  function handleAccountSelection(childAccounts: GoogleChildAccount[]) {
     if (!accountId) return;
 
     startTransition(async () => {

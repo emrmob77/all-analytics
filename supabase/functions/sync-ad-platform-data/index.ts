@@ -17,6 +17,7 @@ interface KeywordData {
   match_type: KeywordMatchType;
   status: KeywordStatus;
   quality_score?: number;
+  child_ad_account_id?: string;
 }
 
 interface AudienceData {
@@ -24,6 +25,7 @@ interface AudienceData {
   name: string;
   type: string;
   size: number;
+  child_ad_account_id?: string;
 }
 
 interface AdGroupData {
@@ -31,11 +33,19 @@ interface AdGroupData {
   external_adgroup_id: string;
   name: string;
   status: string;
+  child_ad_account_id?: string;
 }
 
 interface SyncPayload {
   ad_account_id: string;
   triggered_by?: 'manual' | 'scheduled';
+}
+
+interface SelectedGoogleAccount {
+  id: string;
+  name?: string;
+  kind?: 'manager' | 'client' | 'direct';
+  parent_manager_id?: string;
 }
 
 interface CampaignData {
@@ -45,6 +55,7 @@ interface CampaignData {
   budget_limit: number;
   budget_used: number;
   currency: string;
+  child_ad_account_id?: string;
 }
 
 interface DailyMetric {
@@ -397,10 +408,129 @@ async function googleListAccessibleCustomers(
   throw new Error(lastError);
 }
 
+function normalizeSelectedGoogleAccounts(selectedChildIds?: unknown[]): SelectedGoogleAccount[] {
+  if (!Array.isArray(selectedChildIds)) return [];
+
+  const normalized: SelectedGoogleAccount[] = [];
+
+  for (const entry of selectedChildIds) {
+    if (typeof entry === 'string') {
+      const id = entry.replace(/-/g, '').trim();
+      if (id) normalized.push({ id, kind: 'client' });
+      continue;
+    }
+
+    if (!entry || typeof entry !== 'object') continue;
+
+    const record = entry as Record<string, unknown>;
+    const rawId = typeof record.id === 'string' ? record.id : '';
+    const id = rawId.replace(/-/g, '').trim();
+    if (!id) continue;
+
+    const rawKind = typeof record.kind === 'string' ? record.kind : undefined;
+    const kind = rawKind === 'manager' || rawKind === 'client' || rawKind === 'direct'
+      ? rawKind
+      : undefined;
+
+    normalized.push({
+      id,
+      name: typeof record.name === 'string' ? record.name : undefined,
+      kind,
+      parent_manager_id: typeof record.parent_manager_id === 'string' ? record.parent_manager_id : undefined,
+    });
+  }
+
+  const merged = new Map<string, SelectedGoogleAccount>();
+  for (const account of normalized) {
+    const existing = merged.get(account.id);
+    if (!existing) {
+      merged.set(account.id, account);
+      continue;
+    }
+
+    if (existing.kind !== 'manager' && account.kind === 'manager') {
+      merged.set(account.id, account);
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+async function determineLoginCustomerIdForTarget(
+  accessToken: string,
+  targetCustomerId: string,
+  loginCustomerIds: string[],
+  devToken: string
+): Promise<string | undefined> {
+  try {
+    await googleAdsSearchStream(accessToken, targetCustomerId, `SELECT customer.id FROM customer LIMIT 1`, devToken);
+    return undefined;
+  } catch {
+    // Requires login-customer-id header.
+  }
+
+  for (const loginId of loginCustomerIds) {
+    try {
+      await googleAdsSearchStream(
+        accessToken,
+        targetCustomerId,
+        `SELECT customer.id FROM customer LIMIT 1`,
+        devToken,
+        loginId
+      );
+      return loginId;
+    } catch {
+      // Try next login customer.
+    }
+  }
+
+  if (loginCustomerIds.length > 0) {
+    console.warn(`[syncGoogle] Could not verify login-customer-id for ${targetCustomerId}. Falling back to ${loginCustomerIds[0]}`);
+    return loginCustomerIds[0];
+  }
+
+  return undefined;
+}
+
+async function resolveManagerChildAccountIds(
+  accessToken: string,
+  managerId: string,
+  loginCustomerIds: string[],
+  devToken: string
+): Promise<string[]> {
+  const loginCustomerId = await determineLoginCustomerIdForTarget(
+    accessToken,
+    managerId,
+    loginCustomerIds,
+    devToken
+  );
+
+  const childRows = await googleAdsSearchStream(
+    accessToken,
+    managerId,
+    `SELECT customer_client.client_customer
+       FROM customer_client
+       WHERE customer_client.manager = false
+         AND customer_client.status = 'ENABLED'`,
+    devToken,
+    loginCustomerId
+  );
+
+  const childIds = childRows
+    .flatMap(chunk => chunk.results ?? [])
+    .map(row => row.customerClient?.clientCustomer)
+    .filter((value): value is string => Boolean(value))
+    .map(resourceName => resourceName.split('/')[1] ?? resourceName)
+    .map(id => id.replace(/-/g, '').trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(childIds));
+}
+
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string,
-  selectedChildIds?: any[]
+  selectedChildIds?: unknown[]
 ): Promise<PlatformSyncResult> {
   if (!selectedChildIds || selectedChildIds.length === 0) {
     console.log('[syncGoogle] No selected child account IDs provided. Skipping sync. Setup is incomplete.');
@@ -419,7 +549,63 @@ async function syncGoogle(
     audienceMetrics: {},
   };
 
-  const idsToSync = selectedChildIds.map(c => typeof c === 'string' ? c : c.id);
+  const selectedAccounts = normalizeSelectedGoogleAccounts(selectedChildIds);
+  if (selectedAccounts.length === 0) {
+    console.log('[syncGoogle] No valid selected Google accounts found in selection payload.');
+    return { status: 'success', syncedRows: 0 } as any;
+  }
+
+  const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
+  if (!devToken) {
+    throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
+  }
+
+  const loginCustomerIds = externalAccountId
+    .split(',')
+    .map(id => id.replace(/-/g, '').trim())
+    .filter(Boolean);
+
+  if (loginCustomerIds.length === 0) {
+    const accessibleCustomers = await googleListAccessibleCustomers(accessToken, devToken);
+    if (accessibleCustomers.length > 0) {
+      loginCustomerIds.push(...accessibleCustomers);
+    }
+  }
+
+  const directOrClientIds = selectedAccounts
+    .filter(account => account.kind !== 'manager')
+    .map(account => account.id);
+
+  const selectedManagerIds = selectedAccounts
+    .filter(account => account.kind === 'manager')
+    .map(account => account.id);
+
+  const managerExpandedIds: string[] = [];
+  for (const managerId of selectedManagerIds) {
+    try {
+      const childIds = await resolveManagerChildAccountIds(
+        accessToken,
+        managerId,
+        loginCustomerIds,
+        devToken
+      );
+      if (childIds.length === 0) {
+        console.warn(`[syncGoogle] Manager ${managerId} has no enabled client accounts to sync.`);
+      }
+      managerExpandedIds.push(...childIds);
+    } catch (err) {
+      console.error(
+        `[syncGoogle] Failed to resolve manager children for ${managerId}:`,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+
+  const idsToSync = Array.from(new Set([...directOrClientIds, ...managerExpandedIds]));
+  if (idsToSync.length === 0) {
+    console.log('[syncGoogle] Selection resolved to 0 syncable client accounts.');
+    return { status: 'success', syncedRows: 0 } as any;
+  }
 
   for (const childId of idsToSync) {
     try {
@@ -477,33 +663,12 @@ async function syncGoogleSingle(
   // Let's determine the correct login-customer-id and find the active account if we need to
   if (selectedChildId) {
     console.log(`[syncGoogle] Attempting to find correct login-customer-id for explicitly selected child ${customerId}`);
-    // Try without login-customer-id first
-    let success = false;
-    try {
-      await googleAdsSearchStream(accessToken, customerId, `SELECT customer.id FROM customer LIMIT 1`, devToken);
-      success = true; // works without login-customer-id
-    } catch (e) {
-      // Did not work, try each potential login customer ID
-    }
-
-    if (!success) {
-      for (const loginId of loginCustomerIds) {
-        try {
-          // If it fails, it will throw an Error
-          await googleAdsSearchStream(accessToken, customerId, `SELECT customer.id FROM customer LIMIT 1`, devToken, loginId);
-          correctLoginCustomerId = loginId;
-          success = true;
-          break;
-        } catch (e) {
-          // Ignore and try next
-        }
-      }
-    }
-
-    if (!success && loginCustomerIds.length > 0) {
-      console.warn(`[syncGoogle] All login-customer-id tests failed for ${customerId}, falling back to ${loginCustomerIds[0]}`);
-      correctLoginCustomerId = loginCustomerIds[0];
-    }
+    correctLoginCustomerId = await determineLoginCustomerIdForTarget(
+      accessToken,
+      customerId,
+      loginCustomerIds,
+      devToken
+    );
   } else {
     // If no child was explicitly selected, we find the first manager account and get its first child. 
     // Or if it's not a manager, just use it.
@@ -596,6 +761,7 @@ async function syncGoogleSingle(
       budget_limit: Number(row.campaignBudget?.amountMicros ?? 0) / 1_000_000,
       budget_used: Number(row.metrics?.costMicros ?? 0) / 1_000_000,
       currency: accountCurrency,
+      child_ad_account_id: customerId,
     });
   }
 
@@ -679,6 +845,7 @@ async function syncGoogleSingle(
         match_type: matchTypeMap[crit.keyword.matchType] ?? 'broad',
         status: keywordStatusMap[crit.status] ?? 'paused',
         quality_score: crit.qualityInfo?.qualityScore ?? 5,
+        child_ad_account_id: customerId,
       });
     }
   }
@@ -755,6 +922,7 @@ async function syncGoogleSingle(
         name: ul.name,
         type: audTypeMap[ul.type] ?? 'Interest',
         size: size,
+        child_ad_account_id: customerId,
       });
     }
   }
@@ -829,6 +997,7 @@ async function syncGoogleSingle(
         external_adgroup_id: ag.id,
         name: ag.name,
         status: adgroupStatusMap[ag.status] ?? 'paused',
+        child_ad_account_id: customerId,
       });
     }
   }
@@ -1094,6 +1263,7 @@ async function writeResults(
           budget_limit: campaign.budget_limit,
           budget_used: campaign.budget_used,
           currency: campaign.currency,
+          child_ad_account_id: campaign.child_ad_account_id,
         },
         { onConflict: 'ad_account_id,external_campaign_id' }
       )
@@ -1171,6 +1341,7 @@ async function writeResults(
           match_type: kw.match_type,
           status: kw.status,
           quality_score: kw.quality_score,
+          child_ad_account_id: kw.child_ad_account_id,
         }, { onConflict: 'ad_account_id,external_keyword_id' })
         .select('id')
         .single();
@@ -1219,6 +1390,7 @@ async function writeResults(
           name: aud.name,
           type: aud.type,
           size: aud.size,
+          child_ad_account_id: aud.child_ad_account_id,
         }, { onConflict: 'ad_account_id,external_audience_id' })
         .select('id')
         .single();
@@ -1286,6 +1458,7 @@ async function writeResults(
           external_adgroup_id: ag.external_adgroup_id,
           name: ag.name,
           status: ag.status,
+          child_ad_account_id: ag.child_ad_account_id,
         }, { onConflict: 'ad_account_id,external_adgroup_id' })
         .select('id')
         .single();

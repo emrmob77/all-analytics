@@ -16,7 +16,12 @@ export interface AdAccount {
   platform: AdPlatform;
   external_account_id: string;
   selected_child_account_id: string | null; // Kept as active fallback for UI routing context if needed
-  selected_child_accounts: string[] | null;
+  selected_child_accounts: Array<string | {
+    id: string;
+    name: string;
+    kind?: 'manager' | 'client' | 'direct';
+    parent_manager_id?: string;
+  }> | null;
   account_name: string;
   is_active: boolean;
   last_synced_at: string | null;

@@ -18,7 +18,6 @@ import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
 import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, updateActiveGoogleAdsView, type GoogleChildAccount } from '@/lib/actions/google-ads';
-import { triggerManualSync } from '@/lib/actions/sync';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
@@ -156,9 +155,12 @@ export function Sidebar() {
     [pathname]
   );
 
-  const [googleAdAccount, setGoogleAdAccount] = useState<any>(null);
+  const [googleAdAccount, setGoogleAdAccount] = useState<{
+    id: string;
+    selected_child_account_id: string | null;
+    selected_child_accounts: Array<string | GoogleChildAccount> | null;
+  } | null>(null);
   const [googleChildren, setGoogleChildren] = useState<GoogleChildAccount[]>([]);
-  const [childLoading, setChildLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
@@ -181,11 +183,8 @@ export function Sidebar() {
 
           // Only fetch child accounts if setup is complete
           if (acc.selected_child_accounts && acc.selected_child_accounts.length > 0) {
-            setChildLoading(true);
             fetchGoogleChildAccounts(acc.id).then(children => {
               if (mounted) setGoogleChildren(children);
-            }).finally(() => {
-              if (mounted) setChildLoading(false);
             });
           }
         }
@@ -243,12 +242,19 @@ export function Sidebar() {
   const activeChildId = googleAdAccount?.selected_child_account_id;
 
   // Filter only the selected accounts that are explicitly connected
-  const selectedChildren = (googleAdAccount?.selected_child_accounts || []).map((childOrId: string | GoogleChildAccount) => {
-    if (typeof childOrId === 'string') {
-      return googleChildren.find(c => c.id === childOrId) || { id: childOrId, name: `Account ${childOrId}` };
-    }
-    return childOrId as GoogleChildAccount;
-  });
+  const selectedChildren = (googleAdAccount?.selected_child_accounts || [])
+    .map((childOrId: string | GoogleChildAccount) => {
+      const base = typeof childOrId === 'string'
+        ? { id: childOrId, name: `Account ${childOrId}`, kind: 'client' as const }
+        : (childOrId as GoogleChildAccount);
+
+      // Prefer live account metadata from Google API (name/kind),
+      // so old stored placeholders like "Account 123..." are replaced.
+      const live = googleChildren.find((child) => child.id === base.id);
+      return live ? { ...base, ...live } : base;
+    })
+    // Sidebar switcher should stay campaign-view friendly; MCC entries are still selectable in Settings.
+    .filter((child: GoogleChildAccount) => child.kind !== 'manager');
 
   return (
     <aside className="flex h-full w-[220px] flex-col border-r border-[#E3E8EF] bg-[#FAFAFA]">
