@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
   const accountsToSync = accounts.filter(a => validIds.has(a.id as string));
 
   const syncFnUrl = `${supabaseUrl}${SYNC_FUNCTION_URL_SUFFIX}`;
-  const results: Array<{ ad_account_id: string; status: string; sync_log_id?: string }> = [];
+  const results: Array<{ ad_account_id: string; status: 'ok' | 'error' | 'timeout' | 'skipped'; sync_log_id?: string }> = [];
 
   for (let i = 0; i < accountsToSync.length; i++) {
     const account = accountsToSync[i];
@@ -157,9 +157,13 @@ Deno.serve(async (req: Request) => {
       // sync-ad-platform-data returns HTTP 200 even on sync failures (so that
       // functions.invoke() propagates the error body instead of throwing).
       // Check body.error in addition to res.ok to correctly detect failures.
+      const isAlreadyRunning = typeof body.error === 'string'
+        && body.error.toLowerCase().includes('already in progress');
       results.push({
         ad_account_id: account.id as string,
-        status: (res.ok && !body.error) ? 'ok' : 'error',
+        status: (res.ok && (!body.error || isAlreadyRunning))
+          ? (isAlreadyRunning ? 'skipped' : 'ok')
+          : 'error',
         sync_log_id: body.sync_log_id,
       });
     } catch (err) {
@@ -177,10 +181,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const succeeded = results.filter(r => r.status === 'ok').length;
-  const failed = results.filter(r => r.status !== 'ok').length;
+  const skipped = results.filter(r => r.status === 'skipped').length;
+  const failed = results.filter(r => r.status === 'error' || r.status === 'timeout').length;
 
   return new Response(
-    JSON.stringify({ synced: succeeded, failed, results }),
+    JSON.stringify({ synced: succeeded, skipped, failed, results }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
 });

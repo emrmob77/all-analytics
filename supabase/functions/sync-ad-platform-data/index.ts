@@ -41,6 +41,10 @@ interface SyncPayload {
   triggered_by?: 'manual' | 'scheduled';
 }
 
+interface SyncExecutionOptions {
+  deadlineMs?: number;
+}
+
 interface SelectedGoogleAccount {
   id: string;
   name?: string;
@@ -86,6 +90,10 @@ interface PlatformSyncResult {
   adgroups?: AdGroupData[];
   adgroupMetrics?: Record<string, DailyMetric[]>; // externalAdgroupId -> metrics
 }
+
+const UPSERT_CHUNK_SIZE = 250;
+const STALE_SYNC_LOCK_MINUTES = 20;
+const SYNC_TIME_BUDGET_MS = 120_000;
 
 interface GoogleAdsSearchChunk {
   results?: Array<{
@@ -205,6 +213,36 @@ function last7DaysHours(): string[] {
     hours.push(d.toISOString());
   }
   return hours;
+}
+
+function createEmptySyncResult(): PlatformSyncResult {
+  return {
+    campaigns: [],
+    dailyMetrics: {},
+    hourlyMetrics: {},
+    keywords: [],
+    keywordMetrics: {},
+    audiences: [],
+    audienceMetrics: {},
+    adgroups: [],
+    adgroupMetrics: {},
+  };
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  if (items.length === 0) return [];
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+function assertTimeBudget(deadlineMs: number | undefined, stage: string): void {
+  if (!deadlineMs) return;
+  if (Date.now() > deadlineMs) {
+    throw new Error(`Sync time budget exceeded during ${stage}. Retry will continue from saved state.`);
+  }
 }
 
 function isGoogleVersionUnsupported(errorBody: string): boolean {
@@ -530,11 +568,13 @@ async function resolveManagerChildAccountIds(
 async function syncGoogle(
   accessToken: string,
   externalAccountId: string,
-  selectedChildIds?: unknown[]
+  selectedChildIds?: unknown[],
+  options?: SyncExecutionOptions
 ): Promise<PlatformSyncResult> {
+  assertTimeBudget(options?.deadlineMs, 'google setup');
   if (!selectedChildIds || selectedChildIds.length === 0) {
     console.log('[syncGoogle] No selected child account IDs provided. Skipping sync. Setup is incomplete.');
-    return { status: 'success', syncedRows: 0 } as any; // Hacky return for UI logs
+    return createEmptySyncResult();
   }
 
   const mergedResult: PlatformSyncResult = {
@@ -552,7 +592,7 @@ async function syncGoogle(
   const selectedAccounts = normalizeSelectedGoogleAccounts(selectedChildIds);
   if (selectedAccounts.length === 0) {
     console.log('[syncGoogle] No valid selected Google accounts found in selection payload.');
-    return { status: 'success', syncedRows: 0 } as any;
+    return createEmptySyncResult();
   }
 
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
@@ -618,13 +658,14 @@ async function syncGoogle(
   const idsToSync = Array.from(new Set([...directOrClientIds, ...managerExpandedIds]));
   if (idsToSync.length === 0) {
     console.log('[syncGoogle] Selection resolved to 0 syncable client accounts.');
-    return { status: 'success', syncedRows: 0 } as any;
+    return createEmptySyncResult();
   }
 
   for (const childId of idsToSync) {
+    assertTimeBudget(options?.deadlineMs, `google child account ${childId}`);
     try {
       console.log(`[syncGoogle] Syncing child account: ${childId}`);
-      const result = await syncGoogleSingle(accessToken, externalAccountId, childId);
+      const result = await syncGoogleSingle(accessToken, externalAccountId, childId, options);
 
       // Merge results safely
       mergedResult.campaigns.push(...result.campaigns);
@@ -652,8 +693,10 @@ async function syncGoogle(
 async function syncGoogleSingle(
   accessToken: string,
   externalAccountId: string,
-  selectedChildId?: string
+  selectedChildId?: string,
+  options?: SyncExecutionOptions
 ): Promise<PlatformSyncResult> {
+  assertTimeBudget(options?.deadlineMs, 'google single account setup');
   const devToken = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? '';
   if (!devToken) {
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
@@ -746,6 +789,7 @@ async function syncGoogleSingle(
 
   const loginCustomerId = correctLoginCustomerId;
   console.log(`[syncGoogle] Final target customerId: ${customerId}, loginCustomerId: ${loginCustomerId || 'none'}`);
+  assertTimeBudget(options?.deadlineMs, 'google currency lookup');
   try {
     const currencyRes = await googleAdsSearchStream(
       accessToken,
@@ -764,6 +808,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch campaigns via GAQL
+  assertTimeBudget(options?.deadlineMs, 'google campaigns fetch');
   const campaignData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -795,6 +840,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch daily metrics (last 30 days)
+  assertTimeBudget(options?.deadlineMs, 'google campaign metrics fetch');
   const dates = lastNDays(30);
   const startDate = dates[0];
   const endDate = dates[dates.length - 1];
@@ -835,6 +881,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch keywords
+  assertTimeBudget(options?.deadlineMs, 'google keywords fetch');
   const keywordData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -880,6 +927,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch keyword metrics
+  assertTimeBudget(options?.deadlineMs, 'google keyword metrics fetch');
   const keywordMetricsData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -916,6 +964,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch audiences
+  assertTimeBudget(options?.deadlineMs, 'google audiences fetch');
   const audienceData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -957,6 +1006,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch audience metrics
+  assertTimeBudget(options?.deadlineMs, 'google audience metrics fetch');
   const audienceMetricsData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -997,6 +1047,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch adgroups
+  assertTimeBudget(options?.deadlineMs, 'google adgroups fetch');
   const adgroupData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -1032,6 +1083,7 @@ async function syncGoogleSingle(
   }
 
   // Fetch adgroup metrics
+  assertTimeBudget(options?.deadlineMs, 'google adgroup metrics fetch');
   const adgroupMetricsData = await googleAdsSearchStream(
     accessToken,
     customerId,
@@ -1254,12 +1306,19 @@ async function syncPinterest(
   return { campaigns, dailyMetrics, hourlyMetrics: {} };
 }
 
-function getPlatformSyncer(platform: AdPlatform) {
-  const map: Record<AdPlatform, (token: string, accountId: string, selectedChildIds?: string[]) => Promise<PlatformSyncResult>> = {
+type PlatformSyncer = (
+  accessToken: string,
+  externalAccountId: string,
+  selectedChildIds?: unknown[],
+  options?: SyncExecutionOptions
+) => Promise<PlatformSyncResult>;
+
+function getPlatformSyncer(platform: AdPlatform): PlatformSyncer {
+  const map: Record<AdPlatform, PlatformSyncer> = {
     google: syncGoogle,
-    meta: syncMeta as any,
-    tiktok: syncTikTok as any,
-    pinterest: syncPinterest as any,
+    meta: (token, accountId) => syncMeta(token, accountId),
+    tiktok: (token, accountId) => syncTikTok(token, accountId),
+    pinterest: (token, accountId) => syncPinterest(token, accountId),
   };
   return map[platform];
 }
@@ -1271,264 +1330,483 @@ function getPlatformSyncer(platform: AdPlatform) {
 async function writeResults(
   supabase: ReturnType<typeof createClient>,
   adAccount: { id: string; organization_id: string; platform: AdPlatform; external_account_id: string },
-  result: PlatformSyncResult
+  result: PlatformSyncResult,
+  options?: SyncExecutionOptions
 ): Promise<void> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
-
   const dbCampaignMap: Record<string, string> = {};
 
-  for (const campaign of result.campaigns) {
-    // Upsert campaign
-    const { data: dbCampaign, error: campErr } = await supabase
-      .from('campaigns')
-      .upsert(
-        {
-          organization_id: adAccount.organization_id,
-          ad_account_id: adAccount.id,
-          platform: adAccount.platform,
-          external_campaign_id: campaign.external_campaign_id,
-          name: campaign.name,
-          status: campaign.status,
-          budget_limit: campaign.budget_limit,
-          budget_used: campaign.budget_used,
-          currency: campaign.currency,
-          child_ad_account_id: campaign.child_ad_account_id,
-        },
-        { onConflict: 'ad_account_id,external_campaign_id' }
-      )
-      .select('id')
-      .single();
+  const uniqueCampaigns = Array.from(
+    new Map(result.campaigns.map(campaign => [campaign.external_campaign_id, campaign])).values()
+  );
 
-    if (campErr || !dbCampaign) {
-      console.error(`[writeResults] campaign upsert failed for ${campaign.external_campaign_id}:`, campErr?.message ?? 'no data returned');
+  const campaignRows = uniqueCampaigns.map(campaign => ({
+    organization_id: adAccount.organization_id,
+    ad_account_id: adAccount.id,
+    platform: adAccount.platform,
+    external_campaign_id: campaign.external_campaign_id,
+    name: campaign.name,
+    status: campaign.status,
+    budget_limit: campaign.budget_limit,
+    budget_used: campaign.budget_used,
+    currency: campaign.currency,
+    child_ad_account_id: campaign.child_ad_account_id,
+  }));
+
+  type CampaignIdRow = { id: string; external_campaign_id: string };
+  for (const chunk of chunkArray(campaignRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'campaign upsert');
+    const { data, error } = await supabase
+      .from('campaigns')
+      .upsert(chunk, { onConflict: 'ad_account_id,external_campaign_id' })
+      .select('id, external_campaign_id');
+
+    if (error) {
+      console.error('[writeResults] campaign batch upsert failed:', error.message);
       continue;
     }
 
-    const campaignId = dbCampaign.id as string;
-    const extId = campaign.external_campaign_id;
-    dbCampaignMap[extId] = campaignId;
+    for (const row of ((data ?? []) as CampaignIdRow[])) {
+      dbCampaignMap[row.external_campaign_id] = row.id;
+    }
+  }
 
-    // Upsert daily metrics
-    const daily = result.dailyMetrics[extId] ?? [];
-    if (daily.length > 0) {
-      const rows = daily.map(m => ({
+  const unresolvedCampaignIds = uniqueCampaigns
+    .map(campaign => campaign.external_campaign_id)
+    .filter(externalId => !dbCampaignMap[externalId]);
+
+  for (const chunk of chunkArray(unresolvedCampaignIds, UPSERT_CHUNK_SIZE)) {
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('id, external_campaign_id')
+      .eq('ad_account_id', adAccount.id)
+      .in('external_campaign_id', chunk);
+
+    if (error) {
+      console.error('[writeResults] campaign id fetch failed:', error.message);
+      continue;
+    }
+
+    for (const row of ((data ?? []) as CampaignIdRow[])) {
+      dbCampaignMap[row.external_campaign_id] = row.id;
+    }
+  }
+
+  const campaignDailyAgg = new Map<string, {
+    campaign_id: string;
+    date: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>();
+
+  for (const [externalCampaignId, metrics] of Object.entries(result.dailyMetrics)) {
+    const campaignId = dbCampaignMap[externalCampaignId];
+    if (!campaignId) continue;
+
+    for (const metric of metrics) {
+      const key = `${campaignId}:${metric.date}`;
+      const existing = campaignDailyAgg.get(key);
+      if (!existing) {
+        campaignDailyAgg.set(key, {
+          campaign_id: campaignId,
+          date: metric.date,
+          spend: metric.spend,
+          impressions: metric.impressions,
+          clicks: metric.clicks,
+          conversions: metric.conversions,
+          revenue: metric.revenue,
+        });
+      } else {
+        existing.spend += metric.spend;
+        existing.impressions += metric.impressions;
+        existing.clicks += metric.clicks;
+        existing.conversions += metric.conversions;
+        existing.revenue += metric.revenue;
+      }
+    }
+  }
+
+  const campaignDailyRows = Array.from(campaignDailyAgg.values());
+  for (const chunk of chunkArray(campaignDailyRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'campaign_metrics upsert');
+    const { error } = await supabase
+      .from('campaign_metrics')
+      .upsert(chunk, { onConflict: 'campaign_id,date' });
+    if (error) {
+      console.error('[writeResults] campaign_metrics batch upsert failed:', error.message);
+    }
+  }
+
+  const campaignHourlyAgg = new Map<string, {
+    campaign_id: string;
+    hour: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+  }>();
+
+  for (const [externalCampaignId, metrics] of Object.entries(result.hourlyMetrics)) {
+    const campaignId = dbCampaignMap[externalCampaignId];
+    if (!campaignId) continue;
+
+    for (const metric of metrics) {
+      if (metric.hour < sevenDaysAgo) continue;
+
+      const key = `${campaignId}:${metric.hour}`;
+      const existing = campaignHourlyAgg.get(key);
+      if (!existing) {
+        campaignHourlyAgg.set(key, {
+          campaign_id: campaignId,
+          hour: metric.hour,
+          spend: metric.spend,
+          impressions: metric.impressions,
+          clicks: metric.clicks,
+          conversions: metric.conversions,
+        });
+      } else {
+        existing.spend += metric.spend;
+        existing.impressions += metric.impressions;
+        existing.clicks += metric.clicks;
+        existing.conversions += metric.conversions;
+      }
+    }
+  }
+
+  const campaignHourlyRows = Array.from(campaignHourlyAgg.values());
+  for (const chunk of chunkArray(campaignHourlyRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'hourly_metrics upsert');
+    const { error } = await supabase
+      .from('hourly_metrics')
+      .upsert(chunk, { onConflict: 'campaign_id,hour' });
+    if (error) {
+      console.error('[writeResults] hourly_metrics batch upsert failed:', error.message);
+    }
+  }
+
+  const keywordIdMap: Record<string, string> = {};
+  const keywords = result.keywords ?? [];
+
+  if (keywords.length > 0) {
+    const keywordRowsByExternal = new Map<string, {
+      organization_id: string;
+      ad_account_id: string;
+      campaign_id: string;
+      platform: AdPlatform;
+      external_keyword_id: string;
+      text: string;
+      match_type: KeywordMatchType;
+      status: KeywordStatus;
+      quality_score?: number;
+      child_ad_account_id?: string;
+    }>();
+
+    for (const keyword of keywords) {
+      const campaignId = dbCampaignMap[keyword.external_campaign_id];
+      if (!campaignId) continue;
+
+      const existing = keywordRowsByExternal.get(keyword.external_keyword_id);
+      if (existing && existing.campaign_id !== campaignId) {
+        console.warn(
+          `[writeResults] duplicate keyword ${keyword.external_keyword_id} mapped to multiple campaigns in one sync; latest row wins`
+        );
+      }
+
+      keywordRowsByExternal.set(keyword.external_keyword_id, {
+        organization_id: adAccount.organization_id,
+        ad_account_id: adAccount.id,
         campaign_id: campaignId,
-        date: m.date,
-        spend: m.spend,
-        impressions: m.impressions,
-        clicks: m.clicks,
-        conversions: m.conversions,
-        revenue: m.revenue,
-      }));
-      const { error: dailyErr } = await supabase
-        .from('campaign_metrics')
-        .upsert(rows, { onConflict: 'campaign_id,date' });
-      if (dailyErr) {
-        console.error(`[writeResults] campaign_metrics upsert failed for campaign ${campaignId}:`, dailyErr.message);
-      }
+        platform: adAccount.platform,
+        external_keyword_id: keyword.external_keyword_id,
+        text: keyword.text,
+        match_type: keyword.match_type,
+        status: keyword.status,
+        quality_score: keyword.quality_score,
+        child_ad_account_id: keyword.child_ad_account_id,
+      });
     }
 
-    // Upsert hourly metrics (only last 7 days)
-    const hourly = result.hourlyMetrics[extId] ?? [];
-    if (hourly.length > 0) {
-      const rows = hourly
-        .filter(m => m.hour >= sevenDaysAgo)
-        .map(m => ({
-          campaign_id: campaignId,
-          hour: m.hour,
-          spend: m.spend,
-          impressions: m.impressions,
-          clicks: m.clicks,
-          conversions: m.conversions,
-        }));
-      if (rows.length > 0) {
-        const { error: hourlyErr } = await supabase
-          .from('hourly_metrics')
-          .upsert(rows, { onConflict: 'campaign_id,hour' });
-        if (hourlyErr) {
-          console.error(`[writeResults] hourly_metrics upsert failed for campaign ${campaignId}:`, hourlyErr.message);
-        }
-      }
-    }
-  }
-
-  if (result.keywords && result.keywordMetrics) {
-    for (const kw of result.keywords) {
-      const campaignId = dbCampaignMap[kw.external_campaign_id];
-      if (!campaignId) continue;
-
-      // Upsert keyword
-      const { data: dbKeyword, error: kwErr } = await supabase
+    type KeywordIdRow = { id: string; external_keyword_id: string };
+    const keywordRows = Array.from(keywordRowsByExternal.values());
+    for (const chunk of chunkArray(keywordRows, UPSERT_CHUNK_SIZE)) {
+      assertTimeBudget(options?.deadlineMs, 'keywords upsert');
+      const { data, error } = await supabase
         .from('keywords')
-        .upsert({
-          organization_id: adAccount.organization_id,
-          ad_account_id: adAccount.id,
-          campaign_id: campaignId,
-          platform: adAccount.platform,
-          external_keyword_id: kw.external_keyword_id,
-          text: kw.text,
-          match_type: kw.match_type,
-          status: kw.status,
-          quality_score: kw.quality_score,
-          child_ad_account_id: kw.child_ad_account_id,
-        }, { onConflict: 'ad_account_id,external_keyword_id' })
-        .select('id')
-        .single();
-
-      if (kwErr || !dbKeyword) {
-        console.error(`[writeResults] keyword upsert failed: ${kw.external_keyword_id}`, kwErr.message);
+        .upsert(chunk, { onConflict: 'ad_account_id,external_keyword_id' })
+        .select('id, external_keyword_id');
+      if (error) {
+        console.error('[writeResults] keywords batch upsert failed:', error.message);
         continue;
       }
+      for (const row of ((data ?? []) as KeywordIdRow[])) {
+        keywordIdMap[row.external_keyword_id] = row.id;
+      }
+    }
 
-      const dbKwId = dbKeyword.id;
+    const unresolvedKeywordIds = keywordRows
+      .map(row => row.external_keyword_id)
+      .filter(externalId => !keywordIdMap[externalId]);
 
-      // Upsert keyword metrics
-      const kMetrics = result.keywordMetrics[kw.external_keyword_id] ?? [];
-      if (kMetrics.length > 0) {
-        const rows = kMetrics.map(m => ({
-          keyword_id: dbKwId,
-          date: m.date,
-          spend: m.spend,
-          impressions: m.impressions,
-          clicks: m.clicks,
-          conversions: m.conversions,
-          revenue: m.revenue,
-        }));
-
-        const { error: kmErr } = await supabase
-          .from('keyword_metrics')
-          .upsert(rows, { onConflict: 'keyword_id,date' });
-
-        if (kmErr) {
-          console.error(`[writeResults] keyword_metrics upsert failed for keyword ${dbKwId}:`, kmErr.message);
-        }
+    for (const chunk of chunkArray(unresolvedKeywordIds, UPSERT_CHUNK_SIZE)) {
+      const { data, error } = await supabase
+        .from('keywords')
+        .select('id, external_keyword_id')
+        .eq('ad_account_id', adAccount.id)
+        .in('external_keyword_id', chunk);
+      if (error) {
+        console.error('[writeResults] keyword id fetch failed:', error.message);
+        continue;
+      }
+      for (const row of ((data ?? []) as KeywordIdRow[])) {
+        keywordIdMap[row.external_keyword_id] = row.id;
       }
     }
   }
 
-  if (result.audiences && result.audienceMetrics) {
-    for (const aud of result.audiences) {
-      // Upsert audience
-      const { data: dbAudience, error: audErr } = await supabase
+  const keywordMetricAgg = new Map<string, {
+    keyword_id: string;
+    date: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>();
+
+  for (const [externalKeywordId, metrics] of Object.entries(result.keywordMetrics ?? {})) {
+    const keywordId = keywordIdMap[externalKeywordId];
+    if (!keywordId) continue;
+
+    for (const metric of metrics) {
+      const key = `${keywordId}:${metric.date}`;
+      const existing = keywordMetricAgg.get(key);
+      if (!existing) {
+        keywordMetricAgg.set(key, {
+          keyword_id: keywordId,
+          date: metric.date,
+          spend: metric.spend,
+          impressions: metric.impressions,
+          clicks: metric.clicks,
+          conversions: metric.conversions,
+          revenue: metric.revenue,
+        });
+      } else {
+        existing.spend += metric.spend;
+        existing.impressions += metric.impressions;
+        existing.clicks += metric.clicks;
+        existing.conversions += metric.conversions;
+        existing.revenue += metric.revenue;
+      }
+    }
+  }
+
+  const keywordMetricRows = Array.from(keywordMetricAgg.values());
+  for (const chunk of chunkArray(keywordMetricRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'keyword_metrics upsert');
+    const { error } = await supabase
+      .from('keyword_metrics')
+      .upsert(chunk, { onConflict: 'keyword_id,date' });
+    if (error) {
+      console.error('[writeResults] keyword_metrics batch upsert failed:', error.message);
+    }
+  }
+
+  const audienceIdMap: Record<string, string> = {};
+  const audiences = result.audiences ?? [];
+  if (audiences.length > 0) {
+    const audienceRowsByExternal = new Map<string, {
+      organization_id: string;
+      ad_account_id: string;
+      platform: AdPlatform;
+      external_audience_id: string;
+      name: string;
+      type: string;
+      size: number;
+      child_ad_account_id?: string;
+    }>();
+
+    for (const audience of audiences) {
+      audienceRowsByExternal.set(audience.external_audience_id, {
+        organization_id: adAccount.organization_id,
+        ad_account_id: adAccount.id,
+        platform: adAccount.platform,
+        external_audience_id: audience.external_audience_id,
+        name: audience.name,
+        type: audience.type,
+        size: audience.size,
+        child_ad_account_id: audience.child_ad_account_id,
+      });
+    }
+
+    type AudienceIdRow = { id: string; external_audience_id: string };
+    const audienceRows = Array.from(audienceRowsByExternal.values());
+    for (const chunk of chunkArray(audienceRows, UPSERT_CHUNK_SIZE)) {
+      assertTimeBudget(options?.deadlineMs, 'audiences upsert');
+      const { data, error } = await supabase
         .from('audiences')
-        .upsert({
-          organization_id: adAccount.organization_id,
-          ad_account_id: adAccount.id,
-          platform: adAccount.platform,
-          external_audience_id: aud.external_audience_id,
-          name: aud.name,
-          type: aud.type,
-          size: aud.size,
-          child_ad_account_id: aud.child_ad_account_id,
-        }, { onConflict: 'ad_account_id,external_audience_id' })
-        .select('id')
-        .single();
-
-      if (audErr || !dbAudience) {
-        console.error(`[writeResults] audience upsert failed: ${aud.external_audience_id}`, audErr?.message);
+        .upsert(chunk, { onConflict: 'ad_account_id,external_audience_id' })
+        .select('id, external_audience_id');
+      if (error) {
+        console.error('[writeResults] audiences batch upsert failed:', error.message);
         continue;
       }
-
-      const dbAudId = dbAudience.id as string;
-
-      // Upsert audience metrics
-      const aMetrics = result.audienceMetrics[aud.external_audience_id] ?? [];
-
-      // We might have multiple ad groups targeting the same audience, so we need to aggregate by date first.
-      const aggMetrics = new Map<string, DailyMetric>();
-      for (const m of aMetrics) {
-        if (!aggMetrics.has(m.date)) {
-          aggMetrics.set(m.date, { ...m });
-        } else {
-          const existing = aggMetrics.get(m.date)!;
-          existing.spend += m.spend;
-          existing.impressions += m.impressions;
-          existing.clicks += m.clicks;
-          existing.conversions += m.conversions;
-          existing.revenue += m.revenue;
-        }
-      }
-
-      const rowsToInsert = Array.from(aggMetrics.values()).map(m => ({
-        audience_id: dbAudId,
-        date: m.date,
-        spend: m.spend,
-        impressions: m.impressions,
-        clicks: m.clicks,
-        conversions: m.conversions,
-        revenue: m.revenue,
-      }));
-
-      if (rowsToInsert.length > 0) {
-        const { error: amErr } = await supabase
-          .from('audience_metrics')
-          .upsert(rowsToInsert, { onConflict: 'audience_id,date' });
-
-        if (amErr) {
-          console.error(`[writeResults] audience_metrics upsert failed for audience ${dbAudId}:`, amErr.message);
-        }
+      for (const row of ((data ?? []) as AudienceIdRow[])) {
+        audienceIdMap[row.external_audience_id] = row.id;
       }
     }
   }
 
-  if (result.adgroups && result.adgroupMetrics) {
-    for (const ag of result.adgroups) {
-      const campaignId = dbCampaignMap[ag.external_campaign_id];
+  const audienceMetricAgg = new Map<string, {
+    audience_id: string;
+    date: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>();
+
+  for (const [externalAudienceId, metrics] of Object.entries(result.audienceMetrics ?? {})) {
+    const audienceId = audienceIdMap[externalAudienceId];
+    if (!audienceId) continue;
+
+    for (const metric of metrics) {
+      const key = `${audienceId}:${metric.date}`;
+      const existing = audienceMetricAgg.get(key);
+      if (!existing) {
+        audienceMetricAgg.set(key, {
+          audience_id: audienceId,
+          date: metric.date,
+          spend: metric.spend,
+          impressions: metric.impressions,
+          clicks: metric.clicks,
+          conversions: metric.conversions,
+          revenue: metric.revenue,
+        });
+      } else {
+        existing.spend += metric.spend;
+        existing.impressions += metric.impressions;
+        existing.clicks += metric.clicks;
+        existing.conversions += metric.conversions;
+        existing.revenue += metric.revenue;
+      }
+    }
+  }
+
+  const audienceMetricRows = Array.from(audienceMetricAgg.values());
+  for (const chunk of chunkArray(audienceMetricRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'audience_metrics upsert');
+    const { error } = await supabase
+      .from('audience_metrics')
+      .upsert(chunk, { onConflict: 'audience_id,date' });
+    if (error) {
+      console.error('[writeResults] audience_metrics batch upsert failed:', error.message);
+    }
+  }
+
+  const adgroupIdMap: Record<string, string> = {};
+  const adgroups = result.adgroups ?? [];
+  if (adgroups.length > 0) {
+    const adgroupRowsByExternal = new Map<string, {
+      organization_id: string;
+      ad_account_id: string;
+      campaign_id: string;
+      platform: AdPlatform;
+      external_adgroup_id: string;
+      name: string;
+      status: string;
+      child_ad_account_id?: string;
+    }>();
+
+    for (const adgroup of adgroups) {
+      const campaignId = dbCampaignMap[adgroup.external_campaign_id];
       if (!campaignId) continue;
+      adgroupRowsByExternal.set(adgroup.external_adgroup_id, {
+        organization_id: adAccount.organization_id,
+        ad_account_id: adAccount.id,
+        campaign_id: campaignId,
+        platform: adAccount.platform,
+        external_adgroup_id: adgroup.external_adgroup_id,
+        name: adgroup.name,
+        status: adgroup.status,
+        child_ad_account_id: adgroup.child_ad_account_id,
+      });
+    }
 
-      // Upsert adgroup
-      const { data: dbAdgroup, error: agErr } = await supabase
+    type AdgroupIdRow = { id: string; external_adgroup_id: string };
+    const adgroupRows = Array.from(adgroupRowsByExternal.values());
+    for (const chunk of chunkArray(adgroupRows, UPSERT_CHUNK_SIZE)) {
+      assertTimeBudget(options?.deadlineMs, 'adgroups upsert');
+      const { data, error } = await supabase
         .from('adgroups')
-        .upsert({
-          organization_id: adAccount.organization_id,
-          ad_account_id: adAccount.id,
-          campaign_id: campaignId,
-          platform: adAccount.platform,
-          external_adgroup_id: ag.external_adgroup_id,
-          name: ag.name,
-          status: ag.status,
-          child_ad_account_id: ag.child_ad_account_id,
-        }, { onConflict: 'ad_account_id,external_adgroup_id' })
-        .select('id')
-        .single();
-
-      if (agErr || !dbAdgroup) {
-        console.error(`[writeResults] adgroups upsert failed: ${ag.external_adgroup_id}`, agErr?.message);
+        .upsert(chunk, { onConflict: 'ad_account_id,external_adgroup_id' })
+        .select('id, external_adgroup_id');
+      if (error) {
+        console.error('[writeResults] adgroups batch upsert failed:', error.message);
         continue;
       }
-
-      const dbAgId = dbAdgroup.id;
-
-      // Upsert adgroup metrics
-      const agMetrics = result.adgroupMetrics[ag.external_adgroup_id] ?? [];
-      if (agMetrics.length > 0) {
-        const rows = agMetrics.map(m => ({
-          adgroup_id: dbAgId,
-          date: m.date,
-          spend: m.spend,
-          impressions: m.impressions,
-          clicks: m.clicks,
-          conversions: m.conversions,
-          revenue: m.revenue,
-        }));
-
-        const { error: agmErr } = await supabase
-          .from('adgroup_metrics')
-          .upsert(rows, { onConflict: 'adgroup_id,date' });
-
-        if (agmErr) {
-          console.error(`[writeResults] adgroup_metrics upsert failed for adgroup ${dbAgId}:`, agmErr.message);
-        }
+      for (const row of ((data ?? []) as AdgroupIdRow[])) {
+        adgroupIdMap[row.external_adgroup_id] = row.id;
       }
     }
   }
 
-  // Update last_synced_at on the ad_account
+  const adgroupMetricAgg = new Map<string, {
+    adgroup_id: string;
+    date: string;
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  }>();
+
+  for (const [externalAdgroupId, metrics] of Object.entries(result.adgroupMetrics ?? {})) {
+    const adgroupId = adgroupIdMap[externalAdgroupId];
+    if (!adgroupId) continue;
+
+    for (const metric of metrics) {
+      const key = `${adgroupId}:${metric.date}`;
+      const existing = adgroupMetricAgg.get(key);
+      if (!existing) {
+        adgroupMetricAgg.set(key, {
+          adgroup_id: adgroupId,
+          date: metric.date,
+          spend: metric.spend,
+          impressions: metric.impressions,
+          clicks: metric.clicks,
+          conversions: metric.conversions,
+          revenue: metric.revenue,
+        });
+      } else {
+        existing.spend += metric.spend;
+        existing.impressions += metric.impressions;
+        existing.clicks += metric.clicks;
+        existing.conversions += metric.conversions;
+        existing.revenue += metric.revenue;
+      }
+    }
+  }
+
+  const adgroupMetricRows = Array.from(adgroupMetricAgg.values());
+  for (const chunk of chunkArray(adgroupMetricRows, UPSERT_CHUNK_SIZE)) {
+    assertTimeBudget(options?.deadlineMs, 'adgroup_metrics upsert');
+    const { error } = await supabase
+      .from('adgroup_metrics')
+      .upsert(chunk, { onConflict: 'adgroup_id,date' });
+    if (error) {
+      console.error('[writeResults] adgroup_metrics batch upsert failed:', error.message);
+    }
+  }
+
+  assertTimeBudget(options?.deadlineMs, 'last_synced_at update');
   await supabase
     .from('ad_accounts')
     .update({ last_synced_at: new Date().toISOString() })
     .eq('id', adAccount.id);
-
 }
 
 // ---------------------------------------------------------------------------
@@ -1617,6 +1895,44 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Mark stale in-progress logs as failed so they do not block future syncs forever.
+  const staleThresholdIso = new Date(
+    Date.now() - STALE_SYNC_LOCK_MINUTES * 60_000
+  ).toISOString();
+  await supabase
+    .from('sync_logs')
+    .update({
+      status: 'failed',
+      error_message: 'Auto-failed stale in-progress sync lock',
+      completed_at: new Date().toISOString(),
+    })
+    .eq('ad_account_id', adAccount.id)
+    .eq('status', 'in_progress')
+    .is('completed_at', null)
+    .lt('started_at', staleThresholdIso);
+
+  // Refuse concurrent sync runs for the same ad account.
+  const { data: activeSyncLog } = await supabase
+    .from('sync_logs')
+    .select('id')
+    .eq('ad_account_id', adAccount.id)
+    .eq('status', 'in_progress')
+    .is('completed_at', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeSyncLog?.id) {
+    return new Response(JSON.stringify({
+      success: false,
+      sync_log_id: activeSyncLog.id,
+      error: 'A sync is already in progress for this ad account. Please wait for it to finish.',
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Create sync_log entry
   const { data: syncLog, error: logErr } = await supabase
     .from('sync_logs')
@@ -1630,6 +1946,26 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (logErr || !syncLog) {
+    const logErrorCode = (logErr as { code?: string } | null)?.code;
+    if (logErrorCode === '23505') {
+      const { data: lockedLog } = await supabase
+        .from('sync_logs')
+        .select('id')
+        .eq('ad_account_id', adAccount.id)
+        .eq('status', 'in_progress')
+        .is('completed_at', null)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return new Response(JSON.stringify({
+        success: false,
+        sync_log_id: lockedLog?.id ?? null,
+        error: 'A sync is already in progress for this ad account. Please wait for it to finish.',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     return new Response(JSON.stringify({ error: 'Failed to create sync log' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -1671,12 +2007,25 @@ Deno.serve(async (req: Request) => {
 
   // Run platform sync
   try {
+    const executionOptions: SyncExecutionOptions = {
+      deadlineMs: Date.now() + SYNC_TIME_BUDGET_MS,
+    };
     const syncer = getPlatformSyncer(adAccount.platform as AdPlatform);
     if (!syncer) {
       return failSync(`Unsupported platform: ${adAccount.platform}`);
     }
-    const result = await syncer(accessToken, adAccount.external_account_id, adAccount.selected_child_accounts);
-    await writeResults(supabase, adAccount as { id: string; organization_id: string; platform: AdPlatform; external_account_id: string }, result);
+    const result = await syncer(
+      accessToken,
+      adAccount.external_account_id,
+      adAccount.selected_child_accounts,
+      executionOptions
+    );
+    await writeResults(
+      supabase,
+      adAccount as { id: string; organization_id: string; platform: AdPlatform; external_account_id: string },
+      result,
+      executionOptions
+    );
 
     await supabase
       .from('sync_logs')
