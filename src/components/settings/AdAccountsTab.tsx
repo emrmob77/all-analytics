@@ -97,8 +97,7 @@ export function AdAccountsTab({ isAdmin }: AdAccountsTabProps) {
               key={platform}
               platform={platform}
               isConnected={!!account}
-              accountName={account?.account_name}
-              accountId={account?.id}
+              account={account}
               isAdmin={isAdmin}
               onDisconnect={loadAccounts}
             />
