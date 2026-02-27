@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from './organization';
+import { getConnectedGoogleAdsAccount } from '@/lib/actions/google-ads';
 import type { AdPlatform } from '@/types';
 
 export type AudienceType = 'Lookalike' | 'Remarketing' | 'Interest' | 'Custom';
@@ -65,6 +66,17 @@ export async function getAudiences({
         if (search) {
             const escaped = search.trim().replace(/[%_\\]/g, '\\$&');
             query = query.ilike('name', `%${escaped}%`);
+        }
+
+        if (!platform || platform === 'all' || platform === 'google') {
+            const googleAccount = await getConnectedGoogleAdsAccount();
+            if (googleAccount?.selected_child_account_id) {
+                if (platform === 'google') {
+                    query = query.eq('child_ad_account_id', googleAccount.selected_child_account_id);
+                } else {
+                    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`);
+                }
+            }
         }
 
         const { data: audiences, error: audError } = await query;
