@@ -88,6 +88,12 @@ type RawMetricRow = {
   revenue: number;
 };
 
+type RawMetricWithCampaignRow = RawMetricRow & {
+  campaigns?: {
+    currency?: string | null;
+  } | null;
+};
+
 function aggregateMetrics(rows: RawMetricRow[]) {
   const agg = rows.reduce(
     (acc, r) => ({
@@ -164,7 +170,8 @@ export async function getDashboardMetrics(
     };
   }
 
-  const currAgg = aggregateMetrics(current as unknown as RawMetricRow[]);
+  const currentRows = (current ?? []) as unknown as RawMetricWithCampaignRow[];
+  const currAgg = aggregateMetrics(currentRows);
 
   // Prior period — same length window ending the day before `from`
   const fromDate = new Date(from);
@@ -216,8 +223,8 @@ export async function getDashboardMetrics(
       conversionsChange: pctChange(currAgg.conversions, priorAgg.conversions),
       ctrChange: pctChange(currAgg.ctr, priorAgg.ctr),
       roasChange: pctChange(currAgg.roas, priorAgg.roas),
-      currencyCode: (current as any[])[0]?.campaigns?.currency ?? 'USD',
-      currencySymbol: formatCurrencySymbol((current as any[])[0]?.campaigns?.currency ?? 'USD'),
+      currencyCode: currentRows[0]?.campaigns?.currency ?? 'USD',
+      currencySymbol: formatCurrencySymbol(currentRows[0]?.campaigns?.currency ?? 'USD'),
     },
     error: null,
   };
