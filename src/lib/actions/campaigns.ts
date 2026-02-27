@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getUserOrganization } from '@/lib/actions/organization';
+import { getConnectedGoogleAdsAccount } from '@/lib/actions/google-ads';
 import type { AdPlatform, CampaignStatus } from '@/types';
 
 export interface CampaignRow {
@@ -88,6 +89,21 @@ export async function getCampaigns(params: GetCampaignsParams): Promise<GetCampa
     // Escape PostgreSQL LIKE metacharacters so they match literally
     const escaped = search.trim().replace(/[%_\\]/g, '\\$&');
     query = query.ilike('name', `%${escaped}%`);
+  }
+
+  // Filter Google campaigns by active child account if applicable
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      // Only apply child account filter to Google platform
+      // Supabase OR syntax allows: platform=eq.meta,and(platform.eq.google,child_ad_account_id.eq.XXX)
+      // Let's use `.or` on the query
+      if (platform === 'google') {
+        query = query.eq('child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`);
+      }
+    }
   }
 
   // No .order() here — JS-side sort below handles ordering before pagination
