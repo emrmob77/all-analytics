@@ -560,16 +560,30 @@ async function syncGoogle(
     throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN is not configured');
   }
 
-  const loginCustomerIds = externalAccountId
+  const loginCustomerIdSet = new Set(
+    externalAccountId
     .split(',')
     .map(id => id.replace(/-/g, '').trim())
-    .filter(Boolean);
+    .filter(Boolean)
+  );
+
+  try {
+    const accessibleCustomers = await googleListAccessibleCustomers(accessToken, devToken);
+    for (const customerId of accessibleCustomers) {
+      const normalized = customerId.replace(/-/g, '').trim();
+      if (normalized) loginCustomerIdSet.add(normalized);
+    }
+  } catch (err) {
+    console.warn(
+      '[syncGoogle] Failed to extend login customer candidates from accessible customers:',
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+
+  const loginCustomerIds = Array.from(loginCustomerIdSet);
 
   if (loginCustomerIds.length === 0) {
-    const accessibleCustomers = await googleListAccessibleCustomers(accessToken, devToken);
-    if (accessibleCustomers.length > 0) {
-      loginCustomerIds.push(...accessibleCustomers);
-    }
+    throw new Error('No accessible Google Ads customer found for this account.');
   }
 
   const directOrClientIds = selectedAccounts
@@ -647,14 +661,29 @@ async function syncGoogleSingle(
 
   let accountCurrency = 'USD';
 
-  const loginCustomerIds = externalAccountId.split(',').map(id => id.replace(/-/g, '').trim()).filter(Boolean);
-  if (loginCustomerIds.length === 0) {
+  const loginCustomerIdSet = new Set(
+    externalAccountId
+      .split(',')
+      .map(id => id.replace(/-/g, '').trim())
+      .filter(Boolean)
+  );
+
+  try {
     const accessibleCustomers = await googleListAccessibleCustomers(accessToken, devToken);
-    if (accessibleCustomers.length > 0) {
-      loginCustomerIds.push(...accessibleCustomers);
-    } else {
-      throw new Error('No accessible Google Ads customer found for this account.');
+    for (const customerId of accessibleCustomers) {
+      const normalized = customerId.replace(/-/g, '').trim();
+      if (normalized) loginCustomerIdSet.add(normalized);
     }
+  } catch (err) {
+    console.warn(
+      '[syncGoogleSingle] Failed to extend login customer candidates from accessible customers:',
+      err instanceof Error ? err.message : String(err)
+    );
+  }
+
+  const loginCustomerIds = Array.from(loginCustomerIdSet);
+  if (loginCustomerIds.length === 0) {
+    throw new Error('No accessible Google Ads customer found for this account.');
   }
 
   let customerId = selectedChildId || loginCustomerIds[0];
