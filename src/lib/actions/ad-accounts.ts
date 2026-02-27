@@ -84,8 +84,13 @@ export async function initiateOAuth(
 
   const state = randomBytes(32).toString('hex');
   const cookieStore = await cookies();
+  const statePayload = JSON.stringify({
+    state,
+    user_id: user.id,
+    organization_id: membership.organization.id,
+  });
 
-  cookieStore.set(`oauth_state_${platform}`, state, {
+  cookieStore.set(`oauth_state_${platform}`, statePayload, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

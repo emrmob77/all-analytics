@@ -19,6 +19,12 @@ function isGoogleCustomerId(value: string): boolean {
   return value.split(',').every(id => /^\d{10}$/.test(id.trim().replace(/-/g, '')));
 }
 
+interface OAuthStateCookiePayload {
+  state: string;
+  user_id?: string;
+  organization_id?: string;
+}
+
 /**
  * Builds a redirect response and explicitly sets a cookie-deletion header on
  * it so the state cookie is cleared even if Next.js middleware caches the
@@ -85,8 +91,24 @@ export async function GET(
   const cookieStore = await cookies();
   const stateCookie = cookieStore.get(cookieName)?.value;
   console.log(`[oauth/${platform}] state cookie present: ${Boolean(stateCookie)}`);
+  let expectedState: string | null = stateCookie ?? null;
+  let expectedUserId: string | null = null;
+  let expectedOrganizationId: string | null = null;
 
-  if (!stateCookie || stateCookie !== stateParam) {
+  if (stateCookie) {
+    try {
+      const parsed = JSON.parse(stateCookie) as OAuthStateCookiePayload;
+      if (typeof parsed.state === 'string') {
+        expectedState = parsed.state;
+        expectedUserId = typeof parsed.user_id === 'string' ? parsed.user_id : null;
+        expectedOrganizationId = typeof parsed.organization_id === 'string' ? parsed.organization_id : null;
+      }
+    } catch {
+      // Backward compatibility: older cookies store raw state string only.
+    }
+  }
+
+  if (!expectedState || expectedState !== stateParam) {
     console.error(`[oauth/${platform}] state mismatch`);
     return NextResponse.redirect(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url)
@@ -109,6 +131,22 @@ export async function GET(
 
   const membership = await getUserOrganization();
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      cookieName,
+      isSecure
+    );
+  }
+
+  // Bind callback to the same user and org that initiated OAuth.
+  if (expectedUserId && expectedUserId !== user.id) {
+    return redirectWithCookieDeletion(
+      new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
+      cookieName,
+      isSecure
+    );
+  }
+  if (expectedOrganizationId && expectedOrganizationId !== membership.organization.id) {
     return redirectWithCookieDeletion(
       new URL(`${SETTINGS_URL}&error=oauth_failed`, request.url),
       cookieName,
