@@ -27,10 +27,30 @@ export async function getConnectedGoogleAdsAccount() {
 
     if (error || !adAccount) return null;
 
+    let selectedChildAccountId: string | null = adAccount.selected_child_account_id;
+
+    // Guard rail: only apply child-account filtering when DB rows are actually tagged.
+    // This prevents empty dashboards/lists during migration periods where
+    // legacy rows still have child_ad_account_id = null.
+    if (selectedChildAccountId) {
+        const { data: taggedCampaign } = await supabase
+            .from('campaigns')
+            .select('id')
+            .eq('organization_id', membership.organization.id)
+            .eq('platform', 'google')
+            .not('child_ad_account_id', 'is', null)
+            .limit(1)
+            .maybeSingle();
+
+        if (!taggedCampaign) {
+            selectedChildAccountId = null;
+        }
+    }
+
     return {
         id: adAccount.id,
         external_account_id: adAccount.external_account_id,
-        selected_child_account_id: adAccount.selected_child_account_id,
+        selected_child_account_id: selectedChildAccountId,
         selected_child_accounts: adAccount.selected_child_accounts,
         name: adAccount.account_name,
     };
