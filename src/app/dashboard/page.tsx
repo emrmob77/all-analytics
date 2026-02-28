@@ -436,6 +436,7 @@ export default function DashboardPage() {
   const [visibleItems, setVisibleItems] = useState<DashboardItemKey[]>(DEFAULT_VISIBLE_ITEMS);
   const [itemWidths, setItemWidths] = useState<Record<DashboardItemKey, ItemWidth>>(DEFAULT_WIDTHS);
   const [draggingItem, setDraggingItem] = useState<DashboardItemKey | null>(null);
+  const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
 
   const bundleQ = useDashboardBundle(dateRange, activePlatform);
@@ -601,77 +602,102 @@ export default function DashboardPage() {
 
         <div className="mt-5 flex items-center justify-between gap-2">
           <p className="text-[11.5px] text-[#5F6368]">
-            Drag any section with its handle to place metrics and charts in one shared canvas.
+            {isLayoutMode
+              ? 'Drag sections to reorder. Use width controls in Customize Layout.'
+              : 'Enable Edit Layout to rearrange cards and charts.'}
           </p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#5F6368] hover:bg-[#F8FAFC]"
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                Customize Layout
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>Visible Sections</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {normalizedOrder.map((key) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visibleItems.includes(key)}
-                  onSelect={(event) => event.preventDefault()}
-                  onCheckedChange={(checked) => toggleItem(key, checked === true)}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsLayoutMode((prev) => !prev)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors',
+                isLayoutMode
+                  ? 'border-[#1A73E8] bg-[#E8F0FE] text-[#1A73E8]'
+                  : 'border-[#E3E8EF] bg-white text-[#5F6368] hover:bg-[#F8FAFC]',
+              )}
+            >
+              {isLayoutMode ? 'Done' : 'Edit Layout'}
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#E3E8EF] bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-[#5F6368] hover:bg-[#F8FAFC]"
                 >
-                  <span className="flex w-full items-center justify-between gap-2">
-                    <span>{ITEM_META[key].label}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
-                      {ITEM_META[key].category}
+                  <Settings2 className="h-3.5 w-3.5" />
+                  Customize Layout
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Visible Sections</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {normalizedOrder.map((key) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={visibleItems.includes(key)}
+                    onSelect={(event) => event.preventDefault()}
+                    onCheckedChange={(checked) => toggleItem(key, checked === true)}
+                  >
+                    <span className="flex w-full items-center justify-between gap-2">
+                      <span>{ITEM_META[key].label}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
+                        {ITEM_META[key].category}
+                      </span>
                     </span>
-                  </span>
-                </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Section Width</DropdownMenuLabel>
-              {normalizedOrder.map((key) => (
-                <DropdownMenuItem key={`${key}-width`} onSelect={() => cycleItemWidth(key)}>
-                  <span className="flex w-full items-center justify-between gap-2">
-                    <span>{ITEM_META[key].label}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
-                      {WIDTH_LABEL[itemWidths[key] ?? ITEM_META[key].defaultWidth]}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Section Width</DropdownMenuLabel>
+                {normalizedOrder.map((key) => (
+                  <DropdownMenuItem key={`${key}-width`} onSelect={() => cycleItemWidth(key)}>
+                    <span className="flex w-full items-center justify-between gap-2">
+                      <span>{ITEM_META[key].label}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
+                        {WIDTH_LABEL[itemWidths[key] ?? ITEM_META[key].defaultWidth]}
+                      </span>
                     </span>
-                  </span>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={resetLayout}>Reset layout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={resetLayout}>Reset layout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
+        <div className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12">
           {orderedVisibleItems.map((key) => (
             <section
               key={key}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => handleDropItem(key)}
+              onDragOver={(event) => {
+                if (!isLayoutMode) return;
+                event.preventDefault();
+              }}
+              onDrop={() => {
+                if (!isLayoutMode) return;
+                handleDropItem(key);
+              }}
               className={cn(
-                'relative min-w-0 rounded-[10px] transition-all',
+                'group relative min-w-0 self-start rounded-[10px] transition-all',
                 WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
                 draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
             >
-              <button
-                type="button"
-                draggable
-                onDragStart={() => setDraggingItem(key)}
-                onDragEnd={() => setDraggingItem(null)}
-                className="absolute bottom-2 right-2 z-20 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/90 text-[#9AA0A6] shadow-sm hover:text-[#5F6368] active:cursor-grabbing"
-                title={`Drag ${ITEM_META[key].label}`}
-                aria-label={`Drag ${ITEM_META[key].label}`}
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </button>
+              {isLayoutMode && (
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={() => setDraggingItem(key)}
+                  onDragEnd={() => setDraggingItem(null)}
+                  className="absolute right-2 top-2 z-20 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/95 text-[#9AA0A6] opacity-100 shadow-sm hover:text-[#5F6368] active:cursor-grabbing lg:opacity-0 lg:group-hover:opacity-100"
+                  title={`Drag ${ITEM_META[key].label}`}
+                  aria-label={`Drag ${ITEM_META[key].label}`}
+                >
+                  <GripVertical className="h-3.5 w-3.5" />
+                </button>
+              )}
               {renderItem(key)}
             </section>
           ))}
