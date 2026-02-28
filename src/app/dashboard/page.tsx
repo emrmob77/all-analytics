@@ -7,10 +7,8 @@ import { MetricCards } from '@/components/dashboard/metric-cards';
 import { PerformanceChart } from '@/components/dashboard/performance-chart';
 import { HourlyChart } from '@/components/dashboard/hourly-chart';
 import { PlatformSummary } from '@/components/dashboard/platform-summary';
-import { CampaignTable } from '@/components/dashboard/campaign-table';
 import {
   useDashboardMetrics,
-  useDashboardCampaigns,
   useDashboardChartData,
   useDashboardHourlyData,
   useDashboardPlatformSummary,
@@ -29,7 +27,6 @@ export default function DashboardPage() {
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
 
   const metricsQ  = useDashboardMetrics(dateRange, activePlatform);
-  const campaignsQ = useDashboardCampaigns(dateRange, activePlatform);
   const chartQ    = useDashboardChartData(dateRange);
   const hourlyQ   = useDashboardHourlyData();
   const platformQ = useDashboardPlatformSummary(dateRange);
@@ -68,14 +65,6 @@ export default function DashboardPage() {
           <PlatformSummary
             data={platformQ.data}
             loading={platformQ.isLoading}
-          />
-        </div>
-
-        <div className="mt-5">
-          <CampaignTable
-            activePlatform={activePlatform}
-            data={campaignsQ.data}
-            loading={campaignsQ.isLoading}
           />
         </div>
       </div>
