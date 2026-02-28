@@ -32,32 +32,57 @@ function defaultRange(): DateRange {
 }
 
 type WidgetKey = 'metrics' | 'performance' | 'hourly' | 'platformSummary';
+type WidgetWidth = 'full' | 'wide' | 'half' | 'narrow';
 
-const WIDGET_LAYOUT_KEY = 'dashboard:widget-layout:v1';
+const WIDGET_LAYOUT_KEY = 'dashboard:widget-layout:v2';
 
 const ALL_WIDGETS: WidgetKey[] = ['metrics', 'performance', 'hourly', 'platformSummary'];
 
-const WIDGET_META: Record<WidgetKey, { label: string; category: string; span: string }> = {
+const WIDGET_META: Record<WidgetKey, { label: string; category: string }> = {
   metrics: {
     label: 'Metric Cards',
     category: 'Overview',
-    span: 'xl:col-span-12',
   },
   performance: {
     label: 'Performance Trend',
     category: 'Charts',
-    span: 'xl:col-span-8',
   },
   hourly: {
     label: 'CTR by Hour',
     category: 'Charts',
-    span: 'xl:col-span-4',
   },
   platformSummary: {
     label: 'Platform Summary',
     category: 'Breakdown',
-    span: 'xl:col-span-12',
   },
+};
+
+const WIDGET_WIDTH_CLASS: Record<WidgetWidth, string> = {
+  full: 'lg:col-span-12',
+  wide: 'lg:col-span-8',
+  half: 'lg:col-span-6',
+  narrow: 'lg:col-span-4',
+};
+
+const WIDGET_WIDTH_LABEL: Record<WidgetWidth, string> = {
+  full: 'Full',
+  wide: 'Wide',
+  half: 'Half',
+  narrow: 'Narrow',
+};
+
+const DEFAULT_WIDGET_WIDTHS: Record<WidgetKey, WidgetWidth> = {
+  metrics: 'full',
+  performance: 'wide',
+  hourly: 'narrow',
+  platformSummary: 'wide',
+};
+
+const WIDGET_WIDTH_ORDER: Record<WidgetKey, WidgetWidth[]> = {
+  metrics: ['full', 'wide'],
+  performance: ['wide', 'half', 'full'],
+  hourly: ['narrow', 'half', 'wide', 'full'],
+  platformSummary: ['wide', 'half', 'full'],
 };
 
 function sanitizeWidgetKeys(input: unknown): WidgetKey[] {
@@ -74,6 +99,21 @@ function sanitizeWidgetKeys(input: unknown): WidgetKey[] {
   return [...unique];
 }
 
+function sanitizeWidgetWidths(input: unknown): Record<WidgetKey, WidgetWidth> {
+  const next: Record<WidgetKey, WidgetWidth> = { ...DEFAULT_WIDGET_WIDTHS };
+  if (!input || typeof input !== 'object') return next;
+
+  const validWidths = new Set<WidgetWidth>(['full', 'wide', 'half', 'narrow']);
+  for (const key of ALL_WIDGETS) {
+    const candidate = (input as Record<string, unknown>)[key];
+    if (typeof candidate === 'string' && validWidths.has(candidate as WidgetWidth)) {
+      next[key] = candidate as WidgetWidth;
+    }
+  }
+
+  return next;
+}
+
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
   const next = [...arr];
@@ -87,6 +127,7 @@ export default function DashboardPage() {
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
   const [widgetOrder, setWidgetOrder] = useState<WidgetKey[]>(ALL_WIDGETS);
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetKey[]>(ALL_WIDGETS);
+  const [widgetWidths, setWidgetWidths] = useState<Record<WidgetKey, WidgetWidth>>(DEFAULT_WIDGET_WIDTHS);
   const [draggingWidget, setDraggingWidget] = useState<WidgetKey | null>(null);
   const [layoutReady, setLayoutReady] = useState(false);
 
@@ -101,12 +142,14 @@ export default function DashboardPage() {
         return;
       }
 
-      const parsed = JSON.parse(raw) as { order?: unknown; visible?: unknown };
+      const parsed = JSON.parse(raw) as { order?: unknown; visible?: unknown; widths?: unknown };
       const savedOrder = sanitizeWidgetKeys(parsed.order);
       const savedVisible = sanitizeWidgetKeys(parsed.visible);
+      const savedWidths = sanitizeWidgetWidths(parsed.widths);
 
       if (savedOrder.length > 0) setWidgetOrder(savedOrder);
       if (savedVisible.length > 0) setVisibleWidgets(savedVisible);
+      setWidgetWidths(savedWidths);
     } catch {
       // ignore corrupted local storage values
     } finally {
@@ -128,12 +171,13 @@ export default function DashboardPage() {
         JSON.stringify({
           order: normalizedOrder,
           visible: visibleWidgets,
+          widths: widgetWidths,
         }),
       );
     } catch {
       // no-op
     }
-  }, [layoutReady, normalizedOrder, visibleWidgets]);
+  }, [layoutReady, normalizedOrder, visibleWidgets, widgetWidths]);
 
   const orderedVisibleWidgets = useMemo(() => {
     const visibleSet = new Set(visibleWidgets);
@@ -163,9 +207,21 @@ export default function DashboardPage() {
     setDraggingWidget(null);
   };
 
+  const cycleWidgetWidth = (key: WidgetKey) => {
+    setWidgetWidths((prev) => {
+      const sequence = WIDGET_WIDTH_ORDER[key];
+      const current = prev[key] ?? DEFAULT_WIDGET_WIDTHS[key];
+      const index = sequence.indexOf(current);
+      const next = sequence[(index + 1) % sequence.length];
+      toast.success(`${WIDGET_META[key].label} width: ${WIDGET_WIDTH_LABEL[next]}`);
+      return { ...prev, [key]: next };
+    });
+  };
+
   const resetWidgetLayout = () => {
     setWidgetOrder(ALL_WIDGETS);
     setVisibleWidgets(ALL_WIDGETS);
+    setWidgetWidths(DEFAULT_WIDGET_WIDTHS);
     toast.success('Dashboard layout reset to default.');
   };
 
@@ -247,12 +303,27 @@ export default function DashboardPage() {
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
+              <DropdownMenuLabel>Widget Width</DropdownMenuLabel>
+              {normalizedOrder.map((key) => (
+                <DropdownMenuItem
+                  key={`${key}-width`}
+                  onSelect={() => cycleWidgetWidth(key)}
+                >
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span>{WIDGET_META[key].label}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
+                      {WIDGET_WIDTH_LABEL[widgetWidths[key] ?? DEFAULT_WIDGET_WIDTHS[key]]}
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={resetWidgetLayout}>Reset layout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-3.5 xl:grid-cols-12">
+        <div className="mt-3 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
           {orderedVisibleWidgets.map((key) => (
             <section
               key={key}
@@ -263,7 +334,7 @@ export default function DashboardPage() {
               onDrop={() => handleDropWidget(key)}
               className={cn(
                 'min-w-0 cursor-move rounded-[10px] transition-all',
-                WIDGET_META[key].span,
+                WIDGET_WIDTH_CLASS[widgetWidths[key] ?? DEFAULT_WIDGET_WIDTHS[key]],
                 draggingWidget === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
             >
