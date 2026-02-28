@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { GripVertical, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDashboardBundle, useDashboardChartData } from '@/hooks/useDashboard';
@@ -512,10 +512,10 @@ export default function DashboardPage() {
     setVisibleItems((prev) => (prev.includes(key) ? prev : [...prev, key]));
   };
 
-  const handleDropItem = (target: DashboardItemKey) => {
-    if (!draggingItem || draggingItem === target) return;
+  const handleDropItem = (target: DashboardItemKey, source: DashboardItemKey | null) => {
+    if (!source || source === target) return;
     setItemOrder((prev) => {
-      const from = prev.indexOf(draggingItem);
+      const from = prev.indexOf(source);
       const to = prev.indexOf(target);
       return moveItem(prev, from, to);
     });
@@ -671,32 +671,36 @@ export default function DashboardPage() {
           {orderedVisibleItems.map((key) => (
             <section
               key={key}
+              draggable={isLayoutMode}
+              onDragStart={(event) => {
+                if (!isLayoutMode) return;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', key);
+                setDraggingItem(key);
+              }}
+              onDragEnd={() => setDraggingItem(null)}
               onDragOver={(event) => {
                 if (!isLayoutMode) return;
                 event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
               }}
-              onDrop={() => {
+              onDrop={(event) => {
                 if (!isLayoutMode) return;
-                handleDropItem(key);
+                event.preventDefault();
+                const sourceKey = event.dataTransfer.getData('text/plain') as DashboardItemKey | '';
+                handleDropItem(key, sourceKey || draggingItem);
               }}
               className={cn(
-                'group relative min-w-0 self-start rounded-[10px] transition-all',
+                'relative min-w-0 self-start rounded-[10px] transition-all',
+                isLayoutMode && 'cursor-move',
                 WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
                 draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
             >
               {isLayoutMode && (
-                <button
-                  type="button"
-                  draggable
-                  onDragStart={() => setDraggingItem(key)}
-                  onDragEnd={() => setDraggingItem(null)}
-                  className="absolute right-2 top-2 z-20 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/95 text-[#9AA0A6] opacity-100 shadow-sm hover:text-[#5F6368] active:cursor-grabbing lg:opacity-0 lg:group-hover:opacity-100"
-                  title={`Drag ${ITEM_META[key].label}`}
-                  aria-label={`Drag ${ITEM_META[key].label}`}
-                >
-                  <GripVertical className="h-3.5 w-3.5" />
-                </button>
+                <div className="absolute left-2 top-2 z-20 rounded-md border border-[#E3E8EF] bg-white/95 px-2 py-1 text-[10px] font-medium text-[#5F6368] shadow-sm">
+                  Drag to move: {ITEM_META[key].label}
+                </div>
               )}
               {renderItem(key)}
             </section>
