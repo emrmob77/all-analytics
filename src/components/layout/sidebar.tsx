@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { cn } from '@/lib/utils';
@@ -142,6 +142,7 @@ function getInitials(name: string): string {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const user = useUser();
   const { organization, role } = useOrganization();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -203,6 +204,10 @@ export function Sidebar() {
 
       await updateActiveGoogleAdsView(googleAdAccount.id, childId);
       setGoogleAdAccount({ ...googleAdAccount, selected_child_account_id: childId });
+
+      // Account scope changed: clear client-side query cache so pages refetch
+      // immediately with the new selected child account context.
+      queryClient.clear();
 
       toast.success('Active view changed.', { id: 'switch-account' });
 
