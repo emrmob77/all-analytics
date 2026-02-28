@@ -290,14 +290,6 @@ function sanitizeItemWidths(input: unknown): Record<DashboardItemKey, ItemWidth>
   return widths;
 }
 
-function moveItem<T>(arr: T[], from: number, to: number): T[] {
-  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
-  const next = [...arr];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
-}
-
 function buildMetricCards(data?: DashboardMetrics | null): Record<MetricItemKey, Omit<MetricCardProps, 'loading' | 'delay'>> {
   const currency = data?.currencySymbol;
 
@@ -438,6 +430,7 @@ export default function DashboardPage() {
   const [visibleItems, setVisibleItems] = useState<DashboardItemKey[]>(DEFAULT_VISIBLE_ITEMS);
   const [itemWidths, setItemWidths] = useState<Record<DashboardItemKey, ItemWidth>>(DEFAULT_WIDTHS);
   const [draggingItem, setDraggingItem] = useState<DashboardItemKey | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
   const [rowSpans, setRowSpans] = useState<Partial<Record<DashboardItemKey, number>>>({});
@@ -501,6 +494,36 @@ export default function DashboardPage() {
     return normalizedOrder.filter((key) => visibleSet.has(key));
   }, [normalizedOrder, visibleItems]);
 
+  const reorderVisibleItems = (source: DashboardItemKey, target: DashboardItemKey | null, insertAfter: boolean) => {
+    setItemOrder((prev) => {
+      const currentVisible = prev.filter((key) => visibleItems.includes(key));
+      const sourceIndexVisible = currentVisible.indexOf(source);
+      if (sourceIndexVisible < 0) return prev;
+
+      const withoutSource = currentVisible.filter((key) => key !== source);
+
+      let nextVisible: DashboardItemKey[];
+      if (!target) {
+        nextVisible = [...withoutSource, source];
+      } else {
+        const targetIndex = withoutSource.indexOf(target);
+        if (targetIndex < 0) {
+          nextVisible = [...withoutSource, source];
+        } else {
+          const insertAt = insertAfter ? targetIndex + 1 : targetIndex;
+          nextVisible = [
+            ...withoutSource.slice(0, insertAt),
+            source,
+            ...withoutSource.slice(insertAt),
+          ];
+        }
+      }
+
+      const fixed = prev.filter((key) => !visibleItems.includes(key));
+      return [...nextVisible, ...fixed];
+    });
+  };
+
   const metricCards = useMemo(() => buildMetricCards(bundle?.metrics), [bundle?.metrics]);
 
   const registerSectionRef = (key: DashboardItemKey) => (node: HTMLElement | null) => {
@@ -545,16 +568,6 @@ export default function DashboardPage() {
     }
 
     setVisibleItems((prev) => (prev.includes(key) ? prev : [...prev, key]));
-  };
-
-  const handleDropItem = (target: DashboardItemKey, source: DashboardItemKey | null) => {
-    if (!source || source === target) return;
-    setItemOrder((prev) => {
-      const from = prev.indexOf(source);
-      const to = prev.indexOf(target);
-      return moveItem(prev, from, to);
-    });
-    setDraggingItem(null);
   };
 
   const cycleItemWidth = (key: DashboardItemKey) => {
@@ -644,7 +657,11 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsLayoutMode((prev) => !prev)}
+              onClick={() => {
+                setIsLayoutMode((prev) => !prev);
+                setDraggingItem(null);
+                setDropIndex(null);
+              }}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors',
                 isLayoutMode
@@ -702,40 +719,99 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-flow-dense lg:grid-cols-12 lg:[grid-auto-rows:8px]">
-          {orderedVisibleItems.map((key) => (
-            <section
-              key={key}
-              ref={registerSectionRef(key)}
-              draggable={isLayoutMode}
-              onDragStart={(event) => {
-                if (!isLayoutMode) return;
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', key);
-                setDraggingItem(key);
-              }}
-              onDragEnd={() => setDraggingItem(null)}
-              onDragOver={(event) => {
-                if (!isLayoutMode) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
-              }}
-              onDrop={(event) => {
-                if (!isLayoutMode) return;
-                event.preventDefault();
-                const sourceKey = event.dataTransfer.getData('text/plain') as DashboardItemKey | '';
-                handleDropItem(key, sourceKey || draggingItem);
-              }}
-              className={cn(
-                'relative min-w-0 self-start rounded-[10px] transition-all',
-                isLayoutMode && 'cursor-move',
-                WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
-                draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
+        <div
+          className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-flow-dense lg:grid-cols-12 lg:[grid-auto-rows:8px]"
+          onDragOver={(event) => {
+            if (!isLayoutMode || !draggingItem) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+
+            const container = event.currentTarget as HTMLDivElement;
+            const candidates = Array.from(
+              container.querySelectorAll<HTMLElement>('[data-layout-item="1"]'),
+            );
+
+            if (candidates.length === 0) {
+              setDropIndex(0);
+              return;
+            }
+
+            let nearestIndex = candidates.length;
+            let smallestDistance = Number.POSITIVE_INFINITY;
+
+            for (let i = 0; i < candidates.length; i += 1) {
+              const rect = candidates[i].getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              const dx = event.clientX - centerX;
+              const dy = event.clientY - centerY;
+              const distance = Math.hypot(dx, dy);
+              if (distance < smallestDistance) {
+                smallestDistance = distance;
+                const placeAfter =
+                  event.clientY > centerY ||
+                  (Math.abs(event.clientY - centerY) < 24 && event.clientX > centerX);
+                nearestIndex = i + (placeAfter ? 1 : 0);
+              }
+            }
+
+            setDropIndex(nearestIndex);
+          }}
+          onDrop={(event) => {
+            if (!isLayoutMode || !draggingItem) return;
+            event.preventDefault();
+            const sourceKey = event.dataTransfer.getData('text/plain') as DashboardItemKey | '';
+            const source = (sourceKey || draggingItem) as DashboardItemKey | null;
+            if (!source) return;
+
+            const visible = orderedVisibleItems.filter((key) => key !== source);
+            const targetIndex = dropIndex == null ? visible.length : Math.min(dropIndex, visible.length);
+            const targetBefore = visible[targetIndex] ?? null;
+
+            reorderVisibleItems(source, targetBefore, false);
+            setDraggingItem(null);
+            setDropIndex(null);
+          }}
+          onDragLeave={(event) => {
+            if (!isLayoutMode) return;
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+              setDropIndex(null);
+            }
+          }}
+        >
+          {isLayoutMode && dropIndex === 0 && (
+            <div className="h-10 rounded-[10px] border-2 border-dashed border-[#1A73E8]/45 bg-[#E8F0FE]/50 lg:col-span-12" />
+          )}
+          {orderedVisibleItems.map((key, idx) => (
+            <div key={key} className="contents">
+              {isLayoutMode && dropIndex === idx + 1 && (
+                <div className="h-10 rounded-[10px] border-2 border-dashed border-[#1A73E8]/45 bg-[#E8F0FE]/50 lg:col-span-12" />
               )}
-              style={{ gridRowEnd: `span ${rowSpans[key] ?? 1}` }}
-            >
-              {renderItem(key)}
-            </section>
+              <section
+                data-layout-item="1"
+                ref={registerSectionRef(key)}
+                draggable={isLayoutMode}
+                onDragStart={(event) => {
+                  if (!isLayoutMode) return;
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData('text/plain', key);
+                  setDraggingItem(key);
+                }}
+                onDragEnd={() => {
+                  setDraggingItem(null);
+                  setDropIndex(null);
+                }}
+                className={cn(
+                  'relative min-w-0 self-start rounded-[10px] transition-all',
+                  isLayoutMode && 'cursor-move',
+                  WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
+                  draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
+                )}
+                style={{ gridRowEnd: `span ${rowSpans[key] ?? 1}` }}
+              >
+                {renderItem(key)}
+              </section>
+            </div>
           ))}
         </div>
       </div>
