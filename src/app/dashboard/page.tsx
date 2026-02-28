@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays } from '@/lib/date';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { MetricCards } from '@/components/dashboard/metric-cards';
+import { MetricCard, type MetricCardProps } from '@/components/ui/metric-card';
 import { PerformanceChart } from '@/components/dashboard/performance-chart';
 import { HourlyChart } from '@/components/dashboard/hourly-chart';
 import { PlatformSummary } from '@/components/dashboard/platform-summary';
@@ -19,15 +19,13 @@ import {
 import { GripVertical, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  useDashboardBundle,
-  useDashboardChartData,
-} from '@/hooks/useDashboard';
+import { useDashboardBundle, useDashboardChartData } from '@/hooks/useDashboard';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform } from '@/types';
 import type {
   DashboardChartGranularity,
   DashboardChartMetric,
+  DashboardMetrics,
 } from '@/lib/actions/dashboard';
 
 function defaultRange(): DateRange {
@@ -36,87 +34,258 @@ function defaultRange(): DateRange {
   return { from: addDays(today, -29), to: today };
 }
 
-type WidgetKey = 'metrics' | 'performance' | 'hourly' | 'platformSummary';
-type WidgetWidth = 'full' | 'wide' | 'half' | 'narrow';
+type ItemWidth = 'full' | 'wide' | 'half' | 'third' | 'quarter';
 
-const WIDGET_LAYOUT_KEY = 'dashboard:widget-layout:v2';
+type MetricItemKey =
+  | 'metric-sessions'
+  | 'metric-transactions'
+  | 'metric-impressions'
+  | 'metric-clicks'
+  | 'metric-spend'
+  | 'metric-revenue'
+  | 'metric-cps'
+  | 'metric-cpc'
+  | 'metric-cpm'
+  | 'metric-ctr'
+  | 'metric-conversions'
+  | 'metric-cvr'
+  | 'metric-session-cvr'
+  | 'metric-cpa'
+  | 'metric-roas'
+  | 'metric-aov'
+  | 'metric-profit'
+  | 'metric-margin';
 
-const ALL_WIDGETS: WidgetKey[] = ['metrics', 'performance', 'hourly', 'platformSummary'];
+type WidgetItemKey = 'widget-performance' | 'widget-hourly' | 'widget-platform-summary';
+type DashboardItemKey = MetricItemKey | WidgetItemKey;
 
-const WIDGET_META: Record<WidgetKey, { label: string; category: string }> = {
-  metrics: {
-    label: 'Metric Cards',
-    category: 'Overview',
-  },
-  performance: {
-    label: 'Performance Trend',
-    category: 'Charts',
-  },
-  hourly: {
-    label: 'CTR by Hour',
-    category: 'Charts',
-  },
-  platformSummary: {
-    label: 'Platform Summary',
-    category: 'Breakdown',
-  },
-};
+interface ItemMeta {
+  label: string;
+  category: 'Metrics' | 'Charts' | 'Breakdown';
+  defaultWidth: ItemWidth;
+  widthOptions: ItemWidth[];
+}
 
-const WIDGET_WIDTH_CLASS: Record<WidgetWidth, string> = {
+const LAYOUT_STORAGE_KEY = 'dashboard:canvas-layout:v1';
+
+const WIDTH_CLASS: Record<ItemWidth, string> = {
   full: 'lg:col-span-12',
   wide: 'lg:col-span-8',
   half: 'lg:col-span-6',
-  narrow: 'lg:col-span-4',
+  third: 'lg:col-span-4',
+  quarter: 'lg:col-span-3',
 };
 
-const WIDGET_WIDTH_LABEL: Record<WidgetWidth, string> = {
+const WIDTH_LABEL: Record<ItemWidth, string> = {
   full: 'Full',
   wide: 'Wide',
   half: 'Half',
-  narrow: 'Narrow',
+  third: 'Third',
+  quarter: 'Quarter',
 };
 
-const DEFAULT_WIDGET_WIDTHS: Record<WidgetKey, WidgetWidth> = {
-  metrics: 'full',
-  performance: 'wide',
-  hourly: 'narrow',
-  platformSummary: 'wide',
+const ALL_ITEMS: DashboardItemKey[] = [
+  'metric-sessions',
+  'metric-transactions',
+  'metric-impressions',
+  'metric-clicks',
+  'metric-spend',
+  'metric-revenue',
+  'metric-cps',
+  'metric-cpc',
+  'metric-cpm',
+  'metric-ctr',
+  'metric-conversions',
+  'metric-cvr',
+  'metric-session-cvr',
+  'metric-cpa',
+  'metric-roas',
+  'metric-aov',
+  'metric-profit',
+  'metric-margin',
+  'widget-performance',
+  'widget-hourly',
+  'widget-platform-summary',
+];
+
+const DEFAULT_VISIBLE_ITEMS: DashboardItemKey[] = [
+  'metric-sessions',
+  'metric-transactions',
+  'metric-spend',
+  'metric-revenue',
+  'metric-cpc',
+  'metric-cpa',
+  'metric-roas',
+  'metric-cvr',
+  'widget-performance',
+  'widget-hourly',
+  'widget-platform-summary',
+];
+
+const ITEM_META: Record<DashboardItemKey, ItemMeta> = {
+  'metric-sessions': {
+    label: 'Sessions (Estimated)',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-transactions': {
+    label: 'Transactions (Estimated)',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-impressions': {
+    label: 'Total Impressions',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-clicks': {
+    label: 'Total Clicks',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-spend': {
+    label: 'Total Spend',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-revenue': {
+    label: 'Total Revenue',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-cps': {
+    label: 'Cost / Session (Estimated)',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-cpc': {
+    label: 'Avg. CPC',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-cpm': {
+    label: 'CPM',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-ctr': {
+    label: 'Avg. CTR',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-conversions': {
+    label: 'Conversions',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-cvr': {
+    label: 'CVR',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-session-cvr': {
+    label: 'Session Conv. Rate (Estimated)',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-cpa': {
+    label: 'CPA',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-roas': {
+    label: 'Avg. ROAS',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-aov': {
+    label: 'AOV',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-profit': {
+    label: 'Gross Profit',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'metric-margin': {
+    label: 'Profit Margin',
+    category: 'Metrics',
+    defaultWidth: 'quarter',
+    widthOptions: ['quarter', 'third', 'half'],
+  },
+  'widget-performance': {
+    label: 'Performance Trend',
+    category: 'Charts',
+    defaultWidth: 'wide',
+    widthOptions: ['full', 'wide', 'half', 'third'],
+  },
+  'widget-hourly': {
+    label: 'CTR by Hour',
+    category: 'Charts',
+    defaultWidth: 'third',
+    widthOptions: ['half', 'third', 'wide', 'full'],
+  },
+  'widget-platform-summary': {
+    label: 'Platform Summary',
+    category: 'Breakdown',
+    defaultWidth: 'full',
+    widthOptions: ['full', 'wide', 'half'],
+  },
 };
 
-const WIDGET_WIDTH_ORDER: Record<WidgetKey, WidgetWidth[]> = {
-  metrics: ['full', 'wide', 'half', 'narrow'],
-  performance: ['wide', 'half', 'full'],
-  hourly: ['narrow', 'half', 'wide', 'full'],
-  platformSummary: ['wide', 'half', 'full'],
-};
+const DEFAULT_WIDTHS: Record<DashboardItemKey, ItemWidth> = ALL_ITEMS.reduce(
+  (acc, key) => {
+    acc[key] = ITEM_META[key].defaultWidth;
+    return acc;
+  },
+  {} as Record<DashboardItemKey, ItemWidth>,
+);
 
-function sanitizeWidgetKeys(input: unknown): WidgetKey[] {
+function sanitizeItemKeys(input: unknown): DashboardItemKey[] {
   if (!Array.isArray(input)) return [];
-  const valid = new Set<WidgetKey>(ALL_WIDGETS);
-  const unique = new Set<WidgetKey>();
+  const valid = new Set<DashboardItemKey>(ALL_ITEMS);
+  const unique = new Set<DashboardItemKey>();
 
   for (const item of input) {
     if (typeof item !== 'string') continue;
-    if (!valid.has(item as WidgetKey)) continue;
-    unique.add(item as WidgetKey);
+    if (!valid.has(item as DashboardItemKey)) continue;
+    unique.add(item as DashboardItemKey);
   }
 
   return [...unique];
 }
 
-function sanitizeWidgetWidths(input: unknown): Record<WidgetKey, WidgetWidth> {
-  const next: Record<WidgetKey, WidgetWidth> = { ...DEFAULT_WIDGET_WIDTHS };
-  if (!input || typeof input !== 'object') return next;
+function sanitizeItemWidths(input: unknown): Record<DashboardItemKey, ItemWidth> {
+  const widths = { ...DEFAULT_WIDTHS };
+  if (!input || typeof input !== 'object') return widths;
 
-  const validWidths = new Set<WidgetWidth>(['full', 'wide', 'half', 'narrow']);
-  for (const key of ALL_WIDGETS) {
+  const valid = new Set<ItemWidth>(['full', 'wide', 'half', 'third', 'quarter']);
+  for (const key of ALL_ITEMS) {
     const candidate = (input as Record<string, unknown>)[key];
-    if (typeof candidate === 'string' && validWidths.has(candidate as WidgetWidth)) {
-      next[key] = candidate as WidgetWidth;
-    }
+    if (typeof candidate !== 'string') continue;
+    if (!valid.has(candidate as ItemWidth)) continue;
+    widths[key] = candidate as ItemWidth;
   }
 
-  return next;
+  return widths;
 }
 
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
@@ -127,16 +296,147 @@ function moveItem<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
+function buildMetricCards(data?: DashboardMetrics | null): Record<MetricItemKey, Omit<MetricCardProps, 'loading' | 'delay'>> {
+  const currency = data?.currencySymbol;
+
+  return {
+    'metric-sessions': {
+      title: 'Sessions (Estimated)',
+      value: data?.totalClicks ?? 0,
+      change: data?.clicksChange ?? undefined,
+      format: 'number',
+    },
+    'metric-transactions': {
+      title: 'Transactions (Estimated)',
+      value: data?.totalConversions ?? 0,
+      change: data?.conversionsChange ?? undefined,
+      format: 'number',
+    },
+    'metric-impressions': {
+      title: 'Total Impressions',
+      value: data?.totalImpressions ?? 0,
+      change: data?.impressionsChange ?? undefined,
+      format: 'number',
+    },
+    'metric-clicks': {
+      title: 'Total Clicks',
+      value: data?.totalClicks ?? 0,
+      change: data?.clicksChange ?? undefined,
+      format: 'number',
+    },
+    'metric-spend': {
+      title: 'Total Spend',
+      value: data?.totalSpend ?? 0,
+      change: data?.spendChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+    },
+    'metric-revenue': {
+      title: 'Total Revenue',
+      value: data?.totalRevenue ?? 0,
+      change: data?.revenueChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+    },
+    'metric-cps': {
+      title: 'Cost / Session (Estimated)',
+      value: data?.avgCpc ?? 0,
+      change: data?.cpcChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-cpc': {
+      title: 'Avg. CPC',
+      value: data?.avgCpc ?? 0,
+      change: data?.cpcChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-cpm': {
+      title: 'CPM',
+      value: data?.avgCpm ?? 0,
+      change: data?.cpmChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-ctr': {
+      title: 'Avg. CTR',
+      value: data?.avgCtr ?? 0,
+      change: data?.ctrChange ?? undefined,
+      format: 'percentage',
+    },
+    'metric-conversions': {
+      title: 'Conversions',
+      value: data?.totalConversions ?? 0,
+      change: data?.conversionsChange ?? undefined,
+      format: 'number',
+    },
+    'metric-cvr': {
+      title: 'CVR',
+      value: data?.cvr ?? 0,
+      change: data?.cvrChange ?? undefined,
+      format: 'percentage',
+    },
+    'metric-session-cvr': {
+      title: 'Session Conv. Rate (Estimated)',
+      value: data?.cvr ?? 0,
+      change: data?.cvrChange ?? undefined,
+      format: 'percentage',
+    },
+    'metric-cpa': {
+      title: 'CPA',
+      value: data?.cpa ?? 0,
+      change: data?.cpaChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-roas': {
+      title: 'Avg. ROAS',
+      value: data?.avgRoas ?? 0,
+      change: data?.roasChange ?? undefined,
+      format: 'number',
+      decimals: 2,
+      suffix: 'x',
+    },
+    'metric-aov': {
+      title: 'AOV',
+      value: data?.aov ?? 0,
+      change: data?.aovChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-profit': {
+      title: 'Gross Profit',
+      value: data?.profit ?? 0,
+      change: data?.profitChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+    },
+    'metric-margin': {
+      title: 'Profit Margin',
+      value: data?.margin ?? 0,
+      change: data?.marginChange ?? undefined,
+      format: 'percentage',
+    },
+  };
+}
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>(defaultRange);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
-  const [widgetOrder, setWidgetOrder] = useState<WidgetKey[]>(ALL_WIDGETS);
-  const [visibleWidgets, setVisibleWidgets] = useState<WidgetKey[]>(ALL_WIDGETS);
-  const [widgetWidths, setWidgetWidths] = useState<Record<WidgetKey, WidgetWidth>>(DEFAULT_WIDGET_WIDTHS);
-  const [draggingWidget, setDraggingWidget] = useState<WidgetKey | null>(null);
-  const [layoutReady, setLayoutReady] = useState(false);
   const [chartMetric, setChartMetric] = useState<DashboardChartMetric>('impressions');
   const [chartGranularity, setChartGranularity] = useState<DashboardChartGranularity>('daily');
+  const [itemOrder, setItemOrder] = useState<DashboardItemKey[]>(ALL_ITEMS);
+  const [visibleItems, setVisibleItems] = useState<DashboardItemKey[]>(DEFAULT_VISIBLE_ITEMS);
+  const [itemWidths, setItemWidths] = useState<Record<DashboardItemKey, ItemWidth>>(DEFAULT_WIDTHS);
+  const [draggingItem, setDraggingItem] = useState<DashboardItemKey | null>(null);
+  const [layoutReady, setLayoutReady] = useState(false);
 
   const bundleQ = useDashboardBundle(dateRange, activePlatform);
   const chartQ = useDashboardChartData(dateRange, chartMetric, chartGranularity);
@@ -144,134 +444,149 @@ export default function DashboardPage() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(WIDGET_LAYOUT_KEY);
+      const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
       if (!raw) {
         setLayoutReady(true);
         return;
       }
 
-      const parsed = JSON.parse(raw) as { order?: unknown; visible?: unknown; widths?: unknown };
-      const savedOrder = sanitizeWidgetKeys(parsed.order);
-      const savedVisible = sanitizeWidgetKeys(parsed.visible);
-      const savedWidths = sanitizeWidgetWidths(parsed.widths);
+      const parsed = JSON.parse(raw) as {
+        order?: unknown;
+        visible?: unknown;
+        widths?: unknown;
+      };
+      const savedOrder = sanitizeItemKeys(parsed.order);
+      const savedVisible = sanitizeItemKeys(parsed.visible);
+      const savedWidths = sanitizeItemWidths(parsed.widths);
 
-      if (savedOrder.length > 0) setWidgetOrder(savedOrder);
-      if (savedVisible.length > 0) setVisibleWidgets(savedVisible);
-      setWidgetWidths(savedWidths);
+      if (savedOrder.length > 0) setItemOrder(savedOrder);
+      if (savedVisible.length > 0) setVisibleItems(savedVisible);
+      setItemWidths(savedWidths);
     } catch {
-      // ignore corrupted local storage values
+      // Ignore malformed local storage
     } finally {
       setLayoutReady(true);
     }
   }, []);
 
   const normalizedOrder = useMemo(() => {
-    const seen = new Set(widgetOrder);
-    const missing = ALL_WIDGETS.filter((key) => !seen.has(key));
-    return [...widgetOrder, ...missing];
-  }, [widgetOrder]);
+    const seen = new Set(itemOrder);
+    const missing = ALL_ITEMS.filter((key) => !seen.has(key));
+    return [...itemOrder, ...missing];
+  }, [itemOrder]);
 
   useEffect(() => {
     if (!layoutReady) return;
     try {
       window.localStorage.setItem(
-        WIDGET_LAYOUT_KEY,
+        LAYOUT_STORAGE_KEY,
         JSON.stringify({
           order: normalizedOrder,
-          visible: visibleWidgets,
-          widths: widgetWidths,
+          visible: visibleItems,
+          widths: itemWidths,
         }),
       );
     } catch {
       // no-op
     }
-  }, [layoutReady, normalizedOrder, visibleWidgets, widgetWidths]);
+  }, [layoutReady, normalizedOrder, visibleItems, itemWidths]);
 
-  const orderedVisibleWidgets = useMemo(() => {
-    const visibleSet = new Set(visibleWidgets);
+  const orderedVisibleItems = useMemo(() => {
+    const visibleSet = new Set(visibleItems);
     return normalizedOrder.filter((key) => visibleSet.has(key));
-  }, [normalizedOrder, visibleWidgets]);
+  }, [normalizedOrder, visibleItems]);
 
-  const toggleWidget = (key: WidgetKey, checked: boolean) => {
+  const metricCards = useMemo(() => buildMetricCards(bundle?.metrics), [bundle?.metrics]);
+
+  const toggleItem = (key: DashboardItemKey, checked: boolean) => {
     if (!checked) {
-      if (visibleWidgets.length <= 1) {
-        toast.error('At least one dashboard widget must stay visible.');
+      if (visibleItems.length <= 1) {
+        toast.error('At least one section must stay visible.');
         return;
       }
-      setVisibleWidgets((prev) => prev.filter((item) => item !== key));
+      setVisibleItems((prev) => prev.filter((item) => item !== key));
       return;
     }
 
-    setVisibleWidgets((prev) => (prev.includes(key) ? prev : [...prev, key]));
+    setVisibleItems((prev) => (prev.includes(key) ? prev : [...prev, key]));
   };
 
-  const handleDropWidget = (target: WidgetKey) => {
-    if (!draggingWidget || draggingWidget === target) return;
-    setWidgetOrder((prev) => {
-      const from = prev.indexOf(draggingWidget);
+  const handleDropItem = (target: DashboardItemKey) => {
+    if (!draggingItem || draggingItem === target) return;
+    setItemOrder((prev) => {
+      const from = prev.indexOf(draggingItem);
       const to = prev.indexOf(target);
       return moveItem(prev, from, to);
     });
-    setDraggingWidget(null);
+    setDraggingItem(null);
   };
 
-  const cycleWidgetWidth = (key: WidgetKey) => {
-    setWidgetWidths((prev) => {
-      const sequence = WIDGET_WIDTH_ORDER[key];
-      const current = prev[key] ?? DEFAULT_WIDGET_WIDTHS[key];
-      const index = sequence.indexOf(current);
-      const next = sequence[(index + 1) % sequence.length];
-      toast.success(`${WIDGET_META[key].label} width: ${WIDGET_WIDTH_LABEL[next]}`);
+  const cycleItemWidth = (key: DashboardItemKey) => {
+    setItemWidths((prev) => {
+      const options = ITEM_META[key].widthOptions;
+      const current = prev[key] ?? ITEM_META[key].defaultWidth;
+      const index = options.indexOf(current);
+      const next = options[(index + 1) % options.length];
+      toast.success(`${ITEM_META[key].label} width: ${WIDTH_LABEL[next]}`);
       return { ...prev, [key]: next };
     });
   };
 
-  const resetWidgetLayout = () => {
-    setWidgetOrder(ALL_WIDGETS);
-    setVisibleWidgets(ALL_WIDGETS);
-    setWidgetWidths(DEFAULT_WIDGET_WIDTHS);
-    toast.success('Dashboard layout reset to default.');
+  const resetLayout = () => {
+    setItemOrder(ALL_ITEMS);
+    setVisibleItems(DEFAULT_VISIBLE_ITEMS);
+    setItemWidths(DEFAULT_WIDTHS);
+    toast.success('Dashboard layout reset.');
   };
 
-  const renderWidget = (key: WidgetKey) => {
-    switch (key) {
-      case 'metrics':
-        return (
-          <MetricCards
-            data={bundle?.metrics}
-            loading={bundleQ.isLoading}
-          />
-        );
-      case 'performance':
-        return (
-          <PerformanceChart
-            activePlatform={activePlatform}
-            dateRange={dateRange}
-            data={chartQ.data}
-            loading={chartQ.isLoading}
-            chartMetric={chartMetric}
-            chartGranularity={chartGranularity}
-            onChartMetricChange={setChartMetric}
-            onChartGranularityChange={setChartGranularity}
-          />
-        );
-      case 'hourly':
-        return (
-          <HourlyChart
-            data={bundle?.hourlyData}
-            loading={bundleQ.isLoading}
-          />
-        );
-      case 'platformSummary':
-        return (
-          <PlatformSummary
-            data={bundle?.platformSummary}
-            loading={bundleQ.isLoading}
-          />
-        );
-      default:
-        return null;
+  const renderItem = (key: DashboardItemKey) => {
+    if (key === 'widget-performance') {
+      return (
+        <PerformanceChart
+          activePlatform={activePlatform}
+          dateRange={dateRange}
+          data={chartQ.data}
+          loading={chartQ.isLoading}
+          chartMetric={chartMetric}
+          chartGranularity={chartGranularity}
+          onChartMetricChange={setChartMetric}
+          onChartGranularityChange={setChartGranularity}
+        />
+      );
     }
+
+    if (key === 'widget-hourly') {
+      return (
+        <HourlyChart
+          data={bundle?.hourlyData}
+          loading={bundleQ.isLoading}
+        />
+      );
+    }
+
+    if (key === 'widget-platform-summary') {
+      return (
+        <PlatformSummary
+          data={bundle?.platformSummary}
+          loading={bundleQ.isLoading}
+        />
+      );
+    }
+
+    const card = metricCards[key as MetricItemKey];
+    return (
+      <MetricCard
+        title={card.title}
+        value={card.value}
+        change={card.change}
+        format={card.format}
+        decimals={card.decimals}
+        suffix={card.suffix}
+        prefix={card.prefix}
+        sub={card.sub}
+        loading={bundleQ.isLoading}
+      />
+    );
   };
 
   return (
@@ -286,7 +601,7 @@ export default function DashboardPage() {
 
         <div className="mt-5 flex items-center justify-between gap-2">
           <p className="text-[11.5px] text-[#5F6368]">
-            Use each widget handle to reorder sections. Metric cards can still be reordered inside the cards block.
+            Drag any section with its handle to place metrics and charts in one shared canvas.
           </p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -298,69 +613,66 @@ export default function DashboardPage() {
                 Customize Layout
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Visible Widgets</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>Visible Sections</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {normalizedOrder.map((key) => (
                 <DropdownMenuCheckboxItem
                   key={key}
-                  checked={visibleWidgets.includes(key)}
+                  checked={visibleItems.includes(key)}
                   onSelect={(event) => event.preventDefault()}
-                  onCheckedChange={(checked) => toggleWidget(key, checked === true)}
+                  onCheckedChange={(checked) => toggleItem(key, checked === true)}
                 >
                   <span className="flex w-full items-center justify-between gap-2">
-                    <span>{WIDGET_META[key].label}</span>
+                    <span>{ITEM_META[key].label}</span>
                     <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
-                      {WIDGET_META[key].category}
+                      {ITEM_META[key].category}
                     </span>
                   </span>
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>Widget Width</DropdownMenuLabel>
+              <DropdownMenuLabel>Section Width</DropdownMenuLabel>
               {normalizedOrder.map((key) => (
-                <DropdownMenuItem
-                  key={`${key}-width`}
-                  onSelect={() => cycleWidgetWidth(key)}
-                >
+                <DropdownMenuItem key={`${key}-width`} onSelect={() => cycleItemWidth(key)}>
                   <span className="flex w-full items-center justify-between gap-2">
-                    <span>{WIDGET_META[key].label}</span>
+                    <span>{ITEM_META[key].label}</span>
                     <span className="text-[10px] uppercase tracking-wide text-[#9AA0A6]">
-                      {WIDGET_WIDTH_LABEL[widgetWidths[key] ?? DEFAULT_WIDGET_WIDTHS[key]]}
+                      {WIDTH_LABEL[itemWidths[key] ?? ITEM_META[key].defaultWidth]}
                     </span>
                   </span>
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={resetWidgetLayout}>Reset layout</DropdownMenuItem>
+              <DropdownMenuItem onSelect={resetLayout}>Reset layout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
-          {orderedVisibleWidgets.map((key) => (
+          {orderedVisibleItems.map((key) => (
             <section
               key={key}
               onDragOver={(event) => event.preventDefault()}
-              onDrop={() => handleDropWidget(key)}
+              onDrop={() => handleDropItem(key)}
               className={cn(
                 'relative min-w-0 rounded-[10px] transition-all',
-                WIDGET_WIDTH_CLASS[widgetWidths[key] ?? DEFAULT_WIDGET_WIDTHS[key]],
-                draggingWidget === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
+                WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
+                draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
             >
               <button
                 type="button"
                 draggable
-                onDragStart={() => setDraggingWidget(key)}
-                onDragEnd={() => setDraggingWidget(null)}
-                className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/90 text-[#9AA0A6] shadow-sm hover:text-[#5F6368] active:cursor-grabbing"
-                title={`Drag ${WIDGET_META[key].label}`}
-                aria-label={`Drag ${WIDGET_META[key].label}`}
+                onDragStart={() => setDraggingItem(key)}
+                onDragEnd={() => setDraggingItem(null)}
+                className="absolute bottom-2 right-2 z-20 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/90 text-[#9AA0A6] shadow-sm hover:text-[#5F6368] active:cursor-grabbing"
+                title={`Drag ${ITEM_META[key].label}`}
+                aria-label={`Drag ${ITEM_META[key].label}`}
               >
                 <GripVertical className="h-3.5 w-3.5" />
               </button>
-              {renderWidget(key)}
+              {renderItem(key)}
             </section>
           ))}
         </div>
