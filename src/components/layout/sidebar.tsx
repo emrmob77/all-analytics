@@ -18,6 +18,7 @@ import { useUser } from '@/hooks/useUser';
 import { useOrganization } from '@/hooks/useOrganization';
 import { getCampaignCount } from '@/lib/actions/campaigns';
 import { getConnectedGoogleAdsAccount, fetchGoogleChildAccounts, updateActiveGoogleAdsView, type GoogleChildAccount } from '@/lib/actions/google-ads';
+import { triggerManualSync } from '@/lib/actions/sync';
 import { toast } from 'sonner';
 
 const NAV_ITEMS = [
@@ -131,6 +132,28 @@ const CONNECTED_PLATFORMS = [
   { id: 'pinterest', label: 'Pinterest', icon: PinterestIcon },
 ];
 
+const AUTO_SYNC_COOLDOWN_MS = 5 * 60_000;
+
+function clearAccountScopedQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  const keys: ReadonlyArray<ReadonlyArray<unknown>> = [
+    ['campaign-count'],
+    ['campaigns'],
+    ['campaign-detail'],
+    ['campaign-daily'],
+    ['campaign-hourly'],
+    ['dashboard'],
+    ['keywords'],
+    ['adgroups'],
+    ['audiences'],
+    ['report-campaigns'],
+    ['report-data'],
+  ];
+
+  for (const key of keys) {
+    queryClient.removeQueries({ queryKey: key });
+  }
+}
+
 function getInitials(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) return '?';
@@ -205,14 +228,50 @@ export function Sidebar() {
       await updateActiveGoogleAdsView(googleAdAccount.id, childId);
       setGoogleAdAccount({ ...googleAdAccount, selected_child_account_id: childId });
 
-      // Account scope changed: clear client-side query cache so pages refetch
-      // immediately with the new selected child account context.
-      queryClient.clear();
+      // Account scope changed: drop account-scoped query cache so pages refetch
+      // with the new selected child account context immediately.
+      clearAccountScopedQueries(queryClient);
 
       toast.success('Active view changed.', { id: 'switch-account' });
 
       // Hard refresh to immediately render with new account context
       router.refresh();
+
+      // UX: auto-sync in background after account switch so user doesn't need
+      // to click "Sync Now" every time.
+      const autoSyncKey = `auto-sync:${googleAdAccount.id}:${childId}`;
+      let shouldAutoSync = true;
+      try {
+        const last = Number(window.localStorage.getItem(autoSyncKey) ?? '0');
+        if (Number.isFinite(last) && Date.now() - last < AUTO_SYNC_COOLDOWN_MS) {
+          shouldAutoSync = false;
+        } else {
+          window.localStorage.setItem(autoSyncKey, String(Date.now()));
+        }
+      } catch {
+        // localStorage access can fail in strict privacy modes; fall back to sync.
+      }
+
+      if (shouldAutoSync) {
+        toast.loading('Syncing selected account in background...', { id: 'switch-account-sync' });
+        void triggerManualSync(googleAdAccount.id).then((syncRes) => {
+          if (!syncRes.error) {
+            toast.success('Selected account synced.', { id: 'switch-account-sync' });
+            queryClient.invalidateQueries({ queryKey: ['sync-logs'] });
+            return;
+          }
+
+          const normalized = syncRes.error.toLowerCase();
+          if (normalized.includes('already in progress')) {
+            toast('Sync already in progress for this account.', { id: 'switch-account-sync' });
+            return;
+          }
+          toast.error(`Background sync failed: ${syncRes.error}`, {
+            id: 'switch-account-sync',
+            duration: 4000,
+          });
+        });
+      }
 
     } catch (err) {
       toast.error('Failed to switch ad account', { id: 'switch-account' });
