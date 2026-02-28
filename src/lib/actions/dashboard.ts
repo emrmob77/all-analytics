@@ -16,6 +16,8 @@ export interface DashboardMetrics {
   totalClicks: number;
   totalConversions: number;
   totalRevenue: number;
+  avgCpc: number;
+  cpa: number;
   avgCtr: number;
   avgRoas: number;
   // period-over-period change (percentage points, null if no prior data)
@@ -23,6 +25,9 @@ export interface DashboardMetrics {
   impressionsChange: number | null;
   clicksChange: number | null;
   conversionsChange: number | null;
+  revenueChange: number | null;
+  cpcChange: number | null;
+  cpaChange: number | null;
   ctrChange: number | null;
   roasChange: number | null;
   currencyCode?: string;
@@ -65,6 +70,13 @@ export interface DashboardPlatformSummary {
   roas: number;
   budgetShare: number; // 0-100
   currency?: string;
+}
+
+export interface DashboardBundleData {
+  metrics: DashboardMetrics | null;
+  chartData: DashboardChartPoint[];
+  hourlyData: DashboardHourlyPoint[];
+  platformSummary: DashboardPlatformSummary[];
 }
 
 // ---------------------------------------------------------------------------
@@ -161,9 +173,10 @@ export async function getDashboardMetrics(
     return {
       data: {
         totalSpend: 0, totalImpressions: 0, totalClicks: 0,
-        totalConversions: 0, totalRevenue: 0, avgCtr: 0, avgRoas: 0,
+        totalConversions: 0, totalRevenue: 0, avgCpc: 0, cpa: 0, avgCtr: 0, avgRoas: 0,
         spendChange: null, impressionsChange: null, clicksChange: null,
-        conversionsChange: null, ctrChange: null, roasChange: null,
+        conversionsChange: null, revenueChange: null, cpcChange: null, cpaChange: null,
+        ctrChange: null, roasChange: null,
         currencyCode: 'USD', currencySymbol: '$',
       },
       error: null,
@@ -172,6 +185,8 @@ export async function getDashboardMetrics(
 
   const currentRows = (current ?? []) as unknown as RawMetricWithCampaignRow[];
   const currAgg = aggregateMetrics(currentRows);
+  const currCpc = currAgg.clicks > 0 ? currAgg.spend / currAgg.clicks : 0;
+  const currCpa = currAgg.conversions > 0 ? currAgg.spend / currAgg.conversions : 0;
 
   // Prior period — same length window ending the day before `from`
   const fromDate = new Date(from);
@@ -207,6 +222,8 @@ export async function getDashboardMetrics(
 
   const { data: prior } = await priorQuery;
   const priorAgg = aggregateMetrics((prior ?? []) as unknown as RawMetricRow[]);
+  const priorCpc = priorAgg.clicks > 0 ? priorAgg.spend / priorAgg.clicks : 0;
+  const priorCpa = priorAgg.conversions > 0 ? priorAgg.spend / priorAgg.conversions : 0;
 
   return {
     data: {
@@ -215,12 +232,17 @@ export async function getDashboardMetrics(
       totalClicks: Math.round(currAgg.clicks),
       totalConversions: +currAgg.conversions.toFixed(2),
       totalRevenue: +currAgg.revenue.toFixed(2),
+      avgCpc: +currCpc.toFixed(2),
+      cpa: +currCpa.toFixed(2),
       avgCtr: +currAgg.ctr.toFixed(2),
       avgRoas: +currAgg.roas.toFixed(2),
       spendChange: pctChange(currAgg.spend, priorAgg.spend),
       impressionsChange: pctChange(currAgg.impressions, priorAgg.impressions),
       clicksChange: pctChange(currAgg.clicks, priorAgg.clicks),
       conversionsChange: pctChange(currAgg.conversions, priorAgg.conversions),
+      revenueChange: pctChange(currAgg.revenue, priorAgg.revenue),
+      cpcChange: pctChange(currCpc, priorCpc),
+      cpaChange: pctChange(currCpa, priorCpa),
       ctrChange: pctChange(currAgg.ctr, priorAgg.ctr),
       roasChange: pctChange(currAgg.roas, priorAgg.roas),
       currencyCode: currentRows[0]?.campaigns?.currency ?? 'USD',
@@ -507,4 +529,42 @@ export async function getDashboardPlatformSummary(
   });
 
   return { data: result, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// getDashboardBundle — single action for dashboard initial payload
+// ---------------------------------------------------------------------------
+
+export async function getDashboardBundle(
+  from: string,
+  to: string,
+  platform: AdPlatform | 'all' = 'all',
+): Promise<{ data: DashboardBundleData | null; error: string | null }> {
+  const [metricsRes, chartRes, hourlyRes, platformRes] = await Promise.all([
+    getDashboardMetrics(from, to, platform),
+    getDashboardChartData(from, to),
+    getDashboardHourlyData(),
+    getDashboardPlatformSummary(from, to),
+  ]);
+
+  const firstError =
+    metricsRes.error
+    ?? chartRes.error
+    ?? hourlyRes.error
+    ?? platformRes.error
+    ?? null;
+
+  if (firstError) {
+    return { data: null, error: firstError };
+  }
+
+  return {
+    data: {
+      metrics: metricsRes.data,
+      chartData: chartRes.data,
+      hourlyData: hourlyRes.data,
+      platformSummary: platformRes.data,
+    },
+    error: null,
+  };
 }

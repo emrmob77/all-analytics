@@ -8,10 +8,7 @@ import { PerformanceChart } from '@/components/dashboard/performance-chart';
 import { HourlyChart } from '@/components/dashboard/hourly-chart';
 import { PlatformSummary } from '@/components/dashboard/platform-summary';
 import {
-  useDashboardMetrics,
-  useDashboardChartData,
-  useDashboardHourlyData,
-  useDashboardPlatformSummary,
+  useDashboardBundle,
 } from '@/hooks/useDashboard';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform } from '@/types';
@@ -26,10 +23,8 @@ export default function DashboardPage() {
   const [dateRange, setDateRange]       = useState<DateRange>(defaultRange);
   const [activePlatform, setActivePlatform] = useState<AdPlatform | 'all'>('all');
 
-  const metricsQ  = useDashboardMetrics(dateRange, activePlatform);
-  const chartQ    = useDashboardChartData(dateRange);
-  const hourlyQ   = useDashboardHourlyData();
-  const platformQ = useDashboardPlatformSummary(dateRange);
+  const bundleQ = useDashboardBundle(dateRange, activePlatform);
+  const bundle = bundleQ.data;
 
   return (
     <div className="flex-1 overflow-auto bg-[#F8F9FA]">
@@ -43,8 +38,8 @@ export default function DashboardPage() {
 
         <div className="mt-5">
           <MetricCards
-            data={metricsQ.data}
-            loading={metricsQ.isLoading}
+            data={bundle?.metrics}
+            loading={bundleQ.isLoading}
           />
         </div>
 
@@ -52,19 +47,19 @@ export default function DashboardPage() {
           <PerformanceChart
             activePlatform={activePlatform}
             dateRange={dateRange}
-            data={chartQ.data}
-            loading={chartQ.isLoading}
+            data={bundle?.chartData}
+            loading={bundleQ.isLoading}
           />
           <HourlyChart
-            data={hourlyQ.data}
-            loading={hourlyQ.isLoading}
+            data={bundle?.hourlyData}
+            loading={bundleQ.isLoading}
           />
         </div>
 
         <div className="mt-5">
           <PlatformSummary
-            data={platformQ.data}
-            loading={platformQ.isLoading}
+            data={bundle?.platformSummary}
+            loading={bundleQ.isLoading}
           />
         </div>
       </div>

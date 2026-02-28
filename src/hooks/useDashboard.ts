@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
+  getDashboardBundle,
   getDashboardMetrics,
   getDashboardCampaigns,
   getDashboardChartData,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/actions/dashboard';
 import type { AdPlatform } from '@/types';
 import type { DateRange } from '@/components/ui/date-range-picker';
+import type { DashboardBundleData } from '@/lib/actions/dashboard';
 
 function toISO(d: Date): string {
   const y  = d.getFullYear();
@@ -26,6 +28,16 @@ const STALE_TIME = 90_000;
 function throwOnError<T>(result: { data: T; error: string | null }): T {
   if (result.error) throw new Error(result.error);
   return result.data;
+}
+
+export function useDashboardBundle(dateRange: DateRange, platform: AdPlatform | 'all') {
+  const from = toISO(dateRange.from);
+  const to = toISO(dateRange.to);
+  return useQuery({
+    queryKey: ['dashboard', 'bundle', from, to, platform],
+    queryFn: () => getDashboardBundle(from, to, platform).then(throwOnError) as Promise<DashboardBundleData>,
+    staleTime: STALE_TIME,
+  });
 }
 
 export function useDashboardMetrics(dateRange: DateRange, platform: AdPlatform | 'all') {
