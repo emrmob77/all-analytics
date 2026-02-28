@@ -67,6 +67,20 @@ export interface DashboardChartPoint {
   pinterest: number;
 }
 
+export type DashboardChartMetric =
+  | 'impressions'
+  | 'clicks'
+  | 'spend'
+  | 'conversions'
+  | 'revenue'
+  | 'ctr'
+  | 'cpc'
+  | 'cpm'
+  | 'cvr'
+  | 'roas';
+
+export type DashboardChartGranularity = 'daily' | 'monthly';
+
 export interface DashboardHourlyPoint {
   h: string; // "0h" … "23h"
   ctr: number;
@@ -84,7 +98,6 @@ export interface DashboardPlatformSummary {
 
 export interface DashboardBundleData {
   metrics: DashboardMetrics | null;
-  chartData: DashboardChartPoint[];
   hourlyData: DashboardHourlyPoint[];
   platformSummary: DashboardPlatformSummary[];
 }
@@ -382,6 +395,8 @@ export async function getDashboardCampaigns(
 export async function getDashboardChartData(
   from: string,
   to: string,
+  metric: DashboardChartMetric = 'impressions',
+  granularity: DashboardChartGranularity = 'daily',
 ): Promise<{ data: DashboardChartPoint[]; error: string | null }> {
   const orgId = await getOrgId();
   if (!orgId) return { data: [], error: 'No organization found' };
@@ -390,7 +405,7 @@ export async function getDashboardChartData(
 
   let query = supabase
     .from('campaign_metrics')
-    .select('date, impressions, campaigns!inner(organization_id, platform)')
+    .select('date, spend, impressions, clicks, conversions, revenue, campaigns!inner(organization_id, platform)')
     .eq('campaigns.organization_id', orgId)
     .gte('date', from)
     .lte('date', to)
@@ -407,25 +422,115 @@ export async function getDashboardChartData(
 
   type RawChartRow = {
     date: string;
+    spend: number;
     impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
     campaigns: { organization_id: string; platform: string };
   };
 
-  const map = new Map<string, DashboardChartPoint>();
+  type MetricAgg = {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    revenue: number;
+  };
+
+  type BucketAgg = {
+    google: MetricAgg;
+    meta: MetricAgg;
+    tiktok: MetricAgg;
+    pinterest: MetricAgg;
+  };
+
+  const zeroAgg = (): MetricAgg => ({
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    revenue: 0,
+  });
+
+  const bucketMap = new Map<string, BucketAgg>();
+
+  const bucketKeyFor = (dateStr: string): string => {
+    if (granularity === 'monthly') {
+      return dateStr.slice(0, 7); // YYYY-MM
+    }
+    return dateStr;
+  };
+
+  const bucketLabelFor = (bucketKey: string): string => {
+    if (granularity === 'monthly') {
+      const [y, m] = bucketKey.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, 1));
+      return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    }
+    return bucketKey;
+  };
+
+  const metricValue = (agg: MetricAgg): number => {
+    switch (metric) {
+      case 'spend':
+        return +agg.spend.toFixed(2);
+      case 'revenue':
+        return +agg.revenue.toFixed(2);
+      case 'clicks':
+        return Math.round(agg.clicks);
+      case 'conversions':
+        return +agg.conversions.toFixed(2);
+      case 'ctr':
+        return agg.impressions > 0 ? +((agg.clicks / agg.impressions) * 100).toFixed(2) : 0;
+      case 'cpc':
+        return agg.clicks > 0 ? +(agg.spend / agg.clicks).toFixed(2) : 0;
+      case 'cpm':
+        return agg.impressions > 0 ? +((agg.spend / agg.impressions) * 1000).toFixed(2) : 0;
+      case 'cvr':
+        return agg.clicks > 0 ? +((agg.conversions / agg.clicks) * 100).toFixed(2) : 0;
+      case 'roas':
+        return agg.spend > 0 ? +(agg.revenue / agg.spend).toFixed(2) : 0;
+      case 'impressions':
+      default:
+        return Math.round(agg.impressions);
+    }
+  };
 
   for (const row of (data ?? []) as unknown as RawChartRow[]) {
-    const day = row.date as string;
-    const platform = row.campaigns?.platform as string;
-    if (!map.has(day)) {
-      map.set(day, { day, google: 0, meta: 0, tiktok: 0, pinterest: 0 });
+    const bucketKey = bucketKeyFor(row.date as string);
+    const platform = row.campaigns?.platform as AdPlatform;
+    if (!bucketMap.has(bucketKey)) {
+      bucketMap.set(bucketKey, {
+        google: zeroAgg(),
+        meta: zeroAgg(),
+        tiktok: zeroAgg(),
+        pinterest: zeroAgg(),
+      });
     }
-    const point = map.get(day)!;
-    if (platform in point) {
-      (point as unknown as Record<string, number>)[platform] += row.impressions ?? 0;
-    }
+
+    const bucket = bucketMap.get(bucketKey)!;
+    if (!(platform in bucket)) continue;
+
+    const target = bucket[platform as keyof BucketAgg];
+    target.spend += row.spend ?? 0;
+    target.impressions += row.impressions ?? 0;
+    target.clicks += row.clicks ?? 0;
+    target.conversions += row.conversions ?? 0;
+    target.revenue += row.revenue ?? 0;
   }
 
-  return { data: Array.from(map.values()), error: null };
+  const points = Array.from(bucketMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([bucketKey, agg]) => ({
+      day: bucketLabelFor(bucketKey),
+      google: metricValue(agg.google),
+      meta: metricValue(agg.meta),
+      tiktok: metricValue(agg.tiktok),
+      pinterest: metricValue(agg.pinterest),
+    }));
+
+  return { data: points, error: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -573,16 +678,14 @@ export async function getDashboardBundle(
   to: string,
   platform: AdPlatform | 'all' = 'all',
 ): Promise<{ data: DashboardBundleData | null; error: string | null }> {
-  const [metricsRes, chartRes, hourlyRes, platformRes] = await Promise.all([
+  const [metricsRes, hourlyRes, platformRes] = await Promise.all([
     getDashboardMetrics(from, to, platform),
-    getDashboardChartData(from, to),
     getDashboardHourlyData(),
     getDashboardPlatformSummary(from, to),
   ]);
 
   const firstError =
     metricsRes.error
-    ?? chartRes.error
     ?? hourlyRes.error
     ?? platformRes.error
     ?? null;
@@ -594,7 +697,6 @@ export async function getDashboardBundle(
   return {
     data: {
       metrics: metricsRes.data,
-      chartData: chartRes.data,
       hourlyData: hourlyRes.data,
       platformSummary: platformRes.data,
     },

@@ -11,7 +11,11 @@ import {
 } from '@/lib/actions/dashboard';
 import type { AdPlatform } from '@/types';
 import type { DateRange } from '@/components/ui/date-range-picker';
-import type { DashboardBundleData } from '@/lib/actions/dashboard';
+import type {
+  DashboardBundleData,
+  DashboardChartGranularity,
+  DashboardChartMetric,
+} from '@/lib/actions/dashboard';
 
 function toISO(d: Date): string {
   const y  = d.getFullYear();
@@ -60,12 +64,16 @@ export function useDashboardCampaigns(dateRange: DateRange, platform: AdPlatform
   });
 }
 
-export function useDashboardChartData(dateRange: DateRange) {
+export function useDashboardChartData(
+  dateRange: DateRange,
+  metric: DashboardChartMetric = 'impressions',
+  granularity: DashboardChartGranularity = 'daily',
+) {
   const from = toISO(dateRange.from);
   const to   = toISO(dateRange.to);
   return useQuery({
-    queryKey: ['dashboard', 'chart', from, to],
-    queryFn:  () => getDashboardChartData(from, to).then(throwOnError),
+    queryKey: ['dashboard', 'chart', from, to, metric, granularity],
+    queryFn:  () => getDashboardChartData(from, to, metric, granularity).then(throwOnError),
     staleTime: STALE_TIME,
   });
 }

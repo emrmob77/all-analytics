@@ -21,9 +21,14 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   useDashboardBundle,
+  useDashboardChartData,
 } from '@/hooks/useDashboard';
 import type { DateRange } from '@/components/ui/date-range-picker';
 import type { AdPlatform } from '@/types';
+import type {
+  DashboardChartGranularity,
+  DashboardChartMetric,
+} from '@/lib/actions/dashboard';
 
 function defaultRange(): DateRange {
   const today = new Date();
@@ -130,8 +135,11 @@ export default function DashboardPage() {
   const [widgetWidths, setWidgetWidths] = useState<Record<WidgetKey, WidgetWidth>>(DEFAULT_WIDGET_WIDTHS);
   const [draggingWidget, setDraggingWidget] = useState<WidgetKey | null>(null);
   const [layoutReady, setLayoutReady] = useState(false);
+  const [chartMetric, setChartMetric] = useState<DashboardChartMetric>('impressions');
+  const [chartGranularity, setChartGranularity] = useState<DashboardChartGranularity>('daily');
 
   const bundleQ = useDashboardBundle(dateRange, activePlatform);
+  const chartQ = useDashboardChartData(dateRange, chartMetric, chartGranularity);
   const bundle = bundleQ.data;
 
   useEffect(() => {
@@ -239,8 +247,12 @@ export default function DashboardPage() {
           <PerformanceChart
             activePlatform={activePlatform}
             dateRange={dateRange}
-            data={bundle?.chartData}
-            loading={bundleQ.isLoading}
+            data={chartQ.data}
+            loading={chartQ.isLoading}
+            chartMetric={chartMetric}
+            chartGranularity={chartGranularity}
+            onChartMetricChange={setChartMetric}
+            onChartGranularityChange={setChartGranularity}
           />
         );
       case 'hourly':
