@@ -25,13 +25,17 @@ interface MetricCardsProps {
 type MetricKey =
   | 'impressions'
   | 'clicks'
+  | 'sessions'
+  | 'transactions'
   | 'spend'
   | 'revenue'
   | 'cpc'
+  | 'cps'
   | 'cpm'
   | 'ctr'
   | 'conversions'
   | 'cvr'
+  | 'sessionCvr'
   | 'cpa'
   | 'roas'
   | 'aov'
@@ -46,15 +50,19 @@ type CardDefinition = Omit<MetricCardProps, 'loading' | 'delay'> & {
 const STORAGE_KEY = 'dashboard:metric-layout:v1';
 
 const ALL_METRICS: MetricKey[] = [
+  'sessions',
+  'transactions',
   'spend',
   'revenue',
   'impressions',
   'clicks',
+  'cps',
   'ctr',
   'cpc',
   'cpm',
   'conversions',
   'cvr',
+  'sessionCvr',
   'cpa',
   'roas',
   'aov',
@@ -63,15 +71,16 @@ const ALL_METRICS: MetricKey[] = [
 ];
 
 const DEFAULT_VISIBLE: MetricKey[] = [
+  'sessions',
+  'transactions',
   'impressions',
   'clicks',
   'spend',
   'revenue',
+  'cps',
   'cpc',
-  'ctr',
-  'conversions',
-  'cpa',
-  'roas',
+  'sessionCvr',
+  'roas'
 ];
 
 function sanitizeKeys(input: unknown): MetricKey[] {
@@ -116,6 +125,22 @@ function buildMetricMap(data?: DashboardMetrics | null): Record<MetricKey, CardD
       format: 'number',
       category: 'Volume',
     },
+    sessions: {
+      key: 'sessions',
+      title: 'Sessions (Estimated)',
+      value: data?.totalClicks ?? 0,
+      change: data?.clicksChange ?? undefined,
+      format: 'number',
+      category: 'Volume',
+    },
+    transactions: {
+      key: 'transactions',
+      title: 'Transactions (Estimated)',
+      value: data?.totalConversions ?? 0,
+      change: data?.conversionsChange ?? undefined,
+      format: 'number',
+      category: 'Business',
+    },
     spend: {
       key: 'spend',
       title: 'Total Spend',
@@ -137,6 +162,16 @@ function buildMetricMap(data?: DashboardMetrics | null): Record<MetricKey, CardD
     cpc: {
       key: 'cpc',
       title: 'Avg. CPC',
+      value: data?.avgCpc ?? 0,
+      change: data?.cpcChange ?? undefined,
+      format: 'currency',
+      prefix: currency,
+      decimals: 2,
+      category: 'Cost',
+    },
+    cps: {
+      key: 'cps',
+      title: 'Cost / Session (Estimated)',
       value: data?.avgCpc ?? 0,
       change: data?.cpcChange ?? undefined,
       format: 'currency',
@@ -173,6 +208,14 @@ function buildMetricMap(data?: DashboardMetrics | null): Record<MetricKey, CardD
     cvr: {
       key: 'cvr',
       title: 'CVR',
+      value: data?.cvr ?? 0,
+      change: data?.cvrChange ?? undefined,
+      format: 'percentage',
+      category: 'Efficiency',
+    },
+    sessionCvr: {
+      key: 'sessionCvr',
+      title: 'Session Conv. Rate (Estimated)',
       value: data?.cvr ?? 0,
       change: data?.cvrChange ?? undefined,
       format: 'percentage',
@@ -289,7 +332,7 @@ export function MetricCards({ data, loading = false }: MetricCardsProps) {
     if (!checked) {
       const selectedCount = visible.length;
       if (selectedCount <= 1) {
-        toast.error('En az 1 metrik kartı açık kalmalı.');
+        toast.error('At least one metric card must stay visible.');
         return;
       }
       setVisible((prev) => prev.filter((item) => item !== key));
@@ -312,7 +355,7 @@ export function MetricCards({ data, loading = false }: MetricCardsProps) {
   const resetLayout = () => {
     setOrder(ALL_METRICS);
     setVisible(DEFAULT_VISIBLE);
-    toast.success('Kart düzeni varsayılana döndü.');
+    toast.success('Metric layout reset to default.');
   };
 
   return (

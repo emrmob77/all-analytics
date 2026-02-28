@@ -14,7 +14,7 @@ interface AnimNumProps {
   duration?: number;
 }
 
-const NUMBER_LOCALE = 'tr-TR';
+const NUMBER_LOCALE = 'en-US';
 
 function formatMetricNumber(value: number, decimals: number) {
   if (decimals > 0) {
