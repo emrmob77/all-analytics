@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Settings2 } from 'lucide-react';
+import { GripVertical, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -84,7 +84,7 @@ const DEFAULT_WIDGET_WIDTHS: Record<WidgetKey, WidgetWidth> = {
 };
 
 const WIDGET_WIDTH_ORDER: Record<WidgetKey, WidgetWidth[]> = {
-  metrics: ['full', 'wide'],
+  metrics: ['full', 'wide', 'half', 'narrow'],
   performance: ['wide', 'half', 'full'],
   hourly: ['narrow', 'half', 'wide', 'full'],
   platformSummary: ['wide', 'half', 'full'],
@@ -285,7 +285,9 @@ export default function DashboardPage() {
         />
 
         <div className="mt-5 flex items-center justify-between gap-2">
-          <p className="text-[11.5px] text-[#5F6368]">Drag and drop widgets to customize your dashboard layout.</p>
+          <p className="text-[11.5px] text-[#5F6368]">
+            Use each widget handle to reorder sections. Metric cards can still be reordered inside the cards block.
+          </p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -339,17 +341,25 @@ export default function DashboardPage() {
           {orderedVisibleWidgets.map((key) => (
             <section
               key={key}
-              draggable
-              onDragStart={() => setDraggingWidget(key)}
-              onDragEnd={() => setDraggingWidget(null)}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => handleDropWidget(key)}
               className={cn(
-                'min-w-0 cursor-move rounded-[10px] transition-all',
+                'relative min-w-0 rounded-[10px] transition-all',
                 WIDGET_WIDTH_CLASS[widgetWidths[key] ?? DEFAULT_WIDGET_WIDTHS[key]],
                 draggingWidget === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
             >
+              <button
+                type="button"
+                draggable
+                onDragStart={() => setDraggingWidget(key)}
+                onDragEnd={() => setDraggingWidget(null)}
+                className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 cursor-grab items-center justify-center rounded-md border border-[#E3E8EF] bg-white/90 text-[#9AA0A6] shadow-sm hover:text-[#5F6368] active:cursor-grabbing"
+                title={`Drag ${WIDGET_META[key].label}`}
+                aria-label={`Drag ${WIDGET_META[key].label}`}
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+              </button>
               {renderWidget(key)}
             </section>
           ))}
