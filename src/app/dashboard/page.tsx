@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays } from '@/lib/date';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricCard, type MetricCardProps } from '@/components/ui/metric-card';
@@ -67,6 +67,8 @@ interface ItemMeta {
 }
 
 const LAYOUT_STORAGE_KEY = 'dashboard:canvas-layout:v1';
+const GRID_ROW_HEIGHT_PX = 8;
+const GRID_ROW_GAP_PX = 14;
 
 const WIDTH_CLASS: Record<ItemWidth, string> = {
   full: 'lg:col-span-12',
@@ -438,6 +440,8 @@ export default function DashboardPage() {
   const [draggingItem, setDraggingItem] = useState<DashboardItemKey | null>(null);
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
+  const [rowSpans, setRowSpans] = useState<Partial<Record<DashboardItemKey, number>>>({});
+  const resizeObserversRef = useRef(new Map<DashboardItemKey, ResizeObserver>());
 
   const bundleQ = useDashboardBundle(dateRange, activePlatform);
   const chartQ = useDashboardChartData(dateRange, chartMetric, chartGranularity);
@@ -498,6 +502,37 @@ export default function DashboardPage() {
   }, [normalizedOrder, visibleItems]);
 
   const metricCards = useMemo(() => buildMetricCards(bundle?.metrics), [bundle?.metrics]);
+
+  const registerSectionRef = (key: DashboardItemKey) => (node: HTMLElement | null) => {
+    const existingObserver = resizeObserversRef.current.get(key);
+    if (existingObserver) {
+      existingObserver.disconnect();
+      resizeObserversRef.current.delete(key);
+    }
+
+    if (!node) return;
+
+    const measure = () => {
+      const height = node.getBoundingClientRect().height;
+      const span = Math.max(1, Math.ceil((height + GRID_ROW_GAP_PX) / (GRID_ROW_HEIGHT_PX + GRID_ROW_GAP_PX)));
+      setRowSpans((prev) => (prev[key] === span ? prev : { ...prev, [key]: span }));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    resizeObserversRef.current.set(key, observer);
+  };
+
+  useEffect(() => {
+    const observers = resizeObserversRef.current;
+    return () => {
+      for (const observer of observers.values()) {
+        observer.disconnect();
+      }
+      observers.clear();
+    };
+  }, []);
 
   const toggleItem = (key: DashboardItemKey, checked: boolean) => {
     if (!checked) {
@@ -667,10 +702,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12">
+        <div className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-flow-dense lg:grid-cols-12 lg:[grid-auto-rows:8px]">
           {orderedVisibleItems.map((key) => (
             <section
               key={key}
+              ref={registerSectionRef(key)}
               draggable={isLayoutMode}
               onDragStart={(event) => {
                 if (!isLayoutMode) return;
@@ -696,12 +732,8 @@ export default function DashboardPage() {
                 WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
                 draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
               )}
+              style={{ gridRowEnd: `span ${rowSpans[key] ?? 1}` }}
             >
-              {isLayoutMode && (
-                <div className="absolute left-2 top-2 z-20 rounded-md border border-[#E3E8EF] bg-white/95 px-2 py-1 text-[10px] font-medium text-[#5F6368] shadow-sm">
-                  Drag to move: {ITEM_META[key].label}
-                </div>
-              )}
               {renderItem(key)}
             </section>
           ))}
