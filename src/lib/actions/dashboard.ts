@@ -17,7 +17,12 @@ export interface DashboardMetrics {
   totalConversions: number;
   totalRevenue: number;
   avgCpc: number;
+  avgCpm: number;
+  cvr: number;
   cpa: number;
+  aov: number;
+  profit: number;
+  margin: number;
   avgCtr: number;
   avgRoas: number;
   // period-over-period change (percentage points, null if no prior data)
@@ -27,7 +32,12 @@ export interface DashboardMetrics {
   conversionsChange: number | null;
   revenueChange: number | null;
   cpcChange: number | null;
+  cpmChange: number | null;
+  cvrChange: number | null;
   cpaChange: number | null;
+  aovChange: number | null;
+  profitChange: number | null;
+  marginChange: number | null;
   ctrChange: number | null;
   roasChange: number | null;
   currencyCode?: string;
@@ -173,9 +183,12 @@ export async function getDashboardMetrics(
     return {
       data: {
         totalSpend: 0, totalImpressions: 0, totalClicks: 0,
-        totalConversions: 0, totalRevenue: 0, avgCpc: 0, cpa: 0, avgCtr: 0, avgRoas: 0,
+        totalConversions: 0, totalRevenue: 0,
+        avgCpc: 0, avgCpm: 0, cvr: 0, cpa: 0, aov: 0, profit: 0, margin: 0, avgCtr: 0, avgRoas: 0,
         spendChange: null, impressionsChange: null, clicksChange: null,
-        conversionsChange: null, revenueChange: null, cpcChange: null, cpaChange: null,
+        conversionsChange: null, revenueChange: null,
+        cpcChange: null, cpmChange: null, cvrChange: null, cpaChange: null,
+        aovChange: null, profitChange: null, marginChange: null,
         ctrChange: null, roasChange: null,
         currencyCode: 'USD', currencySymbol: '$',
       },
@@ -186,7 +199,12 @@ export async function getDashboardMetrics(
   const currentRows = (current ?? []) as unknown as RawMetricWithCampaignRow[];
   const currAgg = aggregateMetrics(currentRows);
   const currCpc = currAgg.clicks > 0 ? currAgg.spend / currAgg.clicks : 0;
+  const currCpm = currAgg.impressions > 0 ? (currAgg.spend / currAgg.impressions) * 1000 : 0;
+  const currCvr = currAgg.clicks > 0 ? (currAgg.conversions / currAgg.clicks) * 100 : 0;
   const currCpa = currAgg.conversions > 0 ? currAgg.spend / currAgg.conversions : 0;
+  const currAov = currAgg.conversions > 0 ? currAgg.revenue / currAgg.conversions : 0;
+  const currProfit = currAgg.revenue - currAgg.spend;
+  const currMargin = currAgg.revenue > 0 ? (currProfit / currAgg.revenue) * 100 : 0;
 
   // Prior period — same length window ending the day before `from`
   const fromDate = new Date(from);
@@ -223,7 +241,12 @@ export async function getDashboardMetrics(
   const { data: prior } = await priorQuery;
   const priorAgg = aggregateMetrics((prior ?? []) as unknown as RawMetricRow[]);
   const priorCpc = priorAgg.clicks > 0 ? priorAgg.spend / priorAgg.clicks : 0;
+  const priorCpm = priorAgg.impressions > 0 ? (priorAgg.spend / priorAgg.impressions) * 1000 : 0;
+  const priorCvr = priorAgg.clicks > 0 ? (priorAgg.conversions / priorAgg.clicks) * 100 : 0;
   const priorCpa = priorAgg.conversions > 0 ? priorAgg.spend / priorAgg.conversions : 0;
+  const priorAov = priorAgg.conversions > 0 ? priorAgg.revenue / priorAgg.conversions : 0;
+  const priorProfit = priorAgg.revenue - priorAgg.spend;
+  const priorMargin = priorAgg.revenue > 0 ? (priorProfit / priorAgg.revenue) * 100 : 0;
 
   return {
     data: {
@@ -233,7 +256,12 @@ export async function getDashboardMetrics(
       totalConversions: +currAgg.conversions.toFixed(2),
       totalRevenue: +currAgg.revenue.toFixed(2),
       avgCpc: +currCpc.toFixed(2),
+      avgCpm: +currCpm.toFixed(2),
+      cvr: +currCvr.toFixed(2),
       cpa: +currCpa.toFixed(2),
+      aov: +currAov.toFixed(2),
+      profit: +currProfit.toFixed(2),
+      margin: +currMargin.toFixed(2),
       avgCtr: +currAgg.ctr.toFixed(2),
       avgRoas: +currAgg.roas.toFixed(2),
       spendChange: pctChange(currAgg.spend, priorAgg.spend),
@@ -242,7 +270,12 @@ export async function getDashboardMetrics(
       conversionsChange: pctChange(currAgg.conversions, priorAgg.conversions),
       revenueChange: pctChange(currAgg.revenue, priorAgg.revenue),
       cpcChange: pctChange(currCpc, priorCpc),
+      cpmChange: pctChange(currCpm, priorCpm),
+      cvrChange: pctChange(currCvr, priorCvr),
       cpaChange: pctChange(currCpa, priorCpa),
+      aovChange: pctChange(currAov, priorAov),
+      profitChange: pctChange(currProfit, priorProfit),
+      marginChange: pctChange(currMargin, priorMargin),
       ctrChange: pctChange(currAgg.ctr, priorAgg.ctr),
       roasChange: pctChange(currAgg.roas, priorAgg.roas),
       currencyCode: currentRows[0]?.campaigns?.currency ?? 'USD',

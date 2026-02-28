@@ -14,6 +14,19 @@ interface AnimNumProps {
   duration?: number;
 }
 
+const NUMBER_LOCALE = 'tr-TR';
+
+function formatMetricNumber(value: number, decimals: number) {
+  if (decimals > 0) {
+    return value.toLocaleString(NUMBER_LOCALE, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+
+  return Math.round(value).toLocaleString(NUMBER_LOCALE);
+}
+
 function AnimNum({ value, prefix = '', suffix = '', decimals = 0, duration = 1000 }: AnimNumProps) {
   const [display, setDisplay] = useState(0);
   const rafRef = useRef<number | null>(null);
@@ -32,12 +45,14 @@ function AnimNum({ value, prefix = '', suffix = '', decimals = 0, duration = 100
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [value, decimals, duration]);
 
+  const formatted = formatMetricNumber(display, decimals);
+
   return (
-    <>
-      {prefix}
-      {decimals > 0 ? display.toFixed(decimals) : display.toLocaleString('en-US')}
-      {suffix}
-    </>
+    <span className="whitespace-nowrap">
+      {prefix ? <span className="mr-1">{prefix}</span> : null}
+      {formatted}
+      {suffix ? <span className="ml-0.5">{suffix}</span> : null}
+    </span>
   );
 }
 
@@ -75,13 +90,20 @@ export function MetricCard({
   const prefix = prefixOverride !== undefined ? prefixOverride : format === 'currency' ? '$' : '';
   const suffix = suffixOverride !== undefined ? suffixOverride : format === 'percentage' ? '%' : '';
   const decimals = decimalsOverride !== undefined ? decimalsOverride : format === 'percentage' ? 2 : 0;
+  const previewText = `${prefix ? `${prefix} ` : ''}${formatMetricNumber(value, decimals)}${suffix ?? ''}`;
+  const valueSizeClass =
+    previewText.length >= 16
+      ? 'text-[1.3rem]'
+      : previewText.length >= 13
+        ? 'text-[1.5rem]'
+        : 'text-[1.7rem]';
 
   const positive = change === undefined ? true : change >= 0;
   const changeAbs = change !== undefined ? Math.abs(change) : undefined;
 
   if (loading) {
     return (
-      <div className="flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4" style={{ minWidth: 150 }}>
+      <div className="min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4">
         <div className="mb-2 h-3 w-24 rounded bg-[#F1F3F4] animate-pulse" />
         <div className="mb-2 h-8 w-32 rounded bg-[#F1F3F4] animate-pulse" />
         <div className="h-3 w-20 rounded bg-[#F1F3F4] animate-pulse" />
@@ -91,22 +113,22 @@ export function MetricCard({
 
   return (
     <div
-      className="metric-card-enter flex-1 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4"
-      style={{
-        minWidth: 150,
-        animationDelay: `${Math.max(0, delay)}ms`,
-      }}
+      className="metric-card-enter min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-[18px] py-4"
+      style={{ animationDelay: `${Math.max(0, delay)}ms` }}
     >
       <div className="mb-2 text-[11.5px] font-medium text-[#5F6368]">{title}</div>
-      <div className="mb-2 text-[26px] font-bold leading-tight tracking-[-0.5px] text-[#202124]">
+      <div
+        className={`mb-2 whitespace-nowrap font-bold leading-[1.12] tracking-[-0.015em] text-[#202124] tabular-nums ${valueSizeClass}`}
+        title={previewText}
+      >
         <AnimNum value={value} prefix={prefix} suffix={suffix} decimals={decimals} />
       </div>
       {changeAbs !== undefined && (
-        <div className="flex items-center gap-1.5 text-[11.5px]">
+        <div className="flex min-w-0 items-center gap-1.5 text-[11.5px]">
           <span className={`font-semibold ${positive ? 'text-[#137333]' : 'text-[#C5221F]'}`}>
             {positive ? '↑' : '↓'} {changeAbs.toFixed(1)}%
           </span>
-          <span className="text-[#9AA0A6]">{sub}</span>
+          <span className="truncate text-[#9AA0A6]">{sub}</span>
         </div>
       )}
     </div>
