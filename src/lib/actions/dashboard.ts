@@ -537,7 +537,11 @@ export async function getDashboardChartData(
 // getDashboardHourlyData
 // ---------------------------------------------------------------------------
 
-export async function getDashboardHourlyData(): Promise<{
+export async function getDashboardHourlyData(
+  from?: string,
+  to?: string,
+  platform?: AdPlatform | 'all',
+): Promise<{
   data: DashboardHourlyPoint[];
   error: string | null;
 }> {
@@ -546,21 +550,37 @@ export async function getDashboardHourlyData(): Promise<{
 
   const supabase = await createClient();
 
+  const fromDate = from ? new Date(`${from}T00:00:00.000Z`) : null;
+  const toDate = to ? new Date(`${to}T23:59:59.999Z`) : null;
   const since = new Date();
   since.setDate(since.getDate() - 6);
   since.setHours(0, 0, 0, 0);
-  const sinceStr = since.toISOString();
+  const rangeStart = fromDate ?? since;
 
   let query = supabase
     .from('hourly_metrics')
     .select('hour, clicks, impressions, campaigns!inner(organization_id, platform)')
     .eq('campaigns.organization_id', orgId)
-    .gte('hour', sinceStr)
+    .gte('hour', rangeStart.toISOString())
     .order('hour', { ascending: true });
 
-  const googleAccount = await getConnectedGoogleAdsAccount();
-  if (googleAccount?.selected_child_account_id) {
-    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+  if (toDate) {
+    query = query.lte('hour', toDate.toISOString());
+  }
+
+  if (platform && platform !== 'all') {
+    query = query.eq('campaigns.platform', platform);
+  }
+
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('campaigns.child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+      }
+    }
   }
 
   const { data, error } = await query;
@@ -602,6 +622,7 @@ export async function getDashboardHourlyData(): Promise<{
 export async function getDashboardPlatformSummary(
   from: string,
   to: string,
+  platform?: AdPlatform | 'all',
 ): Promise<{ data: DashboardPlatformSummary[]; error: string | null }> {
   const orgId = await getOrgId();
   if (!orgId) return { data: [], error: 'No organization found' };
@@ -615,9 +636,19 @@ export async function getDashboardPlatformSummary(
     .gte('date', from)
     .lte('date', to);
 
-  const googleAccount = await getConnectedGoogleAdsAccount();
-  if (googleAccount?.selected_child_account_id) {
-    query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+  if (platform && platform !== 'all') {
+    query = query.eq('campaigns.platform', platform);
+  }
+
+  if (!platform || platform === 'all' || platform === 'google') {
+    const googleAccount = await getConnectedGoogleAdsAccount();
+    if (googleAccount?.selected_child_account_id) {
+      if (platform === 'google') {
+        query = query.eq('campaigns.child_ad_account_id', googleAccount.selected_child_account_id);
+      } else {
+        query = query.or(`platform.neq.google,and(platform.eq.google,child_ad_account_id.eq.${googleAccount.selected_child_account_id})`, { foreignTable: 'campaigns' });
+      }
+    }
   }
 
   const { data, error } = await query;
@@ -680,8 +711,8 @@ export async function getDashboardBundle(
 ): Promise<{ data: DashboardBundleData | null; error: string | null }> {
   const [metricsRes, hourlyRes, platformRes] = await Promise.all([
     getDashboardMetrics(from, to, platform),
-    getDashboardHourlyData(),
-    getDashboardPlatformSummary(from, to),
+    getDashboardHourlyData(from, to, platform),
+    getDashboardPlatformSummary(from, to, platform),
   ]);
 
   const firstError =

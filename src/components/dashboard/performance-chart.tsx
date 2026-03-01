@@ -34,6 +34,12 @@ const PLATFORM_COLORS: Record<string, string> = {
   tiktok:    '#161823',
   pinterest: '#E60023',
 };
+const PLATFORM_LABELS: Record<string, string> = {
+  google: 'Google',
+  meta: 'Meta',
+  tiktok: 'TikTok',
+  pinterest: 'Pinterest',
+};
 
 const METRIC_OPTIONS: Array<{ value: DashboardChartMetric; label: string }> = [
   { value: 'impressions', label: 'Impressions' },
@@ -73,7 +79,7 @@ export function PerformanceChart({
   const activePlatformConfig = PLATFORMS.find(p => p.id === activePlatform);
 
   return (
-    <div className="flex-[2_1_380px] min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px]">
+    <div className="min-w-0 w-full rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px] overflow-hidden">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-[#202124]">Performance Trend</div>
@@ -126,10 +132,24 @@ export function PerformanceChart({
         xKey="day"
         yKeys={yKeys}
         colors={colors}
-        showLegend={activePlatform === 'all'}
+        showLegend={false}
         loading={loading}
         height={215}
       />
+
+      {activePlatform === 'all' && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#5F6368]">
+          {yKeys.map((key) => (
+            <span key={key} className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: PLATFORM_COLORS[key] ?? '#1A73E8' }}
+              />
+              {PLATFORM_LABELS[key] ?? key}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

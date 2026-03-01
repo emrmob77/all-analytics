@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { addDays } from '@/lib/date';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricCard, type MetricCardProps } from '@/components/ui/metric-card';
@@ -66,9 +66,7 @@ interface ItemMeta {
   widthOptions: ItemWidth[];
 }
 
-const LAYOUT_STORAGE_KEY = 'dashboard:canvas-layout:v1';
-const GRID_ROW_HEIGHT_PX = 8;
-const GRID_ROW_GAP_PX = 14;
+const LAYOUT_STORAGE_KEY = 'dashboard:canvas-layout:v6';
 
 const WIDTH_CLASS: Record<ItemWidth, string> = {
   full: 'lg:col-span-12',
@@ -243,7 +241,7 @@ const ITEM_META: Record<DashboardItemKey, ItemMeta> = {
     label: 'CTR by Hour',
     category: 'Charts',
     defaultWidth: 'third',
-    widthOptions: ['half', 'third', 'wide', 'full'],
+    widthOptions: ['full', 'wide', 'half', 'third'],
   },
   'widget-platform-summary': {
     label: 'Platform Summary',
@@ -430,11 +428,11 @@ export default function DashboardPage() {
   const [visibleItems, setVisibleItems] = useState<DashboardItemKey[]>(DEFAULT_VISIBLE_ITEMS);
   const [itemWidths, setItemWidths] = useState<Record<DashboardItemKey, ItemWidth>>(DEFAULT_WIDTHS);
   const [draggingItem, setDraggingItem] = useState<DashboardItemKey | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<DashboardItemKey | null>(null);
+  const [dropSide, setDropSide] = useState<'before' | 'after'>('before');
   const [isLayoutMode, setIsLayoutMode] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
-  const [rowSpans, setRowSpans] = useState<Partial<Record<DashboardItemKey, number>>>({});
-  const resizeObserversRef = useRef(new Map<DashboardItemKey, ResizeObserver>());
+  const dragThrottleRef = useRef(0);
 
   const bundleQ = useDashboardBundle(dateRange, activePlatform);
   const chartQ = useDashboardChartData(dateRange, chartMetric, chartGranularity);
@@ -525,37 +523,6 @@ export default function DashboardPage() {
   };
 
   const metricCards = useMemo(() => buildMetricCards(bundle?.metrics), [bundle?.metrics]);
-
-  const registerSectionRef = (key: DashboardItemKey) => (node: HTMLElement | null) => {
-    const existingObserver = resizeObserversRef.current.get(key);
-    if (existingObserver) {
-      existingObserver.disconnect();
-      resizeObserversRef.current.delete(key);
-    }
-
-    if (!node) return;
-
-    const measure = () => {
-      const height = node.getBoundingClientRect().height;
-      const span = Math.max(1, Math.ceil((height + GRID_ROW_GAP_PX) / (GRID_ROW_HEIGHT_PX + GRID_ROW_GAP_PX)));
-      setRowSpans((prev) => (prev[key] === span ? prev : { ...prev, [key]: span }));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    resizeObserversRef.current.set(key, observer);
-  };
-
-  useEffect(() => {
-    const observers = resizeObserversRef.current;
-    return () => {
-      for (const observer of observers.values()) {
-        observer.disconnect();
-      }
-      observers.clear();
-    };
-  }, []);
 
   const toggleItem = (key: DashboardItemKey, checked: boolean) => {
     if (!checked) {
@@ -660,7 +627,7 @@ export default function DashboardPage() {
               onClick={() => {
                 setIsLayoutMode((prev) => !prev);
                 setDraggingItem(null);
-                setDropIndex(null);
+                setDropTarget(null);
               }}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors',
@@ -719,99 +686,72 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div
-          className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-flow-dense lg:grid-cols-12 lg:[grid-auto-rows:8px]"
-          onDragOver={(event) => {
-            if (!isLayoutMode || !draggingItem) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-
-            const container = event.currentTarget as HTMLDivElement;
-            const candidates = Array.from(
-              container.querySelectorAll<HTMLElement>('[data-layout-item="1"]'),
-            );
-
-            if (candidates.length === 0) {
-              setDropIndex(0);
-              return;
-            }
-
-            let nearestIndex = candidates.length;
-            let smallestDistance = Number.POSITIVE_INFINITY;
-
-            for (let i = 0; i < candidates.length; i += 1) {
-              const rect = candidates[i].getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
-              const centerY = rect.top + rect.height / 2;
-              const dx = event.clientX - centerX;
-              const dy = event.clientY - centerY;
-              const distance = Math.hypot(dx, dy);
-              if (distance < smallestDistance) {
-                smallestDistance = distance;
-                const placeAfter =
-                  event.clientY > centerY ||
-                  (Math.abs(event.clientY - centerY) < 24 && event.clientX > centerX);
-                nearestIndex = i + (placeAfter ? 1 : 0);
-              }
-            }
-
-            setDropIndex(nearestIndex);
-          }}
-          onDrop={(event) => {
-            if (!isLayoutMode || !draggingItem) return;
-            event.preventDefault();
-            const sourceKey = event.dataTransfer.getData('text/plain') as DashboardItemKey | '';
-            const source = (sourceKey || draggingItem) as DashboardItemKey | null;
-            if (!source) return;
-
-            const visible = orderedVisibleItems.filter((key) => key !== source);
-            const targetIndex = dropIndex == null ? visible.length : Math.min(dropIndex, visible.length);
-            const targetBefore = visible[targetIndex] ?? null;
-
-            reorderVisibleItems(source, targetBefore, false);
-            setDraggingItem(null);
-            setDropIndex(null);
-          }}
-          onDragLeave={(event) => {
-            if (!isLayoutMode) return;
-            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-              setDropIndex(null);
-            }
-          }}
-        >
-          {isLayoutMode && dropIndex === 0 && (
-            <div className="h-10 rounded-[10px] border-2 border-dashed border-[#1A73E8]/45 bg-[#E8F0FE]/50 lg:col-span-12" />
-          )}
-          {orderedVisibleItems.map((key, idx) => (
-            <div key={key} className="contents">
-              {isLayoutMode && dropIndex === idx + 1 && (
-                <div className="h-10 rounded-[10px] border-2 border-dashed border-[#1A73E8]/45 bg-[#E8F0FE]/50 lg:col-span-12" />
+        <div className="mt-3 grid grid-cols-1 items-start gap-3.5 lg:grid-cols-12">
+          {orderedVisibleItems.map((key) => (
+            <section
+              key={key}
+              data-layout-item="1"
+              className={cn(
+                'relative min-w-0 self-start rounded-[10px]',
+                isLayoutMode && 'ring-1 ring-[#D2E3FC]',
+                WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
+                draggingItem === key && 'opacity-40 scale-[0.97]',
+                isLayoutMode && dropTarget === key && 'ring-2 ring-[#1A73E8] ring-offset-2',
               )}
-              <section
-                data-layout-item="1"
-                ref={registerSectionRef(key)}
-                draggable={isLayoutMode}
-                onDragStart={(event) => {
-                  if (!isLayoutMode) return;
-                  event.dataTransfer.effectAllowed = 'move';
-                  event.dataTransfer.setData('text/plain', key);
-                  setDraggingItem(key);
-                }}
-                onDragEnd={() => {
-                  setDraggingItem(null);
-                  setDropIndex(null);
-                }}
-                className={cn(
-                  'relative min-w-0 self-start rounded-[10px] transition-all',
-                  isLayoutMode && 'cursor-move',
-                  WIDTH_CLASS[itemWidths[key] ?? ITEM_META[key].defaultWidth],
-                  draggingItem === key && 'opacity-60 ring-2 ring-[#1A73E8]/20',
-                )}
-                style={{ gridRowEnd: `span ${rowSpans[key] ?? 1}` }}
-              >
-                {renderItem(key)}
-              </section>
-            </div>
+              onDragOver={(event) => {
+                if (!isLayoutMode || !draggingItem || draggingItem === key) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+
+                const now = Date.now();
+                if (now - dragThrottleRef.current < 60) return;
+                dragThrottleRef.current = now;
+
+                const rect = event.currentTarget.getBoundingClientRect();
+                const centerY = rect.top + rect.height / 2;
+                const side = event.clientY < centerY ? 'before' : 'after';
+
+                setDropTarget((prev) => (prev === key ? prev : key));
+                setDropSide((prev) => (prev === side ? prev : side));
+              }}
+              onDragLeave={(event) => {
+                if (!isLayoutMode) return;
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                  setDropTarget((prev) => (prev === key ? null : prev));
+                }
+              }}
+              onDrop={(event) => {
+                if (!isLayoutMode || !draggingItem) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const source = draggingItem;
+                if (source === key) return;
+
+                reorderVisibleItems(source, key, dropSide === 'after');
+                setDraggingItem(null);
+                setDropTarget(null);
+              }}
+            >
+              {isLayoutMode && (
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', key);
+                    requestAnimationFrame(() => setDraggingItem(key));
+                  }}
+                  onDragEnd={() => {
+                    setDraggingItem(null);
+                    setDropTarget(null);
+                  }}
+                  className="mb-2 inline-flex w-full cursor-grab items-center rounded-md border border-[#E3E8EF] bg-white px-2 py-1 text-left text-[11px] text-[#5F6368] active:cursor-grabbing"
+                >
+                  Drag to move: {ITEM_META[key].label}
+                </button>
+              )}
+              {renderItem(key)}
+            </section>
           ))}
         </div>
       </div>

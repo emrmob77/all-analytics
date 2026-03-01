@@ -7,7 +7,7 @@ import {
   LineChart, Line,
   PieChart, Pie, Cell,
   XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend,
+  CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -61,10 +61,11 @@ export function ChartContainer({
   colors = DEFAULT_COLORS,
   loading = false,
   height = 215,
-  showLegend = false,
+  showLegend: _showLegend = false,
   showGrid = true,
 }: ChartContainerProps) {
   const instanceId = useId();
+  void _showLegend;
 
   if (loading) return <ChartSkeleton height={height} />;
 
@@ -101,7 +102,6 @@ export function ChartContainer({
             ))}
           </Pie>
           <Tooltip {...commonTooltip} />
-          {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
         </PieChart>
       );
     }
@@ -113,7 +113,6 @@ export function ChartContainer({
           <XAxis dataKey={xKey} {...commonAxis} />
           <YAxis {...commonAxis} />
           <Tooltip {...commonTooltip} />
-          {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
           {yKeys.map((key, i) => (
             <Bar
               key={key}
@@ -134,7 +133,6 @@ export function ChartContainer({
           <XAxis dataKey={xKey} {...commonAxis} />
           <YAxis {...commonAxis} />
           <Tooltip {...commonTooltip} />
-          {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
           {yKeys.map((key, i) => (
             <Line
               key={key}
@@ -165,7 +163,6 @@ export function ChartContainer({
         <XAxis dataKey={xKey} {...commonAxis} />
         <YAxis {...commonAxis} />
         <Tooltip {...commonTooltip} />
-        {showLegend && <Legend wrapperStyle={{ fontSize: 11 }} />}
         {yKeys.map((key, i) => (
           <Area
             key={key}
@@ -183,8 +180,8 @@ export function ChartContainer({
   };
 
   return (
-    <div style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div style={{ height, width: '100%', minWidth: 0 }}>
+      <ResponsiveContainer width="100%" height="100%" debounce={50}>
         {renderChart()}
       </ResponsiveContainer>
     </div>

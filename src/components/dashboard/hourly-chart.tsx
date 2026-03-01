@@ -10,7 +10,7 @@ interface HourlyChartProps {
 
 export function HourlyChart({ data = [], loading = false }: HourlyChartProps) {
   return (
-    <div className="flex-[1_1_240px] min-w-0 rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px]">
+    <div className="min-w-0 w-full rounded-[10px] border border-[#E3E8EF] bg-white px-5 py-[18px] overflow-hidden">
       <div className="mb-0.5 text-sm font-semibold text-[#202124]">CTR by Hour</div>
       <div className="mb-3.5 text-[11.5px] text-[#9AA0A6]">Average across all platforms</div>
 
